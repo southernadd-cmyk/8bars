@@ -274,12 +274,19 @@ function tick(){
 }
 async function toggle(){
  if(playing){stop();return}
- if(loading)return;
- const b=$("play");b.disabled=true;b.textContent="Loading…";
+ const b=$("play");b.disabled=true;b.textContent="Starting…";
  try{
-   await audioStart();await loadSamples();
+   await audioStart();
+   // Start the audio transport before fetching samples. Missing recordings are
+   // temporarily synthesized; network latency must NEVER prevent playback.
    playing=true;nextStep=0;nextTime=audio.currentTime+.07;startTime=nextTime;
    b.textContent="■ Stop";scheduler=setInterval(tick,25);tick();
+   // Loading happens without blocking either Play or Stop.
+   if(!loading)void loadSamples().catch(err=>{
+     loading=false;
+     console.error("CC0 bank loading failed:",err);
+     say("Playing with synthesized fallback; sample loading failed.");
+   });
  }catch(err){stop();say("Audio error: "+err.message)}
  finally{b.disabled=false}
 }

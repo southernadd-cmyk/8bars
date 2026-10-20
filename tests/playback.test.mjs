@@ -30,13 +30,18 @@ test("missing or invalid individual channel values leave sensible defaults",()=>
  assert.equal(result[ids[3]],1);
  assert.equal(result[ids[4]],0);
 });
-test("audio transport starts before network-dependent sample loading",async()=>{
+test("playback waits for recordings and refuses a partial, silent arrangement",async()=>{
  const {readFileSync}=await import("node:fs");
  const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
- const transport=source.indexOf("transport.start(audio,composition.bpm)");
- const request=source.indexOf("void loadSamples()",transport);
- assert.ok(transport>0&&request>transport,"Audio playback must start before samples download");
- assert.ok(!source.slice(transport,request).includes("await loadSamples()"));
+ const start=source.indexOf("async function toggle(){");
+ const end=source.indexOf("\nfunction save(blob",start);
+ const handler=source.slice(start,end);
+ const load=handler.indexOf("await loadSamples()");
+ const check=handler.indexOf("const missing=neededSamples().filter");
+ const transport=handler.indexOf("transport.start(audio,composition.bpm)");
+ assert.ok(load>=0 && check>load && transport>check,"Transport must start only after all required samples are available");
+ assert.match(handler,/failures\.clear\(\)/,"A retry must clear previous transient failures");
+ assert.match(handler,/if\(missing\.length\)throw Error/);
 });
 
 test("recorded samples are connected to the output for ordinary, bass and pad notes",async()=>{
@@ -106,7 +111,7 @@ test("switching sounds during a download queues the newly selected recording",as
    return Promise.resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
  };
  const loader=new Function("neededSamples","buffers","failures","sourceId","getSample","audio","fetch","say","LOCAL_SAMPLES",
-   "let loading=false,loadAgain=false,playing=true;\n"+segment+"\nreturn loadSamples;"
+   "let loading=false,loadAgain=false,playing=true,loadPromise=null;\n"+segment+"\nreturn loadSamples;"
  )(
    ()=>[{url:selected}],buffers,failures,()=>null,async()=>null,
    {decodeAudioData:async()=>({duration:1})},fetchSample,()=>{},{}

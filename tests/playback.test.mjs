@@ -38,3 +38,54 @@ test("audio transport starts before network-dependent sample loading",async()=>{
  assert.ok(transport>0&&request>transport,"Audio playback must start before samples download");
  assert.ok(!source.slice(transport,request).includes("await loadSamples()"));
 });
+
+test("recorded samples are connected to the output for ordinary, bass and pad notes",async()=>{
+ // Execute the real player function against a small Web Audio graph mock.
+ // This catches graph errors that transport-only tests can never detect.
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ const start=source.indexOf("function playEvent(");
+ const end=source.indexOf("\nfunction audible(",start);
+ assert.ok(start>=0&&end>start);
+ const segment=source.slice(start,end);
+ for(const track of ["lead","bass","pad"]){
+   const created=[];
+   function node(kind){
+     const item={kind,connections:[],connect(other){this.connections.push(other);return other}};
+     if(kind==="source"){
+       item.playbackRate={value:1};
+       item.start=t=>{item.started=t};
+       item.stop=t=>{item.stopped=t};
+     }
+     if(kind==="gain"){
+       item.gain={setValueAtTime(){},linearRampToValueAtTime(){}};
+     }
+     created.push(item);
+     return item;
+   }
+   const context={
+     createBufferSource:()=>node("source"),
+     createGain:()=>node("gain"),
+     createBiquadFilter:()=>node("filter")
+   };
+   const destination=node("destination");
+   const samples=new Map([["local.wav",{duration:2}]]);
+   const makePlayer=new Function("sampleFor","buffers","composition","fallback","isDrum",
+     segment+"\nreturn playEvent;");
+   const player=makePlayer(
+     ()=>({url:"local.wav",root:69}),samples,{bpm:96},
+     ()=>{throw Error("Should use loaded samples")},id=>["kick","snare","hat"].includes(id)
+   );
+   const result=player(context,{track,note:69,duration:2,velocity:.75},.1,destination);
+   const src=created.find(n=>n.kind==="source");
+   const gain=created.find(n=>n.kind==="gain");
+   assert.equal(result,src);
+   assert.deepEqual(src.connections,[gain],track+" sample source must connect to gain");
+   assert.ok(src.started!==undefined&&src.stopped>src.started);
+   const filter=created.find(n=>n.kind==="filter");
+   if(filter){
+     assert.deepEqual(gain.connections,[filter]);
+     assert.deepEqual(filter.connections,[destination]);
+   }else assert.deepEqual(gain.connections,[destination]);
+ }
+});

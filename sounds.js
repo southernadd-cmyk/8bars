@@ -1,5 +1,4 @@
 import {PITCHED_VOICES,PITCHED_VOCAL_REF} from "./pitched-vocals.js";
-import {VOCAL_VOICES} from "./vocal-samples.js";
 import {EXTRA_VOICES} from "./extra-samples.js";
 import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
 import {VCSL_REF,VCSL_VOICES,VCSL_DRUMS} from "./vcsl-samples.js?v=0.6.2";
@@ -413,14 +412,6 @@ for(const [id,definition] of Object.entries(EXTRA_VOICES)){
  VOICE_NAMES[id]=definition.name;
  (VOICE_FAMILIES[definition.family]??=[]).push(id);
 }
-// Short CC0 vocal chops are real recorded sounds, not pitch-labelled instruments.
-// Keep their spoken/vocal speed intact until sung samples have measured pitch.
-VOICE_FAMILIES["Vocal chops"]=[];
-for(const [id,definition] of Object.entries(VOCAL_VOICES)){
- VOICES[id]=definition.files;
- VOICE_NAMES[id]=definition.name;
- VOICE_FAMILIES["Vocal chops"].push(id);
-}
 // Independently recorded, note-labelled human voice samples (MIT dataset).
 // Unlike vocal chops these use the source pitch for melodic playback.
 VOICE_FAMILIES["Vocal melodies"]=[];
@@ -494,7 +485,7 @@ export const REGEN_VOICE_POOLS={
   ],
   "lead": [
     "vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU",
-    "vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects",
+    
     "nylon",
     "nylonBright",
     "steel",
@@ -512,7 +503,7 @@ export const REGEN_VOICE_POOLS={
   ],
   "counter": [
     "vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU",
-    "vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects",
+    
     "violin",
     "cello",
     "trumpet",
@@ -526,7 +517,7 @@ export const REGEN_VOICE_POOLS={
   ],
   "pad": [
     "vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU",
-    "vocalOpenAh","vocalMelisma",
+    
     "harmonium",
     "organ",
     "pianoSoft",

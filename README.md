@@ -122,3 +122,7 @@ A first bank of 23 short vocal edits from 14 individually recorded source files 
 ## Note-labelled sung vocals
 
 The **Vocal melodies** instrument group adds 97 individually recorded mono WAV takes: 68 sung notes spanning 21 recorded pitches, plus 29 vowel recordings (Ah/Eh/Ee/Oh/Oo/U) recorded at C3. These are from [Vocobox Human Voice Dataset](https://github.com/vocobox/human-voice-dataset), pinned to revision `77248fc69fd93c40a69d49c0cade4144c5d7a9f4`, under the project's MIT licence; credit the dataset and singer Martin. The build hosts compressed audio locally; the app's `nearestSample` picks the nearest recorded root note and pitch-shifts only when necessary. Vowel takes were recorded at one root note, and large transpositions may sound less natural. These are human singing recordings, not synthetic voice generation and not yet the larger Northwestern VocalSet archive.
+
+## Vocal sample policy
+
+Unpitched vocal chops are withdrawn from the built-in catalogue and automatic instrument regeneration. The melodic roles now offer only note-labelled recorded vocal voices. Previous shared links referring to withdrawn chops fall back to their normal pitched instrument defaults. The removed chop source assets are no longer copied into the published sample mirror.

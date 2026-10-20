@@ -51,7 +51,7 @@ test("all 12 keys and four styles are supported",()=>{
 test("sample bank contains independently sourced CC0 sample choices",()=>{
   assert.ok(inventory().length>=25);
   assert.equal(new Set(inventory().map(s=>s.url)).size,inventory().length);
-  assert.ok(inventory().every(s=>["CC0 1.0","CC BY 3.0"].includes(s.license)&&s.url.startsWith("https://")));
+  assert.ok(inventory().every(s=>["CC0 1.0","CC BY 3.0","MIT"].includes(s.license)&&s.url.startsWith("https://")));
   assert.ok(inventory().length>=200);
   assert.ok(Object.keys(VOICES).length>=75,"Expect expanded real instrument and articulation choices");
   for(const id of ["bassoon","clarinet","flute","sax"])assert.ok(!Object.hasOwn(VOICES,id),id+" should be withdrawn");
@@ -106,20 +106,6 @@ test("new pitched and bass sample banks use verified recording paths",()=>{
   assert.ok(VOICES[id]?.length>=8,id);
   assert.ok(VOICES[id].every(x=>Number.isInteger(x.root)&&x.source==="Versilian Community Sample Library"));
  }
-});
-
-test("Vocal sample bank uses locally mirrorable, licensed, short recorded chunks",()=>{
- for(const id of ["vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects"]){
-  const sounds=VOICES[id];assert.ok(sounds.length>=(id==="vocalSyllable"?1:4),id);
-  assert.ok(sounds.every(s=>s.oneShot===true&&s.license==="CC0 1.0"&&s.crop.duration>0&&s.crop.duration<=1.6&&s.url.startsWith("https://raw.githubusercontent.com/")));
- }
-});
-
-test("spoken Hola uses a single voiced-onset recording rather than arbitrary silent offsets",()=>{
- const sample=VOICES.vocalSyllable;
- assert.equal(sample.length,1);
- assert.equal(sample[0].crop.removeLeadingSilence,true);
- assert.ok(sample[0].crop.duration>=1.2);
 });
 
 test("sung melodic voices use real note-labelled recordings, distinct from spoken chops",()=>{

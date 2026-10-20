@@ -62,6 +62,14 @@ export function compose(input={}){
   form:choose(rForm,["crescendo","call-response","waves","breakdown","suspension"]),
   turn:choose(rForm,["register","rhythm","contrast","break","answer"])
  };
+ const ENERGY={
+  crescendo:[.65,.75,.87,.93,.98,1.3,1.13,.78],
+  "call-response":[.94,.79,1.07,.68,.9,1.27,.91,.77],
+  waves:[.73,1.08,.7,1.06,.8,1.32,.94,.84],
+  breakdown:[1,.96,.88,.76,.68,1.31,1.08,.8],
+  suspension:[.68,.72,.84,.7,.78,1.2,.88,.68]
+ };
+ const energy=ENERGY[identity.form];
  const bassRhythms=[
  [0,8],[0,6,10,14],[0,4,8,12],[0,3,7,10,13],[0,7,11,14],
  [0,10],[0,4,7,10,13],[0,2,6,9,12],[2,6,10,14],[0,5,12]
@@ -103,7 +111,7 @@ export function compose(input={}){
  const drum=(id,create)=>{const r=stream(id);for(let b=0;b<8;b++)create(r,b,b*16,b===5,b===7)};
  drum("kick",(r,b,o,turn,last)=>{
    for(const i of choose(r,KICKS[identity.groove])){
-     if(i!==0&&r()>.78+density*.19)continue;
+     if(i!==0&&r()>.72+density*.19+(energy[b]-.8)*.15)continue;
      add("kick",o+i,1,i===0?.97:.62+r()*.2,undefined,{variant:Math.floor(r()*3)});
    }
    if((turn||last)&&r()<.6)add("kick",o+15,.5,.4);
@@ -121,7 +129,7 @@ export function compose(input={}){
      add("clap",o+i,1,.46);
  });
  drum("hat",(r,b,o)=>{
-   const count=style==="ambient"?Math.round(2+r()*3):Math.round(4+density*6+r()*3);
+   const count=style==="ambient"?Math.round(2+r()*3*energy[b]):Math.round((4+density*6+r()*3)*energy[b]);
    const pattern=euclidean(count,16,Math.floor(r()*16));
    for(let i=0;i<16;i++)if(pattern[i]&&r()<.9)
      add("hat",o+i,.5,i%4===0?.49:.25+r()*.13);
@@ -131,7 +139,7 @@ export function compose(input={}){
      if(r()<(style==="ambient"?.2:.3+(turn?.18:0)))add("openhat",o+i,2,.45);
  });
  drum("perc",(r,b,o,turn,last)=>{
-   const count=Math.round(2+density*5*r());
+   const count=Math.round((2+density*5*r())*energy[b]);
    const pattern=euclidean(count,16,Math.floor(r()*16));
    for(let i=0;i<16;i++)if(pattern[i]&&r()<.55+(turn?.2:0))
      add("perc",o+i,.75,.3+r()*.17);
@@ -145,20 +153,37 @@ export function compose(input={}){
    const chord=progression[b],root=chord.notes[0]-24;
    const positions=(b<4?bassFigure:bassAnswer).map(s=>b%2&&rb()<.3?Math.min(15,s+1):s);
    for(const i of new Set(positions)){
-     if(i!==positions[0]&&rb()>.65+density*.3)continue;
+     if(i!==positions[0]&&rb()>.65+density*.25+(energy[b]-.8)*.14)continue;
      const roll=rb(),next=progression[Math.min(b+1,7)].notes[0]-24;
      const note=roll<.60?root:roll<.82?root+7:roll<.94?root+12:next;
      add("bass",b*16+i,Math.min(7,16-i),i===0?.87:.55+rb()*.24,note);
    }
  }
 
-  const rc=stream("chords");
+ 
+ const rc=stream("chords");
+ const chordFigures=style==="ambient"?[[0],[0,8]]:style==="house"?[[2,6,10,14],[4,12],[0,8],[6,14]]:
+   [[0,8],[0,10],[3,11],[0],[4,12],[0,6,12]];
+ const chordFigure=choose(rc,chordFigures);
+ let lastVoicing=null;
  for(let b=0;b<8;b++){
-   // Rhythm is harmonic comping, with short rests before phrase transitions.
-   const start=style==="house"?[4,12]:style==="ambient"?[0]:[0,10];
-   for(const s of start)if(s===0||rc()<.82)for(const n of progression[b].notes)
-     add("chords",b*16+s,style==="ambient"?13:style==="house"?3:5,.23+(b===5?.07:0),n+12);
+   const original=progression[b].notes.map(n=>n+12),candidates=[];
+   for(let inversion=0;inversion<original.length;inversion++){
+     const order=original.slice(inversion).concat(original.slice(0,inversion).map(n=>n+12));
+     for(const octave of [-12,0,12]){
+       const notes=order.map(n=>n+octave);
+       if(notes[0]<48||notes.at(-1)>94)continue;
+       const movement=lastVoicing?notes.slice(0,3).reduce((sum,n,i)=>sum+Math.abs(n-lastVoicing[Math.min(i,lastVoicing.length-1)]),0):Math.abs(notes[0]-62);
+       candidates.push({notes,score:movement+rc()*.6});
+     }
+   }
+   const chosen=candidates.sort((a,b)=>a.score-b.score)[0]?.notes||original;
+   lastVoicing=chosen;
+   const rhythm=b<4?chordFigure:choose(rc,[chordFigure,...chordFigures]);
+   for(const i of rhythm)if(i===0||rc()<.69+energy[b]*.13)
+     for(const n of chosen)add("chords",b*16+i,style==="ambient"?Math.min(15,16-i):Math.min(6,16-i),.2+rc()*.13,n);
  }
+
  const ra=stream("arp");
  for(let b=0;b<8;b++){
    const notes=progression[b].notes;
@@ -194,7 +219,7 @@ export function compose(input={}){
    if(b===5)notes=identity.turn==="answer"?notes.reverse():notes.map(n=>clamp(n+1,0,6));
    if(b===6)notes=notes.reverse();
    if(b===7)notes=notes.map(n=>clamp(n-1,0,6));
-   const count=clamp(Math.round(2+density*4)+(b===5?1:0),3,7);
+   const count=clamp(Math.round((2+density*4)*energy[b])+(b===5?1:0),2,7);
    const positions=rhythm.slice(0,count);
    for(let j=0;j<positions.length;j++){
      const pos=positions[j];
@@ -216,16 +241,16 @@ export function compose(input={}){
 
   const rCounter=stream("counter");
  for(let b=0;b<8;b++){
-   if(b<2 && style!=="ambient")continue; // leave space for main motif
-   const starts=[2,8,13];
+   if(b===0&&style!=="ambient"&&rCounter()<.8)continue; // leave space for main motif
+   const starts=choose(rCounter,[[2,8,13],[4,10],[6,12],[1,7,11],[0,8]]);
    const tones=progression[b].notes;
-   for(const i of starts)if(rCounter()<(style==="ambient"?.46:.35+density*.34))
+   for(const i of starts)if(rCounter()<(style==="ambient"?.44:.28+density*.29)*energy[b])
      add("counter",b*16+i,Math.min(4,16-i),.32,tones[Math.floor(rCounter()*3)]+24);
  }
  const rPad=stream("pad");
  for(let b=0;b<8;b++){
-   if(b%2!==0&&b!==5)continue;
-   if(style==="breakbeat"&&rPad()<.5)continue;
+   if(b!==0&&b!==5&&rPad()>.4*energy[b])continue;
+   if(style==="breakbeat"&&rPad()<.24)continue;
    const notes=progression[b].notes;
    for(const n of notes)add("pad",b*16,style==="ambient"?30:b===4?16:Math.min(24,128-b*16),
      style==="ambient"?.22:.14,n+12);
@@ -239,7 +264,7 @@ export function compose(input={}){
  return {version:ENGINE_VERSION,seed,bpm,density,swing,style,key,mode,variations:Object.fromEntries(TRACKS.map(t=>[t.id,Math.trunc(Number(variants[t.id])||0)])),bars:8,stepsPerBar:16,goldenStep:80,progression,motif,identity,events,
  structure:[{bars:"1–3",role:"Statement"},{bars:"4–5",role:"Answer"},{bars:"6–7",role:"Golden turn"},{bars:"8",role:"Return"}],
  explanation:[
-  "5 + 3 bars form the large phrase; the main lift falls at bar 6.",
+  "Eight-bar "+identity.form+" form, with 5 + 3 phrasing and a sixth-bar turn.",
   "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
   "Functional harmonic paths with varied chord-change rhythms create distinct progressions.",
   "The "+identity.groove+" groove varies kick and snare structures, rotates hat patterns, and develops percussion fills.",

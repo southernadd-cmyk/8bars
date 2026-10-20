@@ -4,32 +4,36 @@
 
 **Live site:** https://southernadd-cmyk.github.io/8bars/
 
-## What's in v0.3
+## What's in v0.5
 
+- **Theory-aware composition:** functional cadences, leading-tone resolution, chord-tone emphasis on accented melody notes, stepwise recovery after leaps, and independently moving countermelodies.
 - **Six percussion channels:** kick, snare, clap, closed hat, open hat, and auxiliary percussion.
 - **Six pitched channels:** bass, chords, arpeggio, lead, countermelody and pad. Imported audio can be used on any channel, regardless of its original assignment.
 - **Four composition styles:** downtempo, house, breakbeat and ambient.
 - **Twelve keys**, major and minor mode, tempo, density and swing.
 - Individual channel **mute, solo, level, instrument selection**, and **↻ regenerate this channel**.
-- Live sample playback using a curated bank of **278 curated recordings**, plus on-demand Creative Commons audio discovery, with 29 pitched-instrument presets (including real electric bass, strings, brass, winds, organs and guitars), with synthesis fallback reported when samples are unavailable.
+- Live sample playback using **278 curated recordings**, plus on-demand Creative Commons audio discovery, with 29 pitched-instrument presets (including real electric bass, strings, brass, winds, organs and guitars), with synthesis fallback reported when samples are unavailable.
 - Export a multitrack **Standard MIDI File**, **stereo WAV** and structured **JSON**.
 - Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
 - No browser installs: static HTML/CSS/JavaScript and Web Audio API.
 
-## The rulebook (v0.3)
+## The rulebook (v0.5)
 
 1. **Functional harmony:** Choose one of twelve progressions per mode and one of seven harmonic rhythms. The same four-chord path can move through eight bars differently, with optional extensions and minor-key dominant alterations.
 2. **Voice leading:** Chord comping selects inversions that tend to minimise motion between neighbouring voiced chords, rather than always playing root-position triads.
 3. **Rhythmic identity:** Each song picks a style-appropriate groove family. Kick, snare, hats and percussion have their own rhythmic transformations, Euclidean rotations and fills.
 4. **Bass conversations:** Bass chooses one rhythmic figure and a contrasting response for the second half. Pitches follow chord roots, fifths, octaves and occasionally the next harmonic root.
-5. **Motif development:** Lead melodies choose a contour and phrase rhythm, then develop those by transposition, reversal, inversion and cadence. The sixth-bar golden turn can have different treatments rather than an automatic octave leap.
-6. **Five form shapes:** Crescendo, call-and-response, waves, breakdown and suspension influence event density and when supporting instruments enter; bar six remains the golden-section turn.
-7. **Coordinated instruments:** Bass, chords, arpeggio, countermelody and pad all use the shared harmonic map rather than unrelated pitch choices.
-8. **Deterministic regeneration:** A given engine version, seed and musical settings reproduces the event sequence. Each track uses an independent seeded stream; regenerating one track must not change another. Full Regenerate changes seed and instrument choices.
+5. **Theory-aware melodic motion:** Scale and chord membership, strong-beat resolution, and leap-recovery scoring guide the melody without eliminating syncopation or passing notes.
+6. **Cadence plans:** Five ending types—authentic (V–I), plagal (IV–I), deceptive (V–VI), half (ii–V), and modal (VII–I)—control the final two harmonies and the melodic finish. Minor V chords raise the leading tone.
+7. **Counterpoint:** Counternotes use consonance and contrary movement relative to the harmonic guide, while remaining independent of lead-only regeneration.
+8. **Motif development:** Lead melodies choose a contour and phrase rhythm, then develop those by transposition, reversal, inversion and cadence. The sixth-bar golden turn can have different treatments rather than an automatic octave leap.
+9. **Five form shapes:** Crescendo, call-and-response, waves, breakdown and suspension influence event density and when supporting instruments enter; bar six remains the golden-section turn.
+10. **Coordinated instruments:** Bass, chords, arpeggio, countermelody and pad all use the shared harmonic map rather than unrelated pitch choices.
+11. **Deterministic regeneration:** A given engine version, seed and musical settings reproduces the event sequence. Each track uses an independent seeded stream; regenerating one track must not change another. Full Regenerate changes seed and instrument choices.
 
 These are explicit, rule-driven decisions rather than an LLM or a trained music generation model. [Composition research and remaining work](docs/composition-research.md) describes relevant open-source approaches and next steps.
 
-These are explicit *symbolic AI* rules. We do not use an LLM to invent musical notes. The current engine is a rule-driven planner; it does not yet use a full search/backtracking optimiser or score candidate compositions.
+
 
 ## Searchable Creative Commons catalogue
 

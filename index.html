@@ -4,7 +4,7 @@
 <meta name="theme-color" content="#1e2520">
 <meta name="description" content="8bars — deterministic rule-based music composition with a sample library and multitrack mixer.">
 <title>8bars — music composer</title>
-<link rel="stylesheet" href="./style.css?v=0.3.1">
+<link rel="stylesheet" href="./style.css?v=0.4.3">
 </head>
 <body>
 <div class="shell">
@@ -60,8 +60,19 @@
   </label>
   <p class="import-hint">WAV, MP3, OGG, FLAC and other browser-supported formats. Maximum 25 MB per file and 150 MB for the local library. Audio is saved in your browser where storage is supported, never uploaded. Share links can't carry the actual files.</p>
   <div id="libraryStatus" role="status" aria-live="polite"></div>
+  <section class="commons-search" aria-label="Search Creative Commons audio">
+   <h3>Explore Creative Commons audio</h3>
+   <p class="import-hint">Search Wikimedia Commons for recordings, instruments and effects. Preview before adding. CC0, public-domain and CC BY only; source credits are kept.</p>
+   <form id="commonsForm" class="commons-controls">
+    <label for="commonsQuery">Find a sound</label>
+    <div class="commons-search-row"><input id="commonsQuery" type="search" minlength="2" maxlength="120" placeholder="e.g. rain, snare, birdsong" required><button type="submit">Search</button></div>
+   </form>
+   <div id="commonsStatus" role="status" aria-live="polite"></div>
+   <div id="commonsItems" class="library-items"></div>
+   <button type="button" id="commonsMore" class="commons-more" hidden>Load more sounds</button>
+  </section>
   <h3>Imported audio</h3><div id="libraryItems" class="library-items"><p>No samples imported yet.</p></div>
  </div>
 </dialog>
-<script type="module" src="./app.js?v=0.4.2"></script>
+<script type="module" src="./app.js?v=0.4.3"></script>
 </body></html>

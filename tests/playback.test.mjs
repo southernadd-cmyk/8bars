@@ -71,11 +71,11 @@ test("recorded samples are connected to the output for ordinary, bass and pad no
    };
    const destination=node("destination");
    const samples=new Map([["local.wav",{duration:2}]]);
-   const makePlayer=new Function("sampleFor","buffers","composition","fallback","isDrum",
+   const makePlayer=new Function("sampleFor","buffers","composition","isDrum",
      segment+"\nreturn playEvent;");
    const player=makePlayer(
      ()=>({url:"local.wav",root:69}),samples,{bpm:96},
-     ()=>{throw Error("Should use loaded samples")},id=>["kick","snare","hat"].includes(id)
+     id=>["kick","snare","hat"].includes(id)
    );
    const result=player(context,{track,note:69,duration:2,velocity:.75},.1,destination);
    const src=created.find(n=>n.kind==="source");
@@ -126,6 +126,8 @@ test("missing instrument recordings do not trigger synthetic imitations",async()
  const {readFileSync}=await import("node:fs");
  const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
  assert.doesNotMatch(source,/function fallback\(/);
+ assert.doesNotMatch(source,/createOscillator\s*\(/,"Entire app must use recorded samples, not synthesized tones");
+ assert.doesNotMatch(source,/testAudio|audioTest/,"Synthetic diagnostic should not remain in app");
  const start=source.indexOf("function playEvent("),end=source.indexOf("\nfunction audible(",start);
  assert.ok(start>=0&&end>start);
  const player=new Function("sampleFor","buffers","composition","isDrum",source.slice(start,end)+"\nreturn playEvent;")(

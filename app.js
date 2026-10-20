@@ -306,7 +306,7 @@ async function toggle(){
    });
    playing=true;
    const init=transport.start(audio,composition.bpm);
-   startTime=init.nextTime-(60/composition.bpm/4);
+   startTime=init.origin;
    b.textContent="■ Stop";
    say("Playing · live synth while samples load");
    if(!loading)void loadSamples().catch(err=>{
@@ -315,6 +315,24 @@ async function toggle(){
    });
  }catch(err){stop();say("Audio error: "+err.message);console.error("8bars audio startup:",err)}
  finally{b.disabled=false}
+}
+async function testAudio(){
+ try{
+   await audioStart();
+   if(audio.state!=="running")throw new Error("Web Audio context is "+audio.state);
+   const now=audio.currentTime+.03;
+   const tone=audio.createOscillator(),gain=audio.createGain();
+   tone.type="sine";tone.frequency.setValueAtTime(440,now);
+   gain.gain.setValueAtTime(.001,now);
+   gain.gain.linearRampToValueAtTime(.18,now+.03);
+   gain.gain.exponentialRampToValueAtTime(.001,now+.38);
+   tone.connect(gain).connect(master);
+   tone.start(now);tone.stop(now+.40);
+   say("Audio diagnostic: 440 Hz test tone scheduled. "+(playing?"Loop is running.":"Loop is stopped."));
+ }catch(error){
+   console.error("8bars audio diagnostic failed",error);
+   say("Audio diagnostic failed: "+error.message);
+ }
 }
 function save(blob,filename){
  const url=URL.createObjectURL(blob),a=document.createElement("a");
@@ -412,6 +430,7 @@ function wire(){
    });
  }
  $("play").addEventListener("click",toggle);
+ $("audioTest").addEventListener("click",testAudio);
  $("another").addEventListener("click",()=>{
    const a=new Uint32Array(1);crypto.getRandomValues(a);state.seed=String(a[0]);
    state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));rerender();

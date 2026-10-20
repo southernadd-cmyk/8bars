@@ -28,7 +28,7 @@ function relativeMove(key,mode){
 function planNext(){
   const old=current;
   let key=old?.key??choice(pitchNames),mode=old?.mode??choice(["major","minor"]);
-  let bpm=old?.bpm??choice([82,88,92,96,102,108,114]);
+  let bpm=old?.bpm??choice([88,90,92,94,96,98]);
   let change="new variation";
   if(old){
     changeIn--;
@@ -43,11 +43,11 @@ function planNext(){
         const moved=relativeMove(key,mode);key=moved.key;change="new key";
       }
       const delta=choice([-4,-3,-2,0,2,3,4]);
-      bpm=Math.max(74,Math.min(126,bpm+delta));
+      bpm=Math.max(88,Math.min(98,bpm+delta));
       changeIn=choice([2,3,3,4]);
     }
   }
-  const style=old?.style??choice(STYLES);
+  const style=old?.style??choice(["downtempo","breakbeat"]);
   // Keep the same groove identity/drum sample choices across transitions.
   const voices={...DEFAULT_VOICES};
   for(const role of roles){

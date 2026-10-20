@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,6 +47,20 @@ jobs:
           test -s dist/transport.js
           test -s dist/audio-files.js
           test -s dist/commons-audio.js
+      - name: Restore cached sample recordings
+        uses: actions/cache@v4
+        with:
+          path: .sample-cache
+          key: 8bars-samples-v1-${{ hashFiles('sounds.js', 'instrument-maps.js', 'vcsl-samples.js') }}
+          restore-keys: |
+            8bars-samples-v1-
+      - name: Copy recorded samples into site artifact
+        env:
+          SAMPLE_MIRROR_BUDGET_MB: 180
+        run: |
+          node scripts/mirror-samples.mjs dist
+          test -s dist/sample-map.js
+          test -s dist/sample-mirror-report.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

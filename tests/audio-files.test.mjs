@@ -38,3 +38,21 @@ test("saved samples keep their audio, root note and original channel metadata",a
   }
   assert.equal(await getSample(item.id),null);
 });
+
+test("Creative Commons source credits survive browser storage",async()=>{
+ const sound=audioFile("field.ogg");
+ const saved=await saveSample(sound,{
+   track:"perc",root:60,license:"CC BY",author:"Audio maker",
+   source:"Wikimedia Commons",sourceUrl:"https://commons.wikimedia.org/wiki/File:Field.ogg"
+ });
+ try{
+  const record=await getSample(saved.item.id);
+  assert.equal(record.license,"CC BY");
+  assert.equal(record.author,"Audio maker");
+  assert.equal(record.source,"Wikimedia Commons");
+  assert.equal(record.sourceUrl,"https://commons.wikimedia.org/wiki/File:Field.ogg");
+  const listed=(await allSamples()).items.find(s=>s.id===saved.item.id);
+  assert.equal(listed.license,"CC BY");
+  assert.equal(localSource(listed).license,"CC BY");
+ }finally{await removeSample(saved.item.id)}
+});

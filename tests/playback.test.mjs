@@ -33,7 +33,7 @@ test("missing or invalid individual channel values leave sensible defaults",()=>
 test("audio transport starts before network-dependent sample loading",async()=>{
  const {readFileSync}=await import("node:fs");
  const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
- const transport=source.indexOf("playing=true;nextStep=0");
+ const transport=source.indexOf("transport.start(audio,composition.bpm)");
  const request=source.indexOf("void loadSamples()",transport);
  assert.ok(transport>0&&request>transport,"Audio playback must start before samples download");
  assert.ok(!source.slice(transport,request).includes("await loadSamples()"));

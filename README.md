@@ -25,7 +25,7 @@ Both sources specify CC0 1.0. Sample URLs are pinned to upstream commit identifi
 
 This is a static site. Serve the repository directory with any static HTTP server (for example python -m http.server 8000) and visit localhost:8000. The page imports an ES module, so opening index.html directly as file:// is not supported in all browsers.
 
-To publish from GitHub Pages: Settings → Pages → Build and deployment → Deploy from a branch → main → /(root) → Save.
+GitHub Pages is configured to deploy with **GitHub Actions**. The workflow `.github/workflows/pages.yml` runs `npm test`, packages the static files, and deploys to the `github-pages` environment on every push to `main` (or manually via `workflow_dispatch`). In Settings → Pages, select **GitHub Actions** as the publishing source.
 
 ## Development checks
 

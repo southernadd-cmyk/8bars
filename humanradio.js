@@ -17,6 +17,29 @@ let ctx,master,buses=[],current=null,next=null,loadingNext=false;
 let playing=false,timer=null,step=0,stepTime=0,loops=0,targetLoops=2,segments=0,changeIn=3;
 let lastText="";
 let epoch=0,nextRetryTime=0;
+// Slow cinematic crops and colour grading of the ORIGINAL GIF, not alternate footage.
+// Modest changes preserve the characters and scene; new looks arrive on bar boundaries.
+const visualPresets=[
+  {zoom:1.05,x:0,y:0,hue:0,saturation:1.08,brightness:1.02,contrast:1.02},
+  {zoom:1.16,x:-2.6,y:1.3,hue:-15,saturation:1.25,brightness:1.04,contrast:1.06},
+  {zoom:1.12,x:2.7,y:-1.3,hue:18,saturation:.88,brightness:1.06,contrast:1.03},
+  {zoom:1.20,x:-3.2,y:-1.1,hue:36,saturation:1.14,brightness:.97,contrast:1.08},
+  {zoom:1.13,x:1.4,y:1.7,hue:-29,saturation:.77,brightness:1.08,contrast:1.05},
+  {zoom:1.10,x:-1.5,y:0,hue:7,saturation:1.38,brightness:1,contrast:1.04},
+  {zoom:1.18,x:2.5,y:.8,hue:48,saturation:.92,brightness:1.04,contrast:1.08}
+];
+let lastVisual=-1;
+function changeVisual(){
+  const img=document.querySelector(".scene img");
+  if(!img)return;
+  let index=Math.floor(Math.random()*visualPresets.length);
+  if(index===lastVisual)index=(index+1)%visualPresets.length;
+  lastVisual=index;
+  const p=visualPresets[index];
+  img.style.transform="translate("+p.x+"%, "+p.y+"%) scale("+p.zoom+")";
+  img.style.filter="hue-rotate("+p.hue+"deg) saturate("+p.saturation+") brightness("+p.brightness+") contrast("+p.contrast+")";
+}
+
 
 function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}}
 function rngToken(){const array=new Uint32Array(2);crypto.getRandomValues(array);return Array.from(array,x=>x.toString(36)).join("")}
@@ -160,6 +183,7 @@ function switchPiece(at){
   const prev=current;
   current=next;next=null;loops=0;targetLoops=choice(probabilities);
   segments++;
+  changeVisual();
   gainFor(current);
   current.bus.gain.setValueAtTime(0,at);
   current.bus.gain.linearRampToValueAtTime(.82,at+.4);
@@ -182,7 +206,7 @@ function pump(){
     for(const e of scheduled.events)if(e.step===localStep)playNote(scheduled,e,stepTime);
     step++;
     stepTime+=60/scheduled.bpm/4;
-    if(step===128){step=0;loops++}
+    if(step===128){step=0;loops++;if(loops%2===0)changeVisual()}
   }
   // If the tab was suspended, realign rather than playing a backlog of stale notes.
   if(stepTime<now-.5)stepTime=now+.04;
@@ -198,6 +222,7 @@ async function start(){
       if(!current)current=planNext();
       await prepare(current);
       gainFor(current);
+      changeVisual();
       current.bus.gain.value=.82;
       $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM";
       $("phase").textContent="Piece 1 · shared groove";

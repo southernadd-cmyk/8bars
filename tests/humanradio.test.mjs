@@ -33,3 +33,15 @@ test("Human Radio stays between 88 and 98 BPM and only uses downtempo or breakbe
  assert.match(radio,/Math\.max\(88,Math\.min\(98,bpm\+delta\)\)/);
  assert.match(radio,/old\?\.style\?\?choice\(\["downtempo","breakbeat"\]\)/);
 });
+
+test("Human Radio gives the same GIF changing cinematic crops and colour grades",()=>{
+ assert.match(page,/transition:transform 22s ease-in-out,filter 12s ease-in-out/);
+ assert.match(page,/prefers-reduced-motion:reduce/);
+ assert.match(radio,/const visualPresets=\[/);
+ assert.match(radio,/hue-rotate\(/);
+ assert.match(radio,/saturate\(/);
+ assert.match(radio,/brightness\(/);
+ assert.match(radio,/contrast\(/);
+ assert.match(radio,/if\(loops%2===0\)changeVisual\(\)/);
+ assert.match(radio,/segments\+\+;\s*changeVisual\(\)/);
+});

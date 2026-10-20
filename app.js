@@ -1,5 +1,6 @@
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js";
 import {restoreVolumes} from "./settings.js";
+import {createTransport} from "./transport.js";
 import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,nearestSample,inventory} from "./sounds.js";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
@@ -12,7 +13,8 @@ const state={
   muted:new Set(),solo:new Set()
 };
 let composition=null, audio=null, master=null, buses={}, buffers=new Map(), failures=new Set();
-let playing=false,scheduler=null,nextStep=0,nextTime=0,startTime=0,activeNodes=[],rendering=false,loading=false;
+let playing=false,transport=null,startTime=0,activeNodes=[],rendering=false,loading=false;
+let eventsByStep=Array.from({length:128},()=>[]), lastDisplayedStep=-1, lastDisplayedBar=-1, schedulingErrors=0;
 const SIXTEENTHS=128, STEPS=16;
 const PITCH={kick:36,snare:38,clap:39,hat:42,openhat:46,perc:45};
 function say(message){$("status").textContent=message}
@@ -64,6 +66,8 @@ function updateBuses(){
 function rerender(){
  if(playing)stop();
  composition=compose({...state,density:state.density/100,swing:state.swing/100});
+ eventsByStep=Array.from({length:128},()=>[]);
+ for(const event of composition.events)eventsByStep[event.step].push(event);
  syncControls();syncUrl();paint();
  say(composition.events.length+" notes and hits across "+TRACKS.length+" channels · engine "+ENGINE_VERSION);
 }
@@ -242,44 +246,74 @@ function audible(id){return !state.muted.has(id)&&(state.solo.size===0||state.so
 function swingDelay(step,stepDuration){return step%2===1?stepDuration*(state.swing/100)*.5:0}
 function stop(){
  playing=false;
- if(scheduler!==null){clearInterval(scheduler);scheduler=null}
+ if(transport){transport.stop();transport=null}
  for(const n of activeNodes){try{n.stop()}catch{}}
  activeNodes=[];
+ lastDisplayedStep=-1;lastDisplayedBar=-1;
  $("play").textContent="▶ Play";
  document.querySelectorAll(".hit.current").forEach(e=>e.classList.remove("current"));
 }
-function tick(){
- if(!playing||!audio)return;
+function showStep(){
+ if(!playing||!audio||!transport)return;
  const interval=60/composition.bpm/4;
- while(nextTime<audio.currentTime+.12){
-   for(const e of composition.events)if(e.step===nextStep && audible(e.track))
-     {
-       const node=playEvent(audio,e,nextTime+swingDelay(nextStep,interval),buses[e.track]);
-       activeNodes.push(node);
-       node.onended=()=>{const index=activeNodes.indexOf(node);if(index!==-1)activeNodes.splice(index,1)};
-     }
-   nextStep=(nextStep+1)%SIXTEENTHS;nextTime+=interval;
- }
  const now=Math.max(0,Math.floor((audio.currentTime-startTime)/interval)%SIXTEENTHS);
- document.querySelectorAll(".hit.current").forEach(e=>e.classList.remove("current"));
- for(const e of document.querySelectorAll('.hit[data-step="'+now+'"]'))e.classList.add("current");
+ if(now!==lastDisplayedStep){
+   document.querySelectorAll(".hit.current").forEach(e=>e.classList.remove("current"));
+   for(const e of document.querySelectorAll('.hit[data-step="'+now+'"]'))e.classList.add("current");
+   lastDisplayedStep=now;
+ }
+ const bar=Math.floor(now/16)+1;
+ if(bar!==lastDisplayedBar){
+   lastDisplayedBar=bar;
+   const count=transport.snapshot();
+   say("Playing bar "+bar+"/8 · "+count.total+" steps scheduled · "+buffers.size+" CC0 samples loaded"+(schedulingErrors?" · "+schedulingErrors+" errors (see console)":""));
+ }
+}
+function scheduleStep(step,when,interval){
+ for(const event of eventsByStep[step]){
+   if(!audible(event.track))continue;
+   try{
+     const node=playEvent(audio,event,when+swingDelay(step,interval),buses[event.track]);
+     activeNodes.push(node);
+     node.onended=()=>{const i=activeNodes.indexOf(node);if(i>=0)activeNodes.splice(i,1)};
+   }catch(err){
+     schedulingErrors++;
+     console.error("8bars audio scheduling failed",event,err);
+     // A corrupted/undecodable sample must not silence the entire composition.
+     const sample=sampleFor(event);
+     if(sample)buffers.delete(sample.url);
+     try{
+       const node=fallback(audio,event,when,buses[event.track],Math.max(.05,event.duration*interval));
+       activeNodes.push(node);
+       node.onended=()=>{const i=activeNodes.indexOf(node);if(i>=0)activeNodes.splice(i,1)};
+     }catch(fallbackError){
+       console.error("8bars synthesis also failed",fallbackError);
+     }
+   }
+ }
 }
 async function toggle(){
  if(playing){stop();return}
  const b=$("play");b.disabled=true;b.textContent="Starting…";
  try{
    await audioStart();
-   // Start the audio transport before fetching samples. Missing recordings are
-   // temporarily synthesized; network latency must NEVER prevent playback.
-   playing=true;nextStep=0;nextTime=audio.currentTime+.07;startTime=nextTime;
-   b.textContent="■ Stop";scheduler=setInterval(tick,25);tick();
-   // Loading happens without blocking either Play or Stop.
-   if(!loading)void loadSamples().catch(err=>{
-     loading=false;
-     console.error("CC0 bank loading failed:",err);
-     say("Playing with synthesized fallback; sample loading failed.");
+   if(audio.state!=="running")throw new Error("Audio context is "+audio.state+"; browser playback may be blocked");
+   schedulingErrors=0;
+   transport=createTransport({
+     onStep:scheduleStep,
+     onError:(err,step)=>{schedulingErrors++;console.error("8bars transport step "+step+" failed:",err);say("Playback scheduling error; continuing. "+err.message)},
+     onProgress:()=>showStep()
    });
- }catch(err){stop();say("Audio error: "+err.message)}
+   playing=true;
+   const init=transport.start(audio,composition.bpm);
+   startTime=init.nextTime-(60/composition.bpm/4);
+   b.textContent="■ Stop";
+   say("Playing · live synth while samples load");
+   if(!loading)void loadSamples().catch(err=>{
+     loading=false;console.error("CC0 bank failed",err);
+     say("Playing with synthesized fallback: sample library unavailable");
+   });
+ }catch(err){stop();say("Audio error: "+err.message);console.error("8bars audio startup:",err)}
  finally{b.disabled=false}
 }
 function save(blob,filename){

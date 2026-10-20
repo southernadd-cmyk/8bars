@@ -85,3 +85,24 @@ GitHub Pages **deploys through GitHub Actions**. The [Pages workflow](.github/wo
 ### Authenticity and listening quality
 
 The former bassoon, clarinet, flute and saxophone presets were withdrawn after listening feedback identified poor sound quality. Upstream lists them as sampled instruments, but 8bars' repitching and playback did not reproduce them satisfactorily. A missing or undecodable instrument recording is **never replaced with a synthesised imitation** during composition playback or WAV export. WAV export instead reports unavailable files. The former oscillator-based test tone and its interface were removed, leaving no synthesised audio-generation path in the app. Synthesised drum-machine *recordings* in the drum library remain intentionally available.
+
+## Local playback sample mirror
+
+The Pages build now downloads a **bounded, cached selection** of the existing pinned,
+licensed recording catalogue and deploys those audio bytes under the site's own
+`samples/` directory. The generated `sample-map.js` lists only files actually copied
+into the deployment. Playback preferentially uses those same-origin URLs, with the
+original pinned upstream URL retained for catalogue items not yet mirrored. User-imported
+files stay in the browser's IndexedDB and are never uploaded.
+
+The initial deployment budget is 180 MB for recorded source files, prioritising
+default instrument patches, drum choices, and register coverage across the expanded
+library. Full VCSL audio alone exceeds 1.7 GB, so claiming it is all mirrored would
+be misleading. Each build caches successful recordings through GitHub Actions.
+The build generates `sample-mirror-report.json` with actual file counts and failures;
+it refuses to publish an almost-empty mirror.
+
+**No synthesized replacement instruments** are created. Recordings retain their
+source attribution and licenses in the original manifest. In a future change, the
+rest of the catalogue can be mirrored in compressed formats after checking audible
+quality, bandwidth and deployment size.

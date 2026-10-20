@@ -1,4 +1,4 @@
-import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js";
+import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.3.0";
 import {restoreVolumes} from "./settings.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";

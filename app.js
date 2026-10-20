@@ -358,7 +358,7 @@ async function toggle(){
    b.textContent="■ Stop";
    say("Playing · live synth while samples load");
    void loadSamples().catch(err=>{
-     loading=false;console.error("CC0 bank failed",err);
+     loading=false;console.error("Sample bank failed",err);
      say("Playing with synthesized fallback: sample library unavailable");
    });
  }catch(err){stop();say("Audio error: "+err.message);console.error("8bars audio startup:",err)}

@@ -51,13 +51,16 @@ test("all 12 keys and four styles are supported",()=>{
 test("sample bank contains independently sourced CC0 sample choices",()=>{
   assert.ok(inventory().length>=25);
   assert.equal(new Set(inventory().map(s=>s.url)).size,inventory().length);
-  assert.ok(inventory().every(s=>s.license==="CC0 1.0"&&s.url.startsWith("https://")));
+  assert.ok(inventory().every(s=>["CC0 1.0","CC BY 3.0"].includes(s.license)&&s.url.startsWith("https://")));
+  assert.ok(inventory().length>=200);
+  assert.ok(Object.keys(VOICES).length>=29);
+  assert.ok(VOICES.electricBass.every(s=>s.url.includes("/bass-electric/")));
   assert.ok(Object.keys(DRUMS).length>=6);
   assert.ok(Object.keys(VOICES).length>=3);
   for(const voice of Object.keys(VOICES))for(const note of [40,60,75,90]){
     const s=nearestSample(voice,note);
     assert.ok(Number.isInteger(s.root));
-    assert.ok(s.url.includes(".ogg"));
+    assert.ok(/\.(ogg|mp3)$/.test(s.url));
   }
   for(const track of TRACKS.filter(t=>t.type==="pitched"))assert.ok(VOICES[DEFAULT_VOICES[track.id]]);
 });

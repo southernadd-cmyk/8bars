@@ -53,7 +53,8 @@ test("sample bank contains independently sourced CC0 sample choices",()=>{
   assert.equal(new Set(inventory().map(s=>s.url)).size,inventory().length);
   assert.ok(inventory().every(s=>["CC0 1.0","CC BY 3.0"].includes(s.license)&&s.url.startsWith("https://")));
   assert.ok(inventory().length>=200);
-  assert.ok(Object.keys(VOICES).length>=29);
+  assert.equal(Object.keys(VOICES).length,25);
+  for(const id of ["bassoon","clarinet","flute","sax"])assert.ok(!Object.hasOwn(VOICES,id),id+" should be withdrawn");
   assert.ok(VOICES.electricBass.every(s=>s.url.includes("/bass-electric/")));
   assert.ok(Object.keys(DRUMS).length>=6);
   assert.ok(Object.keys(VOICES).length>=3);

@@ -15,7 +15,7 @@ let playing=false,scheduler=null,nextStep=0,nextTime=0,startTime=0,activeNodes=[
 const SIXTEENTHS=128, STEPS=16;
 const PITCH={kick:36,snare:38,clap:39,hat:42,openhat:46,perc:45};
 function say(message){$("status").textContent=message}
-const savedNum=(v,defaultVal,min,max)=>v!==null&&Number.isFinite(+v)?Math.max(min,Math.min(max,+v)):defaultVal;
+const savedNum=(v,defaultVal,min,max)=>v!==null && v!==undefined && String(v).trim()!=="" && Number.isFinite(Number(v))?Math.max(min,Math.min(max,Number(v))):defaultVal;
 function loadLink(){
  const p=new URLSearchParams(location.search);
  state.seed=(p.get("seed")||state.seed).slice(0,64);
@@ -31,8 +31,16 @@ function loadLink(){
  tones.forEach((id,i)=>{if(VOICES[inst[i]])state.voices[id]=inst[i]});
  const drum=(p.get("drums")||"").split(",");
  TRACKS.filter(t=>t.type==="drum").forEach((t,i)=>state.drumSounds[t.id]=savedNum(drum[i],0,0,2));
- const lv=(p.get("volumes")||"").split(",");
- TRACKS.forEach((t,i)=>state.volumes[t.id]=savedNum(lv[i],state.volumes[t.id],0,1));
+ // Old v0.2 links could contain twelve zero volumes because an absent setting
+ // was parsed as Number("") === 0. Recover those links rather than staying silent.
+ const volumeParam=p.get("volumes");
+ if(volumeParam!==null){
+   const values=volumeParam.split(",");
+   const legacySilent=values.length===TRACKS.length && values.every(v=>v.trim()!=="" && Number(v)===0);
+   if(!legacySilent)TRACKS.forEach((t,i)=>{
+     state.volumes[t.id]=savedNum(values[i],state.volumes[t.id],0,1);
+   });
+ }
  for(const id of (p.get("muted")||"").split(","))if(TRACKS.some(t=>t.id===id))state.muted.add(id);
  for(const id of (p.get("solo")||"").split(","))if(TRACKS.some(t=>t.id===id))state.solo.add(id);
 }

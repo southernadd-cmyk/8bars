@@ -34,3 +34,7 @@ dialog{width:min(710px,calc(100vw - 24px));max-height:86vh;background:#273229;co
 .commons-result a{font-size:11px;overflow-wrap:anywhere}
 .commons-result small{max-width:440px}
 @media(max-width:700px){.commons-search-row button{min-width:79px}.commons-result .entry-actions{align-self:stretch}}
+
+.library-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px}
+.library-title h3{margin:6px 0 9px}
+.library-title button{background:#405342;border:1px solid #68816a;color:#fff;border-radius:4px;cursor:pointer;padding:7px 11px;font-size:12px}

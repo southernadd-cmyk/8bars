@@ -4,8 +4,8 @@
  */
 export function createTransport({onStep,onError=()=>{},onProgress=()=>{},steps=128,lookAhead=.20}){
  if(typeof onStep!=="function")throw new TypeError("onStep required");
- let timer=null,ctx=null,period=0,step=0,nextTime=0,total=0,skipped=0,failures=0,active=false;
- const snapshot=()=>({active,step,total,skipped,failures,nextTime});
+ let timer=null,ctx=null,period=0,step=0,nextTime=0,origin=0,total=0,skipped=0,failures=0,active=false;
+ const snapshot=()=>({active,step,total,skipped,failures,nextTime,origin});
  function pump(){
   if(!active||!ctx)return snapshot();
   const now=ctx.currentTime;
@@ -31,7 +31,7 @@ export function createTransport({onStep,onError=()=>{},onProgress=()=>{},steps=1
   if(active)stop();
   if(!context||!Number.isFinite(context.currentTime))throw new Error("Valid audio context required");
   const rate=Number(bpm);if(!Number.isFinite(rate)||rate<=0)throw new Error("BPM must be positive");
-  ctx=context;period=60/rate/4;step=0;nextTime=ctx.currentTime+.08;
+  ctx=context;period=60/rate/4;step=0;nextTime=ctx.currentTime+.08;origin=nextTime;
   total=0;skipped=0;failures=0;active=true;
   pump();
   if(timerEnabled)timer=setInterval(pump,25);

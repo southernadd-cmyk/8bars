@@ -1,6 +1,6 @@
 // 8bars v0.5 — deterministic symbolic composer; no audio/DOM dependencies.
 import {planCadence,voiceLedPitch,counterpointPitch} from "./theory.js";
-export const ENGINE_VERSION="0.5.0";
+export const ENGINE_VERSION="0.5.1";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
  {id:"kick",name:"Kick",type:"drum",color:"#e6ac74"},

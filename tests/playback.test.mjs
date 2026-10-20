@@ -105,11 +105,11 @@ test("switching sounds during a download queues the newly selected recording",as
    if(url==="first")return new Promise(resolve=>{releaseFirst=resolve});
    return Promise.resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
  };
- const loader=new Function("neededSamples","buffers","failures","sourceId","getSample","audio","fetch","say",
+ const loader=new Function("neededSamples","buffers","failures","sourceId","getSample","audio","fetch","say","LOCAL_SAMPLES",
    "let loading=false,loadAgain=false,playing=true;\n"+segment+"\nreturn loadSamples;"
  )(
    ()=>[{url:selected}],buffers,failures,()=>null,async()=>null,
-   {decodeAudioData:async()=>({duration:1})},fetchSample,()=>{}
+   {decodeAudioData:async()=>({duration:1})},fetchSample,()=>{},{}
  );
  const pending=loader();
  selected="second";

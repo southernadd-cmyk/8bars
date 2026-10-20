@@ -46,7 +46,7 @@ await mkdir(cache,{recursive:true});
 const map={},failed=[];
 let bytes=0,copied=0,skipped=0,done=0;
 // Keep the first deployment bounded; later expand in quality-reviewed batches.
-const candidates=pick.slice(0,2100);
+const candidates=pick;
 let cursor=0;
 async function retrieve(item){
  const hash=createHash("sha256").update(item.url).digest("hex").slice(0,24);
@@ -99,5 +99,5 @@ await writeFile(join(output,"sample-mirror-report.json"),JSON.stringify({
  eligible:candidates.length,totalCatalogCandidates:pick.length,format:"mp3",bitrateKbps:96,mirrored:copied,bytes,skippedBudget:skipped,
  failed:failed.length,failures:failed.slice(0,40)
 },null,2));
-console.log("Mirrored",copied,"of",pick.length,"declared samples,",(bytes/1e6).toFixed(1),"MB; errors",failed.length);
-if(copied<650)throw Error("Insufficient compressed recordings: "+copied+" (at least 650 required)");
+console.log("Mirrored",copied,"of",candidates.length,"declared samples,",(bytes/1e6).toFixed(1),"MB; errors",failed.length);
+if(copied!==candidates.length)throw Error("Incomplete local library: "+copied+"/"+candidates.length+" copied; "+failed.length+" failures, "+skipped+" over budget");

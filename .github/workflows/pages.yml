@@ -29,16 +29,18 @@ jobs:
           node --check transport.js
           node --check audio-files.js
           node --check composer.js
+          node --check commons-audio.js
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html style.css app.js composer.js sounds.js settings.js transport.js audio-files.js .nojekyll dist/
+          cp index.html style.css app.js composer.js sounds.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           test -s dist/index.html
           test -s dist/composer.js
           test -s dist/sounds.js
           test -s dist/settings.js
           test -s dist/transport.js
           test -s dist/audio-files.js
+          test -s dist/commons-audio.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

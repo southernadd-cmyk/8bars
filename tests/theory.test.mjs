@@ -12,7 +12,7 @@ test("functional cadences create intentional, distinct endings",()=>{
   assert.equal(choice.degrees.length,8);
   assert.equal(choice.degrees[0],0);
   assert.deepEqual(degrees,[0,0,3,4,5,3,6,0]);
-  assert.ok(typeof plan.description==="string");
+  assert.ok(typeof choice.description==="string");
  }
  const seen=new Set();
  for(const style of STYLES)for(let n=0;n<60;n++){

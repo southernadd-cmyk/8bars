@@ -12,7 +12,7 @@
 - **Four composition styles:** downtempo, house, breakbeat and ambient.
 - **Twelve keys**, major and minor mode, tempo, density and swing.
 - Individual channel **mute, solo, level, instrument selection**, and **↻ regenerate this channel**.
-- Live sample playback using **488 declared recordings**, plus on-demand Creative Commons audio discovery, with 25 pitched-instrument presets (including real electric bass, strings, brass, organs and guitars), with unavailable recordings left silent rather than synthesised imitation.
+- Live sample playback with **more than 2,000 declared source recordings**, plus on-demand Creative Commons audio discovery, with more than 70 pitched-instrument and articulation choices (including real electric bass, strings, brass, organs and guitars), with unavailable recordings left silent rather than synthesised imitation.
 - Export a multitrack **Standard MIDI File**, **stereo WAV** and structured **JSON**.
 - Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
 - No browser installs: static HTML/CSS/JavaScript and Web Audio API.
@@ -43,7 +43,7 @@ The Sound Library now supports live search and preview of freely reusable **Wiki
 - CC0, public-domain and CC BY audio are eligible. NC, ND, SA and ambiguous licences are intentionally excluded from automatic import pending appropriate usage guidance.
 - Files above 25 MB can be viewed at their source but are not imported (local library remains capped at 150 MB).
 - A source file may be unavailable, blocked by CORS, or not decode in every browser; import reports the error instead of storing a broken sample.
-- **Search results are not part of the bundled 278 sample bank**, and no claim is made about the number of live results or their ongoing availability.
+- **Search results are not part of the built-in sample bank**, and no claim is made about the number of live results or their ongoing availability.
 
 For a larger catalogue, the next provider is **Freesound**. Its API requires credentials and has terms for commercial applications, so integration must not expose secret API keys in GitHub Pages. See [Freesound API](https://freesound.org/docs/api/).
 
@@ -57,7 +57,7 @@ Sound sources are declared in [sounds.js](sounds.js). File URLs point to immutab
 
 **tonejs-instruments, CC BY 3.0** — [source and attribution](https://github.com/nbrosowsky/tonejs-instruments/blob/master/sample-source-info.txt): 20 sampled instruments including electric bass, contrabass, electric guitar, cello, violin, harp, organ, brass and xylophone. Audio is offered under [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). Credit: the original performers and creators identified in the upstream source inventory (Karoryfer, Versilian Studios / VSCO2, University of Iowa and Freesound contributors), and Nicholaus Brosowsky for the edited distribution. The source URLs are pinned to commit 622c2f1c32c8cfce4158ddc3eb26e518ddef37e5.
 
-The catalogue contains **25 pitched-instrument presets**, plus alternate TR-808 and house-kit drum hits. Several acoustic presets are velocity-layer variations of the same instrument, rather than different physical instruments. Some recordings can be selected from more than one channel. Browsers fetch only the files required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case affected notes remain silent, and a warning is shown. WAV export reports missing sources instead of generating substitute sounds.
+The catalogue includes **51 additional playable acoustic instrument/articulation choices** and **1,342 individually recorded pitched notes**, plus **472 newly mapped acoustic percussion selections** from the [Versilian Community Sample Library](https://github.com/sgossner/VCSL) (CC0 1.0, pinned to source revision `c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e`). The catalogue's total exceeds 2,000 source-file references. Some acoustic hits may be offered on more than one drum channel; those are not separate files. The manifest is in [vcsl-samples.js](vcsl-samples.js), extracted from actual upstream GitHub files. No audio was synthesized to generate these additions. The original 25 pitched-instrument presets remain, along with alternate TR-808 and house-kit drum hits. Several acoustic presets are velocity-layer variations of the same instrument, rather than different physical instruments. Some recordings can be selected from more than one channel. Browsers fetch only the files required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case affected notes remain silent, and a warning is shown. WAV export reports missing sources instead of generating substitute sounds.
 
 The next sound-library milestone is to commit the actual curated audio assets (with SHA-256 checksums) instead of runtime-loading them from GitHub, to improve reliability and reproducibility, plus more instruments and velocity layers.
 

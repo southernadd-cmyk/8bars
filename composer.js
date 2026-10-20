@@ -1,5 +1,5 @@
-// 8bars v0.2 — deterministic symbolic composer; no audio/DOM dependencies.
-export const ENGINE_VERSION="0.3.0";
+// 8bars v0.4 — deterministic symbolic composer; no audio/DOM dependencies.
+export const ENGINE_VERSION="0.4.0";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
  {id:"kick",name:"Kick",type:"drum",color:"#e6ac74"},
@@ -70,6 +70,20 @@ export function compose(input={}){
   suspension:[.68,.72,.84,.7,.78,1.2,.88,.68]
  };
  const energy=ENERGY[identity.form];
+ // Euclidean interlock is a shared rhythm plan: the same 16-step bar hosts
+ // distinct pulse counts and phase offsets for bass, chords, arp and melody.
+ // At the 5+3 turn, phase changes and pulse counts can rise or fall.
+ const pulsePlan={
+   bass:2+Math.floor(rForm()*4),
+   chords:2+Math.floor(rForm()*4),
+   melody:3+Math.floor(rForm()*5),
+   arp:4+Math.floor(rForm()*5),
+   phase:Math.floor(rForm()*16),
+   coupling:choose(rForm,["interlock","unison","cross-rhythm"])
+ };
+ identity.euclidean={...pulsePlan};
+ const euclidSteps=(pulses,rotation)=>euclidean(clamp(Math.round(pulses),1,15),16,((rotation%16)+16)%16)
+   .flatMap((hit,step)=>hit?[step]:[]);
  const bassRhythms=[
  [0,8],[0,6,10,14],[0,4,8,12],[0,3,7,10,13],[0,7,11,14],
  [0,10],[0,4,7,10,13],[0,2,6,9,12],[2,6,10,14],[0,5,12]
@@ -149,9 +163,16 @@ export function compose(input={}){
 
  const rb=stream("bass"),bassFigure=choose(rb,bassRhythms);
  const bassAnswer=choose(rb,bassRhythms.filter(fig=>fig!==bassFigure));
+ const bassEuclid=rb()<.82;
  for(let b=0;b<8;b++){
    const chord=progression[b],root=chord.notes[0]-24;
-   const positions=(b<4?bassFigure:bassAnswer).map(s=>b%2&&rb()<.3?Math.min(15,s+1):s);
+   const lattice=euclidSteps(pulsePlan.bass+(b===5?1:0),
+     pulsePlan.phase+(pulsePlan.coupling==="unison"?0:4)+(b>=5?3:0));
+   // Phrase repetition with small transformations feels more intentional than
+   // re-rolling every bar. Some bars still use explicit syncopated figures.
+   const figure=b<5?bassFigure:bassAnswer;
+   const selected=bassEuclid?(b%4===3&&rb()<.45?figure:lattice):figure;
+   const positions=selected.map(pos=>b%2&&rb()<.22?Math.min(15,pos+1):pos);
    for(const i of new Set(positions)){
      if(i!==positions[0]&&rb()>.65+density*.25+(energy[b]-.8)*.14)continue;
      const roll=rb(),next=progression[Math.min(b+1,7)].notes[0]-24;
@@ -165,6 +186,7 @@ export function compose(input={}){
  const chordFigures=style==="ambient"?[[0],[0,8]]:style==="house"?[[2,6,10,14],[4,12],[0,8],[6,14]]:
    [[0,8],[0,10],[3,11],[0],[4,12],[0,6,12]];
  const chordFigure=choose(rc,chordFigures);
+ const chordEuclid=rc()<.78;
  let lastVoicing=null;
  for(let b=0;b<8;b++){
    const original=progression[b].notes.map(n=>n+12),candidates=[];
@@ -179,7 +201,10 @@ export function compose(input={}){
    }
    const chosen=candidates.sort((a,b)=>a.score-b.score)[0]?.notes||original;
    lastVoicing=chosen;
-   const rhythm=b<4?chordFigure:choose(rc,[chordFigure,...chordFigures]);
+   const phase=pulsePlan.phase+(pulsePlan.coupling==="interlock"?8:0)+(b>=5?2:0);
+   const rhythmicCycle=euclidSteps(pulsePlan.chords+(b===5?1:0),phase);
+   const rhythm=chordEuclid?(b%4===3&&rc()<.45?chordFigure:rhythmicCycle):
+     (b<4?chordFigure:choose(rc,[chordFigure,...chordFigures]));
    for(const i of rhythm)if(i===0||rc()<.69+energy[b]*.13)
      for(const n of chosen)add("chords",b*16+i,style==="ambient"?Math.min(15,16-i):Math.min(6,16-i),.2+rc()*.13,n);
  }
@@ -187,7 +212,9 @@ export function compose(input={}){
  const ra=stream("arp");
  for(let b=0;b<8;b++){
    const notes=progression[b].notes;
-   const pattern=euclidean(Math.round(4+density*4),16,b%4);
+   const pattern=euclidean(
+     clamp(pulsePlan.arp+(b===5?2:0),2,13),16,
+     pulsePlan.phase+(pulsePlan.coupling==="cross-rhythm"?5:0)+(b>=5?3:0));
    let i=0;
    for(let s=0;s<16;s++)if(pattern[s]&&ra()<(style==="ambient"?.62:.9)){
      const index=i++%4;
@@ -209,10 +236,15 @@ export function compose(input={}){
  ];
  const rm=stream("lead"),contour=choose(rm,contours);
  const leadFigure=choose(rm,leadRhythms);
+ const leadEuclid=rm()<.85;
  const shift=Math.floor(rm()*3)-1;
  const motif=contour.map(n=>clamp(n+shift,0,6));
  for(let b=0;b<8;b++){
-   const chord=progression[b],rhythm=b<4?leadFigure:choose(rm,[leadFigure,...leadRhythms]);
+   const chord=progression[b];
+   const rotation=pulsePlan.phase+(pulsePlan.coupling==="interlock"?11:0)+(b>=5?5:0);
+   const melodicCycle=euclidSteps(pulsePlan.melody+(b===5?1:0),rotation);
+   const rhythm=leadEuclid?(b===3||b===7?leadFigure:melodicCycle):
+     (b<4?leadFigure:choose(rm,[leadFigure,...leadRhythms]));
    let notes=motif.slice();
    if(b===2||b===3)notes=notes.map(n=>clamp(n+(b===3?1:-1),0,6));
    if(b===4)notes=notes.map(n=>6-n);
@@ -242,7 +274,9 @@ export function compose(input={}){
   const rCounter=stream("counter");
  for(let b=0;b<8;b++){
    if(b===0&&style!=="ambient"&&rCounter()<.8)continue; // leave space for main motif
-   const starts=choose(rCounter,[[2,8,13],[4,10],[6,12],[1,7,11],[0,8]]);
+   const starts=rCounter()<.65?euclidSteps(
+     2+Math.floor(rCounter()*3),pulsePlan.phase+7+(b>=5?4:0)):
+     choose(rCounter,[[2,8,13],[4,10],[6,12],[1,7,11],[0,8]]);
    const tones=progression[b].notes;
    for(const i of starts)if(rCounter()<(style==="ambient"?.44:.28+density*.29)*energy[b])
      add("counter",b*16+i,Math.min(4,16-i),.32,tones[Math.floor(rCounter()*3)]+24);
@@ -267,7 +301,7 @@ export function compose(input={}){
   "Eight-bar "+identity.form+" form, with 5 + 3 phrasing and a sixth-bar turn.",
   "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
   "Functional harmonic paths with varied chord-change rhythms create distinct progressions.",
-  "The "+identity.groove+" groove varies kick and snare structures, rotates hat patterns, and develops percussion fills.",
+  "The "+identity.groove+" groove uses interlocking Euclidean "+pulsePlan.bass+"/"+pulsePlan.chords+"/"+pulsePlan.melody+"/"+pulsePlan.arp+" pulses, with phase shifts after bar five.",
   "Seeded melodic contours are developed using inversion, transposition, reversal and varied phrase rhythms.",
   "The "+identity.turn+" treatment shapes the golden turn at bar six; the final bar prepares the return."
  ]};

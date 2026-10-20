@@ -64,3 +64,33 @@ export function voiceLedPitch({target,chord,scale,tonic,previous=null,previousLe
  }
  return best??Math.round(target);
 }
+
+/**
+ * Choose a harmonically stable counterline that has its own melodic direction.
+ * Prefer thirds/sixths against a simultaneous lead, avoid unisons, and reward
+ * contrary motion when the main melody has clearly moved.
+ */
+export function counterpointPitch({chord,lead=null,previous=null,leadMotion=0}){
+ if(!chord?.length)throw new Error("A chord is required");
+ const choices=[...new Set(chord.flatMap(note=>[-12,0,12,24].map(shift=>note+shift)))]
+   .filter(note=>note>=60&&note<=96);
+ let best=choices[0],bestScore=Infinity;
+ for(const note of choices){
+   let score=Math.abs(note-(previous??79))*.30;
+   if(previous!==null){
+     const delta=note-previous;
+     if(Math.abs(delta)>7)score+=(Math.abs(delta)-7)*2;
+     if(leadMotion&&delta&&Math.sign(delta)===Math.sign(leadMotion))score+=3;
+     if(note===previous)score+=.8;
+   }
+   if(lead!==null){
+     const interval=Math.abs(note-lead);
+     const consonance=interval%12;
+     if(interval<=1)score+=14;
+     if(consonance===3||consonance===4||consonance===8||consonance===9)score-=2;
+     if(consonance===1||consonance===2||consonance===6||consonance===10||consonance===11)score+=4;
+   }
+   if(score<bestScore){bestScore=score;best=note}
+ }
+ return best;
+}

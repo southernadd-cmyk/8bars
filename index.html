@@ -2,6 +2,9 @@
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1e2520">
+<link rel="icon" href="./favicon.ico?v=1" sizes="any">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg?v=1">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png?v=1">
 <meta name="description" content="8bars — deterministic rule-based music composition with a sample library and multitrack mixer.">
 <title>8bars — music composer</title>
 <link rel="stylesheet" href="./style.css?v=0.4.5">
@@ -25,7 +28,7 @@
  </div>
  <div class="actions">
   <button type="button" id="play" class="primary">▶ Play</button>
-  <button type="button" id="another">Regenerate</button>
+  <button type="button" id="another" title="Create a new song with new sounds">New song</button>
   <button type="button" id="copy">Copy link</button>
   <span class="action-separator"></span>
   <button type="button" id="wav">WAV ↓</button><button type="button" id="midi">MIDI ↓</button><button type="button" id="download">JSON ↓</button>
@@ -43,7 +46,7 @@
 <details class="rules"><summary>How the composition is generated</summary><div id="explanation"></div></details>
 </main>
 <footer>
- <span>Sample sources: <a href="https://github.com/tidalcycles/sounds-tr808-fischer" target="_blank" rel="noreferrer">TR-808 / Michael Fischer</a> and <a href="https://github.com/facebookincubator/Meta-open-sound" target="_blank" rel="noreferrer">Meta Open Sound</a>, <a href="https://github.com/octalmusic/octal-samples" target="_blank" rel="noreferrer">Octal house-core</a> (CC0) and <a href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noreferrer">tonejs-instruments</a> (CC BY 3.0).</span>
+ <span>Sample sources: <a href="https://github.com/tidalcycles/sounds-tr808-fischer" target="_blank" rel="noreferrer">TR-808 / Michael Fischer</a> and <a href="https://github.com/facebookincubator/Meta-open-sound" target="_blank" rel="noreferrer">Meta Open Sound</a>, <a href="https://github.com/octalmusic/octal-samples" target="_blank" rel="noreferrer">Octal house-core</a> (CC0) and <a href="https://github.com/nbrosowsky/tonejs-instruments" target="_blank" rel="noreferrer">tonejs-instruments</a> (CC BY 3.0), <a href="https://github.com/sgossner/VCSL" target="_blank" rel="noreferrer">VCSL</a> (CC0), and <a href="https://github.com/vocobox/human-voice-dataset" target="_blank" rel="noreferrer">Vocobox Human Voice Dataset</a> (MIT, vocals by Martin).</span>
  <span>Imported audio stays on your device.</span>
 </footer>
 </div>

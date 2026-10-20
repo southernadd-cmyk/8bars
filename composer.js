@@ -1,6 +1,6 @@
 // 8bars v0.5 — deterministic symbolic composer; no audio/DOM dependencies.
 import {planCadence,voiceLedPitch,counterpointPitch} from "./theory.js";
-export const ENGINE_VERSION="0.5.1";
+export const ENGINE_VERSION="0.5.2";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
  {id:"kick",name:"Kick",type:"drum",color:"#e6ac74"},
@@ -23,7 +23,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(s){let n=2166136261;for(const c of String(s)){n^=c.charCodeAt(0);n=Math.imul(n,16777619)}return n>>>0}
 export function rng(seed,part,salt=0){let n=hash(ENGINE_VERSION+"|"+seed+"|"+part+"|"+salt);return ()=>{n=(n+0x6D2B79F5)>>>0;let x=n;x=Math.imul(x^(x>>>15),x|1);x^=x+Math.imul(x^(x>>>7),x|61);return ((x^(x>>>14))>>>0)/4294967296}}
 const choose=(r,a)=>a[Math.floor(r()*a.length)];
-export function euclidean(k,n,rotation=0){k=clamp(Math.floor(k),0,n);return Array.from({length:n},(_,i)=>((i-rotation+n)*k)%n<k)}
+export function euclidean(k,n,rotation=0){k=clamp(Math.floor(k),0,n);rotation=((Math.floor(rotation)%n)+n)%n;return Array.from({length:n},(_,i)=>((i-rotation+n)*k)%n<k)}
 export function compose(input={}){
  const seed=String(input.seed??"618033");
  const key=ROOTS[input.key]===undefined?"A":input.key,mode=input.mode==="major"?"major":"minor";
@@ -180,7 +180,9 @@ export function compose(input={}){
    for(const i of new Set(positions)){
      if(i!==positions[0]&&rb()>.65+density*.25+(energy[b]-.8)*.14)continue;
      const roll=rb(),next=progression[Math.min(b+1,7)].notes[0]-24;
-     const note=roll<.60?root:roll<.82?root+7:roll<.94?root+12:next;
+     let note=roll<.60?root:roll<.82?root+7:roll<.94?root+12:next;
+     while(note<28)note+=12;
+     while(note>52)note-=12;
      add("bass",b*16+i,Math.min(7,16-i),i===0?.87:.55+rb()*.24,note);
    }
  }

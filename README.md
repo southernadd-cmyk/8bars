@@ -126,3 +126,7 @@ The **Vocal melodies** instrument group adds 97 individually recorded mono WAV t
 ## Vocal sample policy
 
 Unpitched vocal chops are withdrawn from the built-in catalogue and automatic instrument regeneration. The melodic roles now offer only note-labelled recorded vocal voices. Previous shared links referring to withdrawn chops fall back to their normal pitched instrument defaults. The removed chop source assets are no longer copied into the published sample mirror.
+
+## Current icon and composition logic
+
+The Pages build generates an actual multi-size favicon.ico and Apple touch icon from the SVG source. Composer revision 0.5.2 fixes Euclidean rotations and folds bass events into MIDI 28–52. The footer credits VCSL and the MIT-licensed Vocobox singing dataset.

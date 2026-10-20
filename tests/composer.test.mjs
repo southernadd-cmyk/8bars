@@ -116,3 +116,15 @@ test("sung melodic voices use real note-labelled recordings, distinct from spoke
  assert.ok(new Set(VOICES.vocalSungNotes.map(x=>x.root)).size>=20,"Sung notes need broad pitch coverage");
  for(const role of ["lead","counter","pad"])assert.ok(REGEN_VOICE_POOLS[role].includes("vocalSungNotes"));
 });
+
+test("all Euclidean rotations preserve exact pulse count",()=>{
+ for(const n of [8,16,24])for(let k=0;k<=n;k++)for(let rotation=-3*n;rotation<=3*n;rotation++)
+  assert.equal(euclidean(k,n,rotation).filter(Boolean).length,k);
+});
+test("generated bass notes remain in the audible bass register",()=>{
+ for(const key of ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"])
+  for(let seed=0;seed<15;seed++){
+   const events=compose({seed:String(seed),key,style:"house"}).events.filter(e=>e.track==="bass");
+   assert.ok(events.length&&events.every(e=>e.note>=28&&e.note<=52),key);
+  }
+});

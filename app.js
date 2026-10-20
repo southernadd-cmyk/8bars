@@ -1,6 +1,6 @@
 import {sampleGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
-import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.1";
+import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.2";
 import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
 import {createTransport} from "./transport.js";

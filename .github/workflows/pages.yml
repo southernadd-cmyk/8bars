@@ -26,6 +26,7 @@ jobs:
           node --check app.js
           node --check sounds.js
           node --check instrument-maps.js
+          node --check vcsl-samples.js
           node --check settings.js
           node --check transport.js
           node --check audio-files.js
@@ -35,12 +36,13 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html style.css app.js composer.js theory.js sounds.js instrument-maps.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html style.css app.js composer.js theory.js sounds.js instrument-maps.js vcsl-samples.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           test -s dist/index.html
           test -s dist/composer.js
           test -s dist/theory.js
           test -s dist/sounds.js
           test -s dist/instrument-maps.js
+          test -s dist/vcsl-samples.js
           test -s dist/settings.js
           test -s dist/transport.js
           test -s dist/audio-files.js

@@ -1,7 +1,7 @@
 // Public, no-key Commons audio discovery for the browser-based library.
 // Search results are remote catalogue entries, not sounds loaded at startup.
 const API="https://commons.wikimedia.org/w/api.php";
-const MAX_IMPORT=25*1024*1024;
+const MAX_IMPORT=25*1000*1000;
 export const CC_PROVIDER="Wikimedia Commons";
 export function parseLicense(value){
   const name=String(value||"").replace(/<[^>]*>/g,"").trim();

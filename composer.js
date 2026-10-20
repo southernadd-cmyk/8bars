@@ -1,5 +1,5 @@
 // 8bars v0.2 — deterministic symbolic composer; no audio/DOM dependencies.
-export const ENGINE_VERSION="0.2.0";
+export const ENGINE_VERSION="0.3.0";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
  {id:"kick",name:"Kick",type:"drum",color:"#e6ac74"},
@@ -33,17 +33,41 @@ export function compose(input={}){
  const variants=input.variations||{};
  const stream=id=>rng(seed,id,Math.trunc(Number(variants[id])||0));
  const scale=SCALE[mode],tonic=ROOTS[key],rForm=stream("form");
- // Degree progression deliberately gives each musical bar a functional identity.
- const sets=mode==="minor"?[[0,5,3,4],[0,3,5,4],[0,5,4,3]]:[[0,3,1,4],[0,1,3,4],[0,3,4,1]];
- const selected=choose(rForm,sets);
- const degrees=[selected[0],selected[0],selected[1],selected[1],selected[2],selected[3],selected[3],selected[0]];
+
+ // Shared musical identity: chords are chosen from functional paths and varied
+ // harmonic rhythms, rather than the old three locked four-chord templates.
+ const harmonicPaths={
+ major:[[0,4,5,3],[0,5,1,4],[0,3,4,0],[0,1,4,0],[0,2,5,4],[0,4,0,3],[0,5,3,4],[0,2,3,4],[0,3,1,4],[0,1,3,4],[0,4,1,0],[0,6,5,4]],
+ minor:[[0,5,3,4],[0,3,5,4],[0,1,4,0],[0,5,1,4],[0,6,5,4],[0,3,4,0],[0,2,5,4],[0,5,4,3],[0,1,5,4],[0,6,3,4],[0,3,1,4],[0,5,3,0]]
+ };
+ const rhythms={
+ spacious:[0,0,1,1,2,2,3,0],moving:[0,1,2,3,0,1,2,0],
+ question:[0,0,1,2,0,1,3,0],arrival:[0,1,1,2,2,3,3,0],
+ drifting:[0,1,2,2,0,1,3,0],rising:[0,1,2,3,1,2,3,0],
+ suspended:[0,0,1,2,2,3,0,0]
+ };
+ const harmonyPath=choose(rForm,harmonicPaths[mode]);
+ const harmonyRhythm=choose(rForm,Object.keys(rhythms));
+ const degrees=rhythms[harmonyRhythm].map((index,b)=>b===7&&rForm()<.7?0:harmonyPath[index]);
  function diatonic(degree,oct=0){return tonic+12*oct+scale[((degree%7)+7)%7]+12*Math.floor(degree/7)}
  const progression=degrees.map((deg,bar)=>{
    const root=diatonic(deg),third=diatonic(deg+2),fifth=diatonic(deg+4);
-   // Harmonic-minor dominant, introducing the raised seventh on V.
-   return {bar:bar+1,degree:deg,notes:(mode==="minor"&&deg===4)?[root,root+4,root+7]:[root,third,fifth]};
+   const notes=(mode==="minor"&&deg===4)?[root,root+4,root+7]:[root,third,fifth];
+   if(rForm()<.28)notes.push(diatonic(deg+6));
+   return {bar:bar+1,degree:deg,notes};
  });
- const events=[];
+ const identity={
+  groove:choose(rForm,style==="house"?["straight","disco","two-step","syncopated"]:style==="breakbeat"?["broken","syncopated","jungle","half-time"]:style==="ambient"?["soft","floating","half-time","minimal"]:["laidback","half-time","broken","syncopated"]),
+  harmonyRhythm,
+  form:choose(rForm,["crescendo","call-response","waves","breakdown","suspension"]),
+  turn:choose(rForm,["register","rhythm","contrast","break","answer"])
+ };
+ const bassRhythms=[
+ [0,8],[0,6,10,14],[0,4,8,12],[0,3,7,10,13],[0,7,11,14],
+ [0,10],[0,4,7,10,13],[0,2,6,9,12],[2,6,10,14],[0,5,12]
+ ];
+
+  const events=[];
  function add(track,step,duration,velocity,note,extra={}){
    if(step<0||step>=128)return;
    events.push({track,step,duration,velocity:Math.round(clamp(velocity,.05,1)*100)/100,
@@ -83,16 +107,21 @@ export function compose(input={}){
    for(let i=0;i<16;i++)if(pattern[i]&&r()<(climax?.78:.4))add("perc",o+i,1,.35,undefined,{variant:Math.floor(r()*3)});
    if(last&&style!=="ambient")for(const i of [13,14,15])add("perc",o+i,.5,.37,undefined,{variant:2});
  });
- const rb=stream("bass");
+
+ const rb=stream("bass"),bassFigure=choose(rb,bassRhythms);
+ const bassAnswer=choose(rb,bassRhythms.filter(fig=>fig!==bassFigure));
  for(let b=0;b<8;b++){
-   const root=progression[b].notes[0]-24,notes=progression[b].notes.map(n=>n-24);
-   const positions=style==="house"?[0,6,8,14]:style==="ambient"?[0,10]:[0,7,10,14];
-   for(const i of positions)if(i===0||rb()<density*.8){
-     const n=i===14&&b!==7?notes[2]:root;
-     add("bass",b*16+i,i===0?7:3,i===0?.89:.60,n);
+   const chord=progression[b],root=chord.notes[0]-24;
+   const positions=(b<4?bassFigure:bassAnswer).map(s=>b%2&&rb()<.3?Math.min(15,s+1):s);
+   for(const i of new Set(positions)){
+     if(i!==positions[0]&&rb()>.65+density*.3)continue;
+     const roll=rb(),next=progression[Math.min(b+1,7)].notes[0]-24;
+     const note=roll<.60?root:roll<.82?root+7:roll<.94?root+12:next;
+     add("bass",b*16+i,Math.min(7,16-i),i===0?.87:.55+rb()*.24,note);
    }
  }
- const rc=stream("chords");
+
+  const rc=stream("chords");
  for(let b=0;b<8;b++){
    // Rhythm is harmonic comping, with short rests before phrase transitions.
    const start=style==="house"?[4,12]:style==="ambient"?[0]:[0,10];
@@ -148,12 +177,12 @@ export function compose(input={}){
      style==="ambient"?.22:.14,n+12);
  }
  events.sort((a,b)=>a.step-b.step||TRACKS.findIndex(t=>t.id===a.track)-TRACKS.findIndex(t=>t.id===b.track));
- return {version:ENGINE_VERSION,seed,bpm,density,swing,style,key,mode,variations:Object.fromEntries(TRACKS.map(t=>[t.id,Math.trunc(Number(variants[t.id])||0)])),bars:8,stepsPerBar:16,goldenStep:80,progression,motif,events,
+ return {version:ENGINE_VERSION,seed,bpm,density,swing,style,key,mode,variations:Object.fromEntries(TRACKS.map(t=>[t.id,Math.trunc(Number(variants[t.id])||0)])),bars:8,stepsPerBar:16,goldenStep:80,progression,motif,identity,events,
  structure:[{bars:"1–3",role:"Statement"},{bars:"4–5",role:"Answer"},{bars:"6–7",role:"Golden turn"},{bars:"8",role:"Return"}],
  explanation:[
   "5 + 3 bars form the large phrase; the main lift falls at bar 6.",
   "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
-  "Four functional chords are selected, repeated and resolved; bass and harmonic voices share these chord tones.",
+  "Functional harmonic paths with varied chord-change rhythms create distinct progressions.",
   "Euclidean patterns provide distributed accents while a conventional backbeat maintains the pulse.",
   "The lead inherits one five-note motif, modifies it at phrase boundaries, and targets chord tones on strong beats.",
   "At the golden point, the melody moves up an octave; the final bar prepares the loop back into bar 1."

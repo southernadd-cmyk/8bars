@@ -21,7 +21,11 @@ jobs:
         with:
           node-version: '22'
       - name: Verify composition rules
-        run: npm test
+        run: |
+          npm test
+          node --check app.js
+          node --check sounds.js
+          node --check composer.js
       - name: Prepare static site
         run: |
           mkdir -p dist

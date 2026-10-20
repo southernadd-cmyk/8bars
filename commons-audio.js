@@ -45,6 +45,7 @@ export function commonsSearchUrl(query,continuation=null){
     maxlag:"5",origin:"*"
   });
   if(continuation?.gsrcontinue)params.set("gsrcontinue",continuation.gsrcontinue);
+  if(continuation?.gsroffset!==undefined)params.set("gsroffset",String(continuation.gsroffset));
   if(continuation?.continue)params.set("continue",continuation.continue);
   return API+"?"+params.toString();
 }

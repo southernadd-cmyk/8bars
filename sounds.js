@@ -1,3 +1,4 @@
+import {INSTRUMENT_UPGRADES} from "./instrument-maps.js";
 // CC0 catalogue — sampled instruments and TR-808 source files pinned to immutable commits.
 // The manifest declares choices; audio is fetched only when a choice is used.
 const TR="https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/85fbecf1bec32553395625ea659e2a56dfd7c0e1/";
@@ -324,6 +325,12 @@ export const VOICES={
  violin:toneVoice("violin",[[57,"A3"],[67,"G4"],[72,"C5"],[81,"A5"],[88,"E6"],[96,"C7"]]),
  xylophone:toneVoice("xylophone",[[67,"G4"],[72,"C5"],[84,"C6"],[91,"G6"],[103,"G7"],[108,"C8"]]),
 };
+// Expand pitch coverage without adding duplicate instrument labels or presets.
+for(const [id,entry] of Object.entries(INSTRUMENT_UPGRADES)){
+ if(!Object.hasOwn(VOICES,id))throw new Error("Unknown instrument map "+id);
+ VOICES[id]=entry.type==="meta"?metaVoice(entry.folder,entry.notes):
+   toneVoice(entry.folder,entry.notes);
+}
 export const VOICE_NAMES={
   "piano": "Upright piano",
   "pianoSoft": "Soft upright piano",

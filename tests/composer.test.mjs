@@ -61,7 +61,7 @@ test("sample bank contains independently sourced CC0 sample choices",()=>{
   for(const voice of Object.keys(VOICES))for(const note of [40,60,75,90]){
     const s=nearestSample(voice,note);
     assert.ok(Number.isInteger(s.root));
-    assert.ok(/\.(ogg|mp3|wav)$/.test(s.url));
+    assert.ok(/\.(ogg|mp3|wav)$/.test(s.url.split("#")[0]));
   }
   for(const track of TRACKS.filter(t=>t.type==="pitched"))assert.ok(VOICES[DEFAULT_VOICES[track.id]]);
 });

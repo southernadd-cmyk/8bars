@@ -27,3 +27,9 @@ test("radio modulates related keys and limits tempo changes to boundaries",()=>{
  assert.match(radio,/changeIn=choice/);
  assert.match(radio,/bpm\+delta/);
 });
+
+test("Human Radio stays between 88 and 98 BPM and only uses downtempo or breakbeat",()=>{
+ assert.match(radio,/choice\(\[88,90,92,94,96,98\]\)/);
+ assert.match(radio,/Math\.max\(88,Math\.min\(98,bpm\+delta\)\)/);
+ assert.match(radio,/old\?\.style\?\?choice\(\["downtempo","breakbeat"\]\)/);
+});

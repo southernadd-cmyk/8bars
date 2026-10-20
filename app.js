@@ -1,3 +1,4 @@
+import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.1";
 import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
@@ -238,7 +239,10 @@ async function loadSamples(){
              if(!record)throw Error("Imported sample unavailable in this browser");
              data=await record.blob.arrayBuffer();
            }else{
-             const response=await fetch(item.url,{signal:controller.signal});
+             // Mirrored recordings are served from this site's own origin.
+           // Unmirrored sounds retain their original source as a fallback.
+           const sampleUrl=LOCAL_SAMPLES[item.url]||item.url;
+           const response=await fetch(sampleUrl,{signal:controller.signal});
              if(!response.ok)throw Error("HTTP "+response.status);
              data=await response.arrayBuffer();
            }

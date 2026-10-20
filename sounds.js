@@ -1,4 +1,5 @@
 import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
+import {VCSL_REF,VCSL_VOICES,VCSL_DRUMS} from "./vcsl-samples.js?v=0.6.2";
 // CC0 catalogue — sampled instruments and TR-808 source files pinned to immutable commits.
 // The manifest declares choices; audio is fetched only when a choice is used.
 const TR="https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/85fbecf1bec32553395625ea659e2a56dfd7c0e1/";
@@ -289,6 +290,10 @@ const HOUSE_DRUMS={
  ]
 };
 for(const [track,recordings] of Object.entries(HOUSE_DRUMS))DRUMS[track].push(...recordings);
+// Additional *recorded* acoustic drum and percussion one-shots (CC0).
+const vcslUrl=path=>"https://raw.githubusercontent.com/sgossner/VCSL/"+VCSL_REF+"/"+path.split("/").map(encodeURIComponent).join("/");
+for(const [track,samples] of Object.entries(VCSL_DRUMS))
+ DRUMS[track].push(...samples.map(([path,label])=>({url:vcslUrl(path),label:"Recorded · "+label,license:"CC0 1.0",source:"Versilian Community Sample Library"})));
 // Real, pitch-labelled samples. Every filename below is taken from the pinned upstream
 // instrument manifest or Tonejs-Instruments.js map, never inferred from note patterns.
 const TONE="https://raw.githubusercontent.com/nbrosowsky/tonejs-instruments/622c2f1c32c8cfce4158ddc3eb26e518ddef37e5/samples/";
@@ -393,11 +398,23 @@ export const VOICE_FAMILIES={
     "xylophone"
   ]
 };
+// Independent recorded acoustic instruments, with multiple genuine roots and dynamics.
+for(const [id,definition] of Object.entries(VCSL_VOICES)){
+ VOICES[id]=definition.files.map(([root,path,vel])=>({url:vcslUrl(path),root,vel,
+   license:"CC0 1.0",source:"Versilian Community Sample Library"}));
+ VOICE_NAMES[id]=definition.name;
+ (VOICE_FAMILIES[definition.family]??=[]).push(id);
+}
 export const DEFAULT_VOICES={bass:"electricBass",chords:"pianoSoft",arp:"steel",lead:"nylon",counter:"violin",pad:"harmonium"};
 export const DRUM_VARIATIONS=["Mixed"]; // legacy compatibility
-export function nearestSample(voice,note){
+export function nearestSample(voice,note,velocity=.65){
  const list=VOICES[voice]||VOICES.piano;
- return list.reduce((best,s)=>Math.abs(s.root-note)<Math.abs(best.root-note)?s:best,list[0]);
+ const distance=Math.min(...list.map(s=>Math.abs(s.root-note)));
+ const candidates=list.filter(s=>Math.abs(s.root-note)===distance);
+ // Prefer a real sample recorded near the event's dynamic, rather than
+ // mistaking one repitched note for an alternative recording.
+ const requested=Math.max(0,Math.min(100,Math.round(velocity*100)));
+ return candidates.reduce((best,s)=>Math.abs((s.vel??65)-requested)<Math.abs((best.vel??65)-requested)?s:best,candidates[0]);
 }
 export function inventory(){
  return [...new Map([...Object.values(DRUMS).flat(),...Object.values(VOICES).flat()].map(s=>[s.url,s])).values()];
@@ -490,6 +507,23 @@ export const REGEN_VOICE_POOLS={
     "steelSoft"
   ]
 };
+// Extend role-specific generation with playable recorded timbres, not arbitrary
+// substitutions (e.g. a glockenspiel on the bass channel).
+const sampleRange=id=>{
+ const roots=VOICES[id].map(s=>s.root);
+ return [Math.min(...roots),Math.max(...roots)];
+};
+for(const [id,def] of Object.entries(VCSL_VOICES)){
+ const [low,high]=sampleRange(id),family=def.family;
+ for(const [role,pool] of Object.entries(REGEN_VOICE_POOLS)){
+   const suitable=role==="bass"?low<=50&&high>=43&&["Keys & organs","Plucked strings","Winds"].includes(family):
+     role==="chords"?low<=65&&high>=65&&["Keys & organs","Plucked strings","Mallets & bells"].includes(family):
+     role==="arp"?low<=72&&high>=64&&family!=="Winds":
+     role==="pad"?low<=72&&high>=65&&["Keys & organs","Bowed strings","Winds"].includes(family):
+     low<=84&&high>=69;
+   if(suitable)pool.push(id);
+ }
+}
 export function regenerateSelections(currentVoices,currentDrums,randomIndex){
  if(typeof randomIndex!=="function")throw new TypeError("A random index function is required");
  const pick=(options,old)=>{

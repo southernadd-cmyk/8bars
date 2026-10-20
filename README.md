@@ -1,44 +1,62 @@
 # 8bars
 
-A browser-based **symbolic AI** that composes reproducible eight-bar music from a seed. It plans rhythmic, melodic and harmonic material using explicit musical rules, then plays the result with CC0 samples.
+**8bars** is an eight-bar rule-based music composer. It uses symbolic musical rules, seeded randomness, Euclidean rhythms, and the golden ratio to produce repeatable arrangements with **twelve channels**.
 
-**Project site (once GitHub Pages is enabled):** https://southernadd-cmyk.github.io/8bars/
+**Live site:** https://southernadd-cmyk.github.io/8bars/
 
-## Rulebook v0.1
+## What's in v0.2
 
-1. **Form:** eight measures of 4/4; structural subdivision 5 + 3. Sections 1–3 are the statement, 4–5 are the answer, 6–7 the golden-section development, and 8 the return.
-2. **Golden turn:** at the beginning of bar 6 (step 80 of 128), change the melody's register. This is the closest whole-bar boundary to 61.8% of the total duration (79.1 sixteenth-note steps).
-3. **Rhythm:** distribute optional kick and hi-hat onsets over a sixteen-step grid using the Euclidean algorithm; retain familiar kick and snare anchors.
-4. **Harmony:** an eight-bar minor or major progression defines bass roots and the underlying tonal centre. This is currently a fixed template, to be replaced with candidate progression selection and evaluation.
-5. **Motif:** generate a small motif, repeat it, and apply systematic transformations at phrase boundaries. The final bar returns to the opening.
-6. **Instrument relationship:** bass roots follow the harmonic plan. Melodic notes use the selected scale and are shaped by phrase role. Strong-beat chord-tone validation and kick/bass interaction scoring are planned, not yet implemented.
-7. **Determinism:** versioned seed streams control independent subsystems. Identical engine version, seed, controls and sample files yield identical event data.
+- **Six percussion channels:** kick, snare, clap, closed hat, open hat, and auxiliary percussion.
+- **Six pitched channels:** bass, chords, arpeggio, lead, countermelody and pad.
+- **Four composition styles:** downtempo, house, breakbeat and ambient.
+- **Twelve keys**, major and minor mode, tempo, density and swing.
+- Individual channel **mute, solo, level, instrument selection**, and **↻ regenerate this channel**.
+- Live sample playback using a curated bank of **27 CC0 source recordings**, with synthesis fallback reported when samples are unavailable.
+- Export a multitrack **Standard MIDI File**, **stereo WAV** and structured **JSON**.
+- Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
+- No browser installs: static HTML/CSS/JavaScript and Web Audio API.
 
-## Sound sources (all CC0)
+## The rulebook
 
-- **TR-808:** the Michael Fischer recordings in [tidalcycles/sounds-tr808-fischer](https://github.com/tidalcycles/sounds-tr808-fischer), used for kick, snare and closed hi-hat.
-- **Meta Piano:** [facebookincubator/Meta-open-sound](https://github.com/facebookincubator/Meta-open-sound), used for a C3 bass-register sample and C4 melody-register sample, pitch-shifted to the written notes.
+1. **Golden form:** Eight bars are organised as 5 + 3, with 1–3 (statement), 4–5 (answer), 6–7 (golden turn), and 8 (return).
+2. **Golden turn:** A major change in melodic register begins at bar 6, close to the golden-section timestamp.
+3. **Euclidean groove:** Kick, hat, arp and percussion incorporate evenly distributed attacks, while anchor beats preserve a recognisable pulse.
+4. **Harmonic first:** Select a functional four-chord palette, then build an eight-bar progression. Minor-key dominants borrow the raised seventh from harmonic minor.
+5. **Motif inheritance:** The lead builds a five-note motif and alters its contour at phrase boundaries, with important notes drawn to chord tones.
+6. **Coordinated instruments:** Bass, chords, arpeggio, countermelody and pad derive pitch material from the shared harmonic plan. Their rhythmic jobs differ to reduce doubling.
+7. **Deterministic channels:** Each channel has a dedicated seeded stream; regenerating one part increments its own variation number without affecting the others.
+8. **Reproducibility:** An identical engine version, seed, musical settings and source sample files results in the same composition events. Browser output can vary by audio device and sample-decoder implementation.
 
-Both sources specify CC0 1.0. Sample URLs are pinned to upstream commit identifiers in app.js. Audio is fetched directly by the browser; if it cannot be fetched or decoded, the player uses an audible synthesis fallback and reports the number of successful sample loads. This is an explicit **first prototype**, not yet a production-grade sample bank. Later we should vendor and hash selected assets to avoid a runtime network dependency, improve timbre and ensure byte-for-byte archival reproduction.
+These are explicit *symbolic AI* rules. We do not use an LLM to invent musical notes. The current engine is a rule-driven planner; it does not yet use a full search/backtracking optimiser or score candidate compositions.
 
-## Running
+## Sound bank
 
-This is a static site. Serve the repository directory with any static HTTP server (for example python -m http.server 8000) and visit localhost:8000. The page imports an ES module, so opening index.html directly as file:// is not supported in all browsers.
+Sound sources are declared in [sounds.js](sounds.js). File URLs point to immutable Git commit revisions:
 
-GitHub Pages is configured to deploy with **GitHub Actions**. The workflow `.github/workflows/pages.yml` runs `npm test`, packages the static files, and deploys to the `github-pages` environment on every push to `main` (or manually via `workflow_dispatch`). In Settings → Pages, select **GitHub Actions** as the publishing source.
+- **Fischer TR-808 sample collection, CC0** — [TidalCycles repository](https://github.com/tidalcycles/sounds-tr808-fischer): 15 kicks, snares, clap/rim, closed/open hats, toms and cowbell variants in the manifest.
+- **Meta Open Sound, CC0 1.0** — [Meta repository](https://github.com/facebookincubator/Meta-open-sound): 12 selected recordings across upright piano, nylon guitar and steel guitar, with sampled anchor pitches and transposition.
 
-## Development checks
+The actual manifest contains **27 individual sample entries**, not necessarily 27 unique instrument types. Browsers fetch only the entries required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case a simple generated fallback tone is used and a warning is shown. The fallback is explicitly **not** a CC0 recording.
 
-Run \`npm test\` (Node 20+); no external dependencies.
+The next sound-library milestone is to commit the actual curated audio assets (with SHA-256 checksums) instead of runtime-loading them from GitHub, to improve reliability and reproducibility, plus more instruments and velocity layers.
 
-## Current scope / next work
+## Run and develop
 
-- Working eight-bar note-event generation and playback; click Play to unlock browser audio.
-- Adjustable tempo, seed, note density, key and major/minor mode.
-- Track mute, JSON composition export, and a permalink encoding settings.
-- Does **not** yet support WAV/MIDI export, rendering offline, editing notes, instrument selection, full harmonic search/backtracking, or sample provenance hashes.
-- The sound of browser playback can vary slightly by device. **Compositional determinism** covers the notes and scheduling data; bit-identical rendered WAV exports require a fixed offline render pipeline.
+Any static HTTP server works, e.g. \`python -m http.server 8000\` and visit http://localhost:8000 . Opening the files directly with \`file://\` will not support module imports in every browser.
 
-## Guiding question
+Run \`npm test\` using Node 20+ to check composition integrity, deterministic channels, multiple genres, key coverage and sample catalogue.
+
+GitHub Pages **deploys through GitHub Actions**. The [Pages workflow](.github/workflows/pages.yml) tests on every push to \`main\`, packages the static modules and publishes to the \`github-pages\` environment. PRs have separate test checks.
+
+## Planned work
+
+- True offline (bundled) CC0 sample library, hashes, more varied instruments and velocity layers.
+- Pattern/note editor; per-channel locks and arrangement editing rather than only mutations.
+- Harmonic voice-leading evaluation and search-based rule refinement.
+- Choke groups for closed/open hi-hats, sidechain/dynamics, per-track pan and effects.
+- Humanization that remains exactly reproducible, more genres, longer arrangements and stems.
+- Browser playback and export QA across devices; MIDI/WAV comparisons.
+
+### Guiding question
 
 *How far can the golden ratio govern musical form while the result still sounds deliberately composed?*

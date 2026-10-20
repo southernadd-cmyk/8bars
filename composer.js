@@ -1,5 +1,6 @@
-// 8bars v0.4 — deterministic symbolic composer; no audio/DOM dependencies.
-export const ENGINE_VERSION="0.4.0";
+// 8bars v0.5 — deterministic symbolic composer; no audio/DOM dependencies.
+import {planCadence,voiceLedPitch} from "./theory.js";
+export const ENGINE_VERSION="0.5.0";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
  {id:"kick",name:"Kick",type:"drum",color:"#e6ac74"},
@@ -48,15 +49,18 @@ export function compose(input={}){
  };
  const harmonyPath=choose(rForm,harmonicPaths[mode]);
  const harmonyRhythm=choose(rForm,Object.keys(rhythms));
- const degrees=rhythms[harmonyRhythm].map((index,b)=>b===7&&rForm()<.7?0:harmonyPath[index]);
+ const candidateDegrees=rhythms[harmonyRhythm].map(index=>harmonyPath[index]);
+ const cadential=planCadence(candidateDegrees,style,rForm);
+ const degrees=cadential.degrees;
  function diatonic(degree,oct=0){return tonic+12*oct+scale[((degree%7)+7)%7]+12*Math.floor(degree/7)}
  const progression=degrees.map((deg,bar)=>{
    const root=diatonic(deg),third=diatonic(deg+2),fifth=diatonic(deg+4);
    const notes=(mode==="minor"&&deg===4)?[root,root+4,root+7]:[root,third,fifth];
-   if(rForm()<.28)notes.push(diatonic(deg+6));
+   if(rForm()<(deg===4&&bar===6?.65:.28))notes.push(diatonic(deg+6));
    return {bar:bar+1,degree:deg,notes};
  });
  const identity={
+  cadence:cadential.name,
   groove:choose(rForm,style==="house"?["straight","disco","two-step","syncopated"]:style==="breakbeat"?["broken","syncopated","jungle","half-time"]:style==="ambient"?["soft","floating","half-time","minimal"]:["laidback","half-time","broken","syncopated"]),
   harmonyRhythm,
   form:choose(rForm,["crescendo","call-response","waves","breakdown","suspension"]),
@@ -235,6 +239,7 @@ export function compose(input={}){
   [0,6,8,12],[0,2,7,8,13],[0,3,8,11]
  ];
  const rm=stream("lead"),contour=choose(rm,contours);
+ let previousLead=null,previousLeadLeap=0;
  const leadFigure=choose(rm,leadRhythms);
  const leadEuclid=rm()<.85;
  const shift=Math.floor(rm()*3)-1;
@@ -263,8 +268,16 @@ export function compose(input={}){
        const chordTones=chord.notes.map(n=>n+24+(raised?12:0));
        pitch=chordTones.reduce((best,n)=>Math.abs(n-pitch)<Math.abs(best-pitch)?n:best,chordTones[0]);
      }
+     const closing=b===7&&j===positions.length-1;
+     const fitted=voiceLedPitch({
+       target:pitch,chord:chord.notes.map(n=>n+24+(raised?12:0)),
+       scale,tonic,previous:previousLead,previousLeap:previousLeadLeap,
+       strong:pos%4===0||closing,final:closing,cadence:cadential.name
+     });
+     previousLeadLeap=previousLead===null?0:fitted-previousLead;
+     previousLead=fitted;
      const next=positions[j+1]??16;
-     add("lead",b*16+pos,Math.max(.75,Math.min(6,next-pos-.3)),.54+rm()*.2+(b===5?.1:0),pitch);
+     add("lead",b*16+pos,Math.max(.75,Math.min(6,next-pos-.3)),.54+rm()*.2+(b===5?.1:0),fitted);
    }
    if(b===5&&identity.turn==="rhythm")add("lead",b*16+15,.75,.65,chord.notes[0]+36);
    if(b===5&&!events.some(e=>e.track==="lead"&&e.step>=80&&e.step<96))
@@ -300,9 +313,9 @@ export function compose(input={}){
  explanation:[
   "Eight-bar "+identity.form+" form, with 5 + 3 phrasing and a sixth-bar turn.",
   "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
-  "Functional harmonic paths with varied chord-change rhythms create distinct progressions.",
+  "Harmonic function: "+cadential.description+" cadence, with varied chord-change rhythms and inversion choices.",
   "The "+identity.groove+" groove uses interlocking Euclidean "+pulsePlan.bass+"/"+pulsePlan.chords+"/"+pulsePlan.melody+"/"+pulsePlan.arp+" pulses, with phase shifts after bar five.",
-  "Seeded melodic contours are developed using inversion, transposition, reversal and varied phrase rhythms.",
+  "Melodic voice leading favours chord tones at accented notes, stepwise motion and recovery after leaps.",
   "The "+identity.turn+" treatment shapes the golden turn at bar six; the final bar prepares the return."
  ]};
 }

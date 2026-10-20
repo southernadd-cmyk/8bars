@@ -163,3 +163,9 @@ test("vocal one-shots preserve their recorded pitch and timing instead of fake m
  const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
  assert.match(source,/sample\.oneShot\|\|event\.note===undefined\?1:/);
 });
+
+test("spoken one-shots can play beyond a short sequencer note",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ assert.match(source,/sample\.oneShot\?1\.6:duration/);
+});

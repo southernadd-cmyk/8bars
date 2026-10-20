@@ -111,6 +111,13 @@ test("new pitched and bass sample banks use verified recording paths",()=>{
 test("Vocal sample bank uses locally mirrorable, licensed, short recorded chunks",()=>{
  for(const id of ["vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects"]){
   const sounds=VOICES[id];assert.ok(sounds.length>=4,id);
-  assert.ok(sounds.every(s=>s.oneShot===true&&s.license==="CC0 1.0"&&s.crop.duration>0&&s.crop.duration<=1.2&&s.url.startsWith("https://raw.githubusercontent.com/")));
+  assert.ok(sounds.every(s=>s.oneShot===true&&s.license==="CC0 1.0"&&s.crop.duration>0&&s.crop.duration<=1.6&&s.url.startsWith("https://raw.githubusercontent.com/")));
  }
+});
+
+test("spoken Hola uses a single voiced-onset recording rather than arbitrary silent offsets",()=>{
+ const sample=VOICES.vocalSyllable;
+ assert.equal(sample.length,1);
+ assert.equal(sample[0].crop.removeLeadingSilence,true);
+ assert.ok(sample[0].crop.duration>=1.2);
 });

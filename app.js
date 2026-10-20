@@ -304,7 +304,7 @@ function playEvent(ctx,event,when,output){
    gain.connect(filter);outputNode=filter;
  }
  outputNode.connect(output);
- const length=Math.max(.012,Math.min(buffer.duration/playback,duration,event.track==="pad"?2.6:5));
+ const length=Math.max(.012,Math.min(buffer.duration/playback,sample.oneShot?1.6:duration,event.track==="pad"?2.6:5));
  const fade=Math.min(.13,length*.33);
  gain.gain.setValueAtTime(Math.max(.001,amp),when);
  gain.gain.setValueAtTime(Math.max(.001,amp),when+Math.max(.001,length-fade));

@@ -65,11 +65,17 @@ async function retrieve(item){
        // MP3 is broadly supported by mobile and desktop browsers.
        await encode("ffmpeg",[
          "-hide_banner","-loglevel","error","-nostdin","-y",
-         "-i",temp,...(item.crop?["-ss",String(item.crop.start),"-t",String(item.crop.duration)]:[]),"-vn","-map","0:a:0","-map_metadata","-1",
+         "-i",temp,...(item.crop?["-ss",String(item.crop.start),"-t",String(item.crop.duration)]:[]),...(item.crop?.removeLeadingSilence?["-af","silenceremove=start_periods=1:start_duration=0.02:start_threshold=-42dB"]:[]),"-vn","-map","0:a:0","-map_metadata","-1",
          "-codec:a","libmp3lame","-b:a","96k","-ar","44100",converted
        ],{timeout:45000,maxBuffer:1024*1024});
      }finally{await unlink(temp).catch(()=>{})}
      cached=await stat(converted);
+   }
+   if(item.crop?.removeLeadingSilence){
+     // A valid MP3 may contain only digital silence. Reject it before deployment.
+     const check=await encode("ffmpeg",["-hide_banner","-i",converted,"-af","volumedetect","-f","null","-"],{timeout:20000,maxBuffer:1024*1024});
+     const peak=Number(check.stderr.match(/max_volume:\\s*(-?[0-9.]+) dB/)?.[1]??-Infinity);
+     if(!Number.isFinite(peak)||peak < -36)throw Error("Spoken clip is silent after trimming ("+peak+" dB)");
    }
    if(!cached?.size)throw Error("Encoded recording is empty");
    if(bytes+cached.size>limit){skipped++;return}

@@ -90,3 +90,34 @@ test("recorded samples are connected to the output for ordinary, bass and pad no
    }else assert.deepEqual(gain.connections,[destination]);
  }
 });
+
+test("switching sounds during a download queues the newly selected recording",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ const start=source.indexOf("async function loadSamples(){");
+ const end=source.indexOf("\nfunction sampleFor(event){",start);
+ assert.ok(start>=0&&end>start);
+ const segment=source.slice(start,end);
+ let selected="first",releaseFirst;
+ const requested=[],buffers=new Map(),failures=new Set();
+ const fetchSample=url=>{
+   requested.push(url);
+   if(url==="first")return new Promise(resolve=>{releaseFirst=resolve});
+   return Promise.resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
+ };
+ const loader=new Function("neededSamples","buffers","failures","sourceId","getSample","audio","fetch","say",
+   "let loading=false,loadAgain=false,playing=true;\n"+segment+"\nreturn loadSamples;"
+ )(
+   ()=>[{url:selected}],buffers,failures,()=>null,async()=>null,
+   {decodeAudioData:async()=>({duration:1})},fetchSample,()=>{}
+ );
+ const pending=loader();
+ selected="second";
+ await loader();
+ assert.equal(typeof releaseFirst,"function");
+ releaseFirst({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
+ await pending;
+ assert.deepEqual(requested,["first","second"]);
+ assert.equal(buffers.size,2);
+ assert.equal(failures.size,0);
+});

@@ -11,7 +11,7 @@
 - **Four composition styles:** downtempo, house, breakbeat and ambient.
 - **Twelve keys**, major and minor mode, tempo, density and swing.
 - Individual channel **mute, solo, level, instrument selection**, and **↻ regenerate this channel**.
-- Live sample playback using a curated bank of **over 200 distinct recorded sound files**, with 29 pitched-instrument presets (including real electric bass, strings, brass, winds, organs and guitars), with synthesis fallback reported when samples are unavailable.
+- Live sample playback using a curated bank of **278 curated recordings**, plus on-demand Creative Commons audio discovery, with 29 pitched-instrument presets (including real electric bass, strings, brass, winds, organs and guitars), with synthesis fallback reported when samples are unavailable.
 - Export a multitrack **Standard MIDI File**, **stereo WAV** and structured **JSON**.
 - Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
 - No browser installs: static HTML/CSS/JavaScript and Web Audio API.
@@ -30,6 +30,18 @@
 These are explicit, rule-driven decisions rather than an LLM or a trained music generation model. [Composition research and remaining work](docs/composition-research.md) describes relevant open-source approaches and next steps.
 
 These are explicit *symbolic AI* rules. We do not use an LLM to invent musical notes. The current engine is a rule-driven planner; it does not yet use a full search/backtracking optimiser or score candidate compositions.
+
+## Searchable Creative Commons catalogue
+
+The Sound Library now supports live search and preview of freely reusable **Wikimedia Commons audio**. Results carry licence and creator metadata. Importing a result saves the recording locally in IndexedDB for use on any mixer channel, without uploading it to 8bars. Source and attribution are retained in the library and in arrangement JSON exports.
+
+- The search is paginated; browsing does not preload recordings.
+- CC0, public-domain and CC BY audio are eligible. NC, ND, SA and ambiguous licences are intentionally excluded from automatic import pending appropriate usage guidance.
+- Files above 25 MB can be viewed at their source but are not imported (local library remains capped at 150 MB).
+- A source file may be unavailable, blocked by CORS, or not decode in every browser; import reports the error instead of storing a broken sample.
+- **Search results are not part of the bundled 278 sample bank**, and no claim is made about the number of live results or their ongoing availability.
+
+For a larger catalogue, the next provider is **Freesound**. Its API requires credentials and has terms for commercial applications, so integration must not expose secret API keys in GitHub Pages. See [Freesound API](https://freesound.org/docs/api/).
 
 ## Sound bank
 

@@ -626,8 +626,33 @@ async function searchCommons(more=false){
  }catch(error){if(error.name!=="AbortError")$("commonsStatus").textContent="Commons search unavailable: "+error.message}
  finally{if(commonsController===controller)commonsController=null}
 }
+function downloadSampleCredits(){
+ const lines=["8bars — sound credits","", "Sources used in this arrangement:", ""];
+ for(const track of TRACKS){
+   const local=selectedLocal(track.id);
+   let sources;
+   if(local)sources=[local];
+   else if(track.type==="drum")sources=[DRUMS[track.id][state.drumSounds[track.id]||0]];
+   else sources=VOICES[state.voices[track.id]]||VOICES.piano;
+   lines.push(track.name+":");
+   const unique=new Map(sources.map(s=>[s.url,s]));
+   for(const entry of unique.values()){
+     lines.push("  "+(entry.label||state.voices[track.id]||entry.url));
+     lines.push("  Licence: "+(entry.license||"Check source licence"));
+     if(entry.author)lines.push("  Creator: "+entry.author);
+     if(entry.source)lines.push("  Source: "+entry.source);
+     if(entry.sourceUrl||entry.url?.startsWith("https://"))lines.push("  "+(entry.sourceUrl||entry.url));
+   }
+   lines.push("");
+ }
+ lines.push("Creative Commons audio may require attribution when redistributed with finished music.");
+ lines.push("tonejs-instruments original creator credits: https://github.com/nbrosowsky/tonejs-instruments/blob/master/sample-source-info.txt");
+ save(new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"}),stem()+"-credits.txt");
+ $("libraryStatus").textContent="Sample credits downloaded.";
+}
 function wireCommons(){
  $("commonsForm").addEventListener("submit",event=>{event.preventDefault();void searchCommons(false)});
+ $("exportSampleCredits").addEventListener("click",downloadSampleCredits);
  $("commonsMore").addEventListener("click",()=>void searchCommons(true));
  $("sampleDialog").addEventListener("close",()=>{
    commonsPreview.pause();commonsPreview.removeAttribute("src");commonsPreview.load();

@@ -12,7 +12,7 @@
 - **Four composition styles:** downtempo, house, breakbeat and ambient.
 - **Twelve keys**, major and minor mode, tempo, density and swing.
 - Individual channel **mute, solo, level, instrument selection**, and **↻ regenerate this channel**.
-- Live sample playback using **278 curated recordings**, plus on-demand Creative Commons audio discovery, with 29 pitched-instrument presets (including real electric bass, strings, brass, winds, organs and guitars), with synthesis fallback reported when samples are unavailable.
+- Live sample playback using **488 declared recordings**, plus on-demand Creative Commons audio discovery, with 25 pitched-instrument presets (including real electric bass, strings, brass, organs and guitars), with unavailable recordings left silent rather than synthesised imitation.
 - Export a multitrack **Standard MIDI File**, **stereo WAV** and structured **JSON**.
 - Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
 - No browser installs: static HTML/CSS/JavaScript and Web Audio API.
@@ -55,9 +55,9 @@ Sound sources are declared in [sounds.js](sounds.js). File URLs point to immutab
 - **Octal house-core, CC0 1.0** — [project, sound provenance and license](https://github.com/octalmusic/octal-samples): additional house kicks, snares, claps, closed/open hats, shaker, tom, crash, ride and percussion hits. Manifest pinned to commit 22d222ce36e290ba3792c776811aa9c69dcc8776.
 - **Meta Open Sound, CC0 1.0** — [Meta repository](https://github.com/facebookincubator/Meta-open-sound): multi-sampled upright piano, nylon guitar and steel guitar. Each selection is verified against its published manifest.
 
-**tonejs-instruments, CC BY 3.0** — [source and attribution](https://github.com/nbrosowsky/tonejs-instruments/blob/master/sample-source-info.txt): 20 sampled instruments including electric bass, contrabass, electric guitar, cello, violin, harp, organ, brass, winds and xylophone. Audio is offered under [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). Credit: the original performers and creators identified in the upstream source inventory (Karoryfer, Versilian Studios / VSCO2, University of Iowa and Freesound contributors), and Nicholaus Brosowsky for the edited distribution. The source URLs are pinned to commit 622c2f1c32c8cfce4158ddc3eb26e518ddef37e5.
+**tonejs-instruments, CC BY 3.0** — [source and attribution](https://github.com/nbrosowsky/tonejs-instruments/blob/master/sample-source-info.txt): 20 sampled instruments including electric bass, contrabass, electric guitar, cello, violin, harp, organ, brass and xylophone. Audio is offered under [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). Credit: the original performers and creators identified in the upstream source inventory (Karoryfer, Versilian Studios / VSCO2, University of Iowa and Freesound contributors), and Nicholaus Brosowsky for the edited distribution. The source URLs are pinned to commit 622c2f1c32c8cfce4158ddc3eb26e518ddef37e5.
 
-The catalogue contains **29 pitched-instrument presets**, plus alternate TR-808 and house-kit drum hits. Several acoustic presets are velocity-layer variations of the same instrument, rather than different physical instruments. Some recordings can be selected from more than one channel. Browsers fetch only the files required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case a simple generated fallback tone is used and a warning is shown. The fallback is explicitly **not** a CC0 recording.
+The catalogue contains **25 pitched-instrument presets**, plus alternate TR-808 and house-kit drum hits. Several acoustic presets are velocity-layer variations of the same instrument, rather than different physical instruments. Some recordings can be selected from more than one channel. Browsers fetch only the files required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case affected notes remain silent, and a warning is shown. WAV export reports missing sources instead of generating substitute sounds.
 
 The next sound-library milestone is to commit the actual curated audio assets (with SHA-256 checksums) instead of runtime-loading them from GitHub, to improve reliability and reproducibility, plus more instruments and velocity layers.
 
@@ -81,3 +81,7 @@ GitHub Pages **deploys through GitHub Actions**. The [Pages workflow](.github/wo
 ### Guiding question
 
 *How far can the golden ratio govern musical form while the result still sounds deliberately composed?*
+
+### Authenticity and listening quality
+
+The former bassoon, clarinet, flute and saxophone presets were withdrawn after listening feedback identified poor sound quality. Upstream lists them as sampled instruments, but 8bars' repitching and playback did not reproduce them satisfactorily. A missing or undecodable instrument recording is **never replaced with a synthesised imitation** during composition playback or WAV export. WAV export instead reports unavailable files. The clearly identified 440 Hz audio diagnostic is only a diagnostic test, never a selectable instrument. Synthesised drum-machine *recordings* in the drum library remain intentionally available.

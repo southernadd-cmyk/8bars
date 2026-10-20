@@ -1,5 +1,5 @@
 // 8bars v0.5 — deterministic symbolic composer; no audio/DOM dependencies.
-import {planCadence,voiceLedPitch} from "./theory.js";
+import {planCadence,voiceLedPitch,counterpointPitch} from "./theory.js";
 export const ENGINE_VERSION="0.5.0";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
@@ -285,14 +285,21 @@ export function compose(input={}){
  }
 
   const rCounter=stream("counter");
+ let lastCounter=null,previousGuide=null;
  for(let b=0;b<8;b++){
-   if(b===0&&style!=="ambient"&&rCounter()<.8)continue; // leave space for main motif
+   // Stable harmonic guide keeps lead-only regeneration independent of counter.
+   const tones=progression[b].notes,guide=tones[1]+24;
+   const motion=previousGuide===null?0:guide-previousGuide;
+   previousGuide=guide;
+   if(b===0&&style!=="ambient"&&rCounter()<.8)continue;
    const starts=rCounter()<.65?euclidSteps(
      2+Math.floor(rCounter()*3),pulsePlan.phase+7+(b>=5?4:0)):
      choose(rCounter,[[2,8,13],[4,10],[6,12],[1,7,11],[0,8]]);
-   const tones=progression[b].notes;
-   for(const i of starts)if(rCounter()<(style==="ambient"?.44:.28+density*.29)*energy[b])
-     add("counter",b*16+i,Math.min(4,16-i),.32,tones[Math.floor(rCounter()*3)]+24);
+   for(const i of starts)if(rCounter()<(style==="ambient"?.44:.28+density*.29)*energy[b]){
+     const note=counterpointPitch({chord:tones,lead:guide,previous:lastCounter,leadMotion:motion});
+     add("counter",b*16+i,Math.min(4,16-i),.27+rCounter()*.11,note);
+     lastCounter=note;
+   }
  }
  const rPad=stream("pad");
  for(let b=0;b<8;b++){
@@ -312,7 +319,7 @@ export function compose(input={}){
  structure:[{bars:"1–3",role:"Statement"},{bars:"4–5",role:"Answer"},{bars:"6–7",role:"Golden turn"},{bars:"8",role:"Return"}],
  explanation:[
   "Eight-bar "+identity.form+" form, with 5 + 3 phrasing and a sixth-bar turn.",
-  "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
+  "Individual tracks retain independent seeds; the countermelody uses contrary motion and consonant harmonic intervals.",
   "Harmonic function: "+cadential.description+" cadence, with varied chord-change rhythms and inversion choices.",
   "The "+identity.groove+" groove uses interlocking Euclidean "+pulsePlan.bass+"/"+pulsePlan.chords+"/"+pulsePlan.melody+"/"+pulsePlan.arp+" pulses, with phase shifts after bar five.",
   "Melodic voice leading favours chord tones at accented notes, stepwise motion and recovery after leaps.",

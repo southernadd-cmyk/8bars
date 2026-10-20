@@ -7,11 +7,11 @@
 ## What's in v0.2
 
 - **Six percussion channels:** kick, snare, clap, closed hat, open hat, and auxiliary percussion.
-- **Six pitched channels:** bass, chords, arpeggio, lead, countermelody and pad.
+- **Six pitched channels:** bass, chords, arpeggio, lead, countermelody and pad. Imported audio can be used on any channel, regardless of its original assignment.
 - **Four composition styles:** downtempo, house, breakbeat and ambient.
 - **Twelve keys**, major and minor mode, tempo, density and swing.
 - Individual channel **mute, solo, level, instrument selection**, and **↻ regenerate this channel**.
-- Live sample playback using a curated bank of **27 CC0 source recordings**, with synthesis fallback reported when samples are unavailable.
+- Live sample playback using a curated bank of **95 distinct CC0 source recordings** offered through drum choices and nine pitched-instrument profiles, with synthesis fallback reported when samples are unavailable.
 - Export a multitrack **Standard MIDI File**, **stereo WAV** and structured **JSON**.
 - Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
 - No browser installs: static HTML/CSS/JavaScript and Web Audio API.
@@ -36,7 +36,7 @@ Sound sources are declared in [sounds.js](sounds.js). File URLs point to immutab
 - **Fischer TR-808 sample collection, CC0** — [TidalCycles repository](https://github.com/tidalcycles/sounds-tr808-fischer): 15 kicks, snares, clap/rim, closed/open hats, toms and cowbell variants in the manifest.
 - **Meta Open Sound, CC0 1.0** — [Meta repository](https://github.com/facebookincubator/Meta-open-sound): 12 selected recordings across upright piano, nylon guitar and steel guitar, with sampled anchor pitches and transposition.
 
-The actual manifest contains **27 individual sample entries**, not necessarily 27 unique instrument types. Browsers fetch only the entries required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case a simple generated fallback tone is used and a warning is shown. The fallback is explicitly **not** a CC0 recording.
+The catalogue currently contains **95 distinct audio files**, including alternative drum hits and three instrument families at multiple dynamics and pitches. Some recordings can be selected from more than one channel. Browsers fetch only the files required by the current mixer configuration. Sample downloads can fail due to network restrictions, in which case a simple generated fallback tone is used and a warning is shown. The fallback is explicitly **not** a CC0 recording.
 
 The next sound-library milestone is to commit the actual curated audio assets (with SHA-256 checksums) instead of runtime-loading them from GitHub, to improve reliability and reproducibility, plus more instruments and velocity layers.
 

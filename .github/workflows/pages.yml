@@ -25,14 +25,16 @@ jobs:
           npm test
           node --check app.js
           node --check sounds.js
+          node --check settings.js
           node --check composer.js
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html style.css app.js composer.js sounds.js .nojekyll dist/
+          cp index.html style.css app.js composer.js sounds.js settings.js .nojekyll dist/
           test -s dist/index.html
           test -s dist/composer.js
           test -s dist/sounds.js
+          test -s dist/settings.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

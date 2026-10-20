@@ -1,3 +1,4 @@
+import {sampleGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.1";
 import {restoreVolumes} from "./settings.js";
@@ -112,15 +113,31 @@ function paint(){
    const select=el("select","instrument");
    select.setAttribute("aria-label",t.name+" sample or instrument");
    if(t.type==="drum"){
-     const choices=el("optgroup");choices.label="CC0 recordings";
-     DRUMS[t.id].forEach((item,i)=>choices.append(new Option(item.label||("Variation "+(i+1)),String(i))));
-     select.append(choices);
+    const sources=new Map();
+    DRUMS[t.id].forEach((item,i)=>{
+     const source=item.source||"Recorded percussion";
+     if(!sources.has(source))sources.set(source,[]);
+     sources.get(source).push([item,i]);
+    });
+    for(const [source,items] of sources){
+     const group=el("optgroup");group.label=source;
+     for(const [item,i] of items)group.append(new Option(item.label||("Variation "+(i+1)),String(i)));
+     select.append(group);
+    }
    }else{
-     for(const [family,ids] of Object.entries(VOICE_FAMILIES)){
-       const choices=el("optgroup");choices.label=family;
-       for(const id of ids)choices.append(new Option(VOICE_NAMES[id],id));
-       select.append(choices);
+    for(const [family,ids] of Object.entries(VOICE_FAMILIES)){
+     const sources=new Map();
+     for(const id of ids){
+      const source=VOICES[id]?.[0]?.source||"Recorded instruments";
+      if(!sources.has(source))sources.set(source,[]);
+      sources.get(source).push(id);
      }
+     for(const [source,entries] of sources){
+      const group=el("optgroup");group.label=family+" · "+source;
+      for(const id of entries)group.append(new Option(VOICE_NAMES[id],id));
+      select.append(group);
+     }
+    }
    }
    const owned=userLibrary; // Any imported sound may be used on any channel.
    if(owned.length){
@@ -280,7 +297,7 @@ function playEvent(ctx,event,when,output){
  src.connect(gain);
  const playback=event.note===undefined?1:Math.pow(2,(event.note-sample.root)/12);
  src.playbackRate.value=playback;
- const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52);
+ const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52)*sampleGain(buffer);
  let outputNode=gain;
  if(event.track==="bass"||event.track==="pad"){
    const filter=ctx.createBiquadFilter();filter.type="lowpass";filter.frequency.value=event.track==="bass"?750:1150;

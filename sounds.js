@@ -1,3 +1,4 @@
+import {EXTRA_VOICES} from "./extra-samples.js";
 import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
 import {VCSL_REF,VCSL_VOICES,VCSL_DRUMS} from "./vcsl-samples.js?v=0.6.2";
 // CC0 catalogue — sampled instruments and TR-808 source files pinned to immutable commits.
@@ -402,6 +403,11 @@ export const VOICE_FAMILIES={
 for(const [id,definition] of Object.entries(VCSL_VOICES)){
  VOICES[id]=definition.files.map(([root,path,vel])=>({url:vcslUrl(path),root,vel,
    license:"CC0 1.0",source:"Versilian Community Sample Library"}));
+ VOICE_NAMES[id]=definition.name;
+ (VOICE_FAMILIES[definition.family]??=[]).push(id);
+}
+for(const [id,definition] of Object.entries(EXTRA_VOICES)){
+ VOICES[id]=definition.files.map(([root,path,vel])=>({url:vcslUrl(path),root,vel,license:"CC0 1.0",source:"Versilian Community Sample Library"}));
  VOICE_NAMES[id]=definition.name;
  (VOICE_FAMILIES[definition.family]??=[]).push(id);
 }

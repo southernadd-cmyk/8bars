@@ -110,3 +110,7 @@ quality, bandwidth and deployment size.
 ### Complete local-sample requirement
 
 The mirror includes every declared licensed source recording, not a fixed-count subset. The build refuses to deploy if any declared file fails download, conversion, or inclusion. Playback waits until all samples needed for the current composition have finished loading, and explicitly refuses to start when a recording remains unavailable. Pressing Play retries transient failures instead of permanently marking that sample unavailable. No synthesised audio is substituted.
+
+## Expanded recorded sounds and loudness
+
+Instrument selectors group sources by instrument family and recording provider. Percussion selectors group source recordings without changing index values in shared links. Seven additional CC0 recorded patches from Versilian Community Sample Library add 286 pitch-labelled samples, including low strumstick and sampled FM keyboard sounds useful for bass and melody. Every built-in sound is mirrored to this site's static audio bank. A non-destructive peak-aware RMS sample-gain calculation moderates differences in recorded levels, respecting individual note velocity and mixer volume; WAV export uses the same adjustment. Vocal chops are being evaluated separately for suitable licensing and pitch behaviour.

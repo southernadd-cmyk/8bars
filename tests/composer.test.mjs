@@ -100,3 +100,10 @@ test("main Regenerate button actually uses instrument randomisation",async()=>{
   assert.match(handler,/userAssignments\.clear\(\)/);
   assert.match(handler,/rerender\(\)/);
 });
+
+test("new pitched and bass sample banks use verified recording paths",()=>{
+ for(const id of ["vcStrumstickFinger","vcClavisynth","vcFMPiano","vcFMPiano1","vcBassRecorderVib"]){
+  assert.ok(VOICES[id]?.length>=8,id);
+  assert.ok(VOICES[id].every(x=>Number.isInteger(x.root)&&x.source==="Versilian Community Sample Library"));
+ }
+});

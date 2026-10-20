@@ -1,3 +1,4 @@
+import {sampleGain} from "../sample-levels.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {restoreVolumes} from "../settings.js";
@@ -76,11 +77,11 @@ test("recorded samples are connected to the output for ordinary, bass and pad no
    };
    const destination=node("destination");
    const samples=new Map([["local.wav",{duration:2}]]);
-   const makePlayer=new Function("sampleFor","buffers","composition","isDrum",
+   const makePlayer=new Function("sampleFor","buffers","composition","isDrum","sampleGain",
      segment+"\nreturn playEvent;");
    const player=makePlayer(
      ()=>({url:"local.wav",root:69}),samples,{bpm:96},
-     id=>["kick","snare","hat"].includes(id)
+     id=>["kick","snare","hat"].includes(id),sampleGain
    );
    const result=player(context,{track,note:69,duration:2,velocity:.75},.1,destination);
    const src=created.find(n=>n.kind==="source");
@@ -136,7 +137,7 @@ test("missing instrument recordings do not trigger synthetic imitations",async()
  const start=source.indexOf("function playEvent("),end=source.indexOf("\nfunction audible(",start);
  assert.ok(start>=0&&end>start);
  const player=new Function("sampleFor","buffers","composition","isDrum",source.slice(start,end)+"\nreturn playEvent;")(
-  ()=>({url:"missing.wav",root:60}),new Map(),{bpm:96},()=>false);
+  ()=>({url:"missing.wav",root:60}),new Map(),{bpm:96},()=>false,sampleGain);
  let oscillators=0;
  const context={createOscillator(){oscillators++;throw Error("No oscillator fallback allowed")}};
  assert.equal(player(context,{track:"lead",note:60,duration:2,velocity:.6},.1,{}),null);
@@ -148,4 +149,11 @@ test("WAV export rejects unavailable recordings",async()=>{
  const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
  assert.match(source,/const missing=neededSamples\(\)\.filter\(sound=>!buffers\.has\(sound\.url\)\)/);
  assert.match(source,/if\(missing\.length\)throw Error/);
+});
+
+test("gain matches recorded sample loudness conservatively without boosting silence",()=>{
+ const recorded=n=>({numberOfChannels:1,length:44100,sampleRate:44100,getChannelData:()=>new Float32Array(44100).fill(n)});
+ assert.ok(sampleGain(recorded(.6))<1);
+ assert.ok(sampleGain(recorded(.025))>1);
+ assert.equal(sampleGain(recorded(0)),1);
 });

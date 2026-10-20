@@ -224,6 +224,7 @@ function playEvent(ctx,event,when,output){
  if(!buffer)return fallback(ctx,event,when,output,duration);
  const src=ctx.createBufferSource(),gain=ctx.createGain();
  src.buffer=buffer;
+ src.connect(gain);
  const playback=event.note===undefined?1:Math.pow(2,(event.note-sample.root)/12);
  src.playbackRate.value=playback;
  const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52);

@@ -409,3 +409,34 @@ export function nearestSample(voice,note){
 export function inventory(){
  return [...new Map([...Object.values(DRUMS).flat(),...Object.values(VOICES).flat()].map(s=>[s.url,s])).values()];
 }
+
+
+/**
+ * A new composition gets new sound choices as well as new musical events.
+ * Pools keep the random combinations suitable for their musical roles.
+ * Mixer dropdowns still offer the full catalogue for manual selection.
+ */
+export const REGEN_VOICE_POOLS={
+ bass:["electricBass","uprightBass","cello","tuba","bassoon","organ","harmonium","electricGuitar","concertPiano","piano"],
+ chords:["piano","pianoSoft","pianoBright","concertPiano","organ","harmonium","nylon","steel","acousticGuitar","electricGuitar","classicalGuitar","harp"],
+ arp:["piano","pianoBright","concertPiano","nylon","steel","acousticGuitar","electricGuitar","classicalGuitar","harp","xylophone","harmonium"],
+ lead:["nylon","nylonBright","steel","steelBright","acousticGuitar","electricGuitar","classicalGuitar","violin","cello","flute","clarinet","sax","trumpet","horn","xylophone","harp","concertPiano"],
+ counter:["violin","cello","flute","clarinet","sax","trumpet","horn","trombone","harp","organ","concertPiano","electricGuitar","steelSoft"],
+ pad:["harmonium","organ","pianoSoft","concertPiano","violin","cello","flute","horn","trombone","harp","nylonFinger","steelSoft"]
+};
+export function regenerateSelections(currentVoices,currentDrums,randomIndex){
+ if(typeof randomIndex!=="function")throw new TypeError("A random index function is required");
+ const pick=(options,old)=>{
+   const alternatives=options.filter(value=>value!==old);
+   if(!alternatives.length)return old;
+   const index=randomIndex(alternatives.length);
+   if(!Number.isInteger(index)||index<0||index>=alternatives.length)throw new RangeError("Invalid random index");
+   return alternatives[index];
+ };
+ const voices={...currentVoices},drumSounds={...currentDrums};
+ for(const [track,ids] of Object.entries(REGEN_VOICE_POOLS))
+   voices[track]=pick(ids.filter(id=>Object.hasOwn(VOICES,id)),currentVoices[track]);
+ for(const [track,items] of Object.entries(DRUMS))
+   drumSounds[track]=pick(items.map((_,index)=>index),currentDrums[track]);
+ return {voices,drumSounds};
+}

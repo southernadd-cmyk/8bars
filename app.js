@@ -100,11 +100,11 @@ function paint(){
    if(t.type==="drum"){
      DRUM_VARIATIONS.forEach((label,i)=>select.append(new Option(label,i)));
      select.value=state.drumSounds[t.id];
-     select.addEventListener("change",()=>{state.drumSounds[t.id]=+select.value;syncUrl();});
+     select.addEventListener("change",()=>{state.drumSounds[t.id]=+select.value;if(playing)stop();syncUrl();say("Percussion sample changed. Press Play to hear it.");});
    }else{
      Object.entries(VOICE_NAMES).forEach(([k,label])=>select.append(new Option(label,k)));
      select.value=state.voices[t.id];
-     select.addEventListener("change",()=>{state.voices[t.id]=select.value;syncUrl();});
+     select.addEventListener("change",()=>{state.voices[t.id]=select.value;if(playing)stop();syncUrl();say("Instrument changed. Press Play to load the selected samples.");});
    }
    const volume=el("input","volume");volume.type="range";volume.min="0";volume.max="100";volume.step="1";
    volume.value=String(Math.round(state.volumes[t.id]*100));volume.title="Volume for "+t.name;
@@ -253,10 +253,13 @@ function tick(){
  const interval=60/composition.bpm/4;
  while(nextTime<audio.currentTime+.12){
    for(const e of composition.events)if(e.step===nextStep && audible(e.track))
-     activeNodes.push(playEvent(audio,e,nextTime+swingDelay(nextStep,interval),buses[e.track]));
+     {
+       const node=playEvent(audio,e,nextTime+swingDelay(nextStep,interval),buses[e.track]);
+       activeNodes.push(node);
+       node.onended=()=>{const index=activeNodes.indexOf(node);if(index!==-1)activeNodes.splice(index,1)};
+     }
    nextStep=(nextStep+1)%SIXTEENTHS;nextTime+=interval;
  }
- activeNodes=activeNodes.filter(n=>{try{return n.playbackState!==3}catch{return true}});
  const now=Math.max(0,Math.floor((audio.currentTime-startTime)/interval)%SIXTEENTHS);
  document.querySelectorAll(".hit.current").forEach(e=>e.classList.remove("current"));
  for(const e of document.querySelectorAll('.hit[data-step="'+now+'"]'))e.classList.add("current");

@@ -4,7 +4,7 @@
 
 **Live site:** https://southernadd-cmyk.github.io/8bars/
 
-## What's in v0.2
+## What's in v0.3
 
 - **Six percussion channels:** kick, snare, clap, closed hat, open hat, and auxiliary percussion.
 - **Six pitched channels:** bass, chords, arpeggio, lead, countermelody and pad. Imported audio can be used on any channel, regardless of its original assignment.
@@ -16,16 +16,18 @@
 - Shareable URL preserves seed, settings, voice/kit selections, volume, mute/solo and per-channel variations.
 - No browser installs: static HTML/CSS/JavaScript and Web Audio API.
 
-## The rulebook
+## The rulebook (v0.3)
 
-1. **Golden form:** Eight bars are organised as 5 + 3, with 1–3 (statement), 4–5 (answer), 6–7 (golden turn), and 8 (return).
-2. **Golden turn:** A major change in melodic register begins at bar 6, close to the golden-section timestamp.
-3. **Euclidean groove:** Kick, hat, arp and percussion incorporate evenly distributed attacks, while anchor beats preserve a recognisable pulse.
-4. **Harmonic first:** Select a functional four-chord palette, then build an eight-bar progression. Minor-key dominants borrow the raised seventh from harmonic minor.
-5. **Motif inheritance:** The lead builds a five-note motif and alters its contour at phrase boundaries, with important notes drawn to chord tones.
-6. **Coordinated instruments:** Bass, chords, arpeggio, countermelody and pad derive pitch material from the shared harmonic plan. Their rhythmic jobs differ to reduce doubling.
-7. **Deterministic channels:** Each channel has a dedicated seeded stream; regenerating one part increments its own variation number without affecting the others.
-8. **Reproducibility:** An identical engine version, seed, musical settings and source sample files results in the same composition events. Browser output can vary by audio device and sample-decoder implementation.
+1. **Functional harmony:** Choose one of twelve progressions per mode and one of seven harmonic rhythms. The same four-chord path can move through eight bars differently, with optional extensions and minor-key dominant alterations.
+2. **Voice leading:** Chord comping selects inversions that tend to minimise motion between neighbouring voiced chords, rather than always playing root-position triads.
+3. **Rhythmic identity:** Each song picks a style-appropriate groove family. Kick, snare, hats and percussion have their own rhythmic transformations, Euclidean rotations and fills.
+4. **Bass conversations:** Bass chooses one rhythmic figure and a contrasting response for the second half. Pitches follow chord roots, fifths, octaves and occasionally the next harmonic root.
+5. **Motif development:** Lead melodies choose a contour and phrase rhythm, then develop those by transposition, reversal, inversion and cadence. The sixth-bar golden turn can have different treatments rather than an automatic octave leap.
+6. **Five form shapes:** Crescendo, call-and-response, waves, breakdown and suspension influence event density and when supporting instruments enter; bar six remains the golden-section turn.
+7. **Coordinated instruments:** Bass, chords, arpeggio, countermelody and pad all use the shared harmonic map rather than unrelated pitch choices.
+8. **Deterministic regeneration:** A given engine version, seed and musical settings reproduces the event sequence. Each track uses an independent seeded stream; regenerating one track must not change another. Full Regenerate changes seed and instrument choices.
+
+These are explicit, rule-driven decisions rather than an LLM or a trained music generation model. [Composition research and remaining work](docs/composition-research.md) describes relevant open-source approaches and next steps.
 
 These are explicit *symbolic AI* rules. We do not use an LLM to invent musical notes. The current engine is a rule-driven planner; it does not yet use a full search/backtracking optimiser or score candidate compositions.
 
@@ -47,7 +49,7 @@ The next sound-library milestone is to commit the actual curated audio assets (w
 
 Any static HTTP server works, e.g. \`python -m http.server 8000\` and visit http://localhost:8000 . Opening the files directly with \`file://\` will not support module imports in every browser.
 
-Run \`npm test\` using Node 20+ to check composition integrity, deterministic channels, multiple genres, key coverage and sample catalogue.
+Run \`npm test\` using Node 20+ to check composition integrity, deterministic channels, multiple genres, key coverage, sample catalogue and cross-seed musical diversity.
 
 GitHub Pages **deploys through GitHub Actions**. The [Pages workflow](.github/workflows/pages.yml) tests on every push to \`main\`, packages the static modules and publishes to the \`github-pages\` environment. PRs have separate test checks.
 

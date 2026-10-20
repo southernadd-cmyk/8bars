@@ -16,3 +16,5 @@ dialog{width:min(710px,calc(100vw - 24px));max-height:86vh;background:#273229;co
  .instrument{max-width:none;min-width:120px;flex:1 1 120px}
  .volume{min-width:64px;max-width:none;flex:1 1 64px}
 }
+
+.instrument{font-size:12px;max-width:170px}

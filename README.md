@@ -44,3 +44,7 @@ Run `npm test` in Node.js 22+ and serve the directory over HTTP (for example `py
 Future work includes audible and browser QA, a pattern editor, editable arrangements, stems, improved dynamics, hi-hat choke behaviour and more musical voice-leading tests.
 
 **Guiding question:** *How far can the golden ratio govern musical form while the result still sounds deliberately composed?*
+
+## Human Radio
+
+[Human Radio](humanradio.html) is an endless, full-screen stream built from the real eight-bar composer. Each composition repeats two or three times while the next is generated and its required real recordings are preloaded. The drum groove evolves: selected kick, snare or hi-hat patterns and drum sounds persist across adjacent pieces, while other drums and pitched parts change. A new groove is possible at every piece boundary. Every two to four pieces, the harmony may modulate to a related key and the tempo may move slightly, with a shared rhythmic anchor on larger transitions. Piece boundaries receive a short audio-bus crossfade. If audio cannot be preloaded, the current piece continues repeating rather than going silent. Browsers require a listener click to start audio.

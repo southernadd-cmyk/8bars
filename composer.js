@@ -74,38 +74,69 @@ export function compose(input={}){
      ...(note===undefined?{}:{note}),...extra});
  }
  // Each channel receives a separate RNG. Mutating one channel cannot alter any other.
- const kit=style==="house"?"straight":style==="breakbeat"?"broken":style==="ambient"?"soft":"laidback";
- const drum=(id,create)=>{const r=stream(id);for(let bar=0;bar<8;bar++)create(r,bar,bar*16,bar===5,bar===7)};
- drum("kick",(r,b,o,climax,last)=>{
-   const pulses=euclidean(Math.round(3+density*2),16,b%2===0?0:1);
-   for(let i=0;i<16;i++){
-     const primary=kit==="straight"?(i%4===0):kit==="soft"?(i===0||i===8):(i===0||i===8||pulses[i]&&r()<.37);
-     if(primary && (!last||i<15))add("kick",o+i,1,i===0?.98:.70,undefined,{variant:Math.floor(r()*3)});
+
+ // Groove families have different kick/snare foundations, not one fixed
+ // beat per genre. Each track adds its own seeded bar-to-bar transformation.
+ const KICKS={
+ straight:[[0,4,8,12],[0,4,8,12,14]],
+ disco:[[0,4,8,12],[0,4,8,12,15]],
+ "two-step":[[0,7,10,14],[0,6,11],[0,3,10,13]],
+ syncopated:[[0,3,7,10,14],[0,6,9,13],[0,5,8,11,14]],
+ broken:[[0,6,10],[0,3,8,11],[0,7,10,14]],
+ jungle:[[0,3,6,10,13],[0,4,7,11,14],[0,2,7,10,15]],
+ "half-time":[[0,8],[0,7,10],[0,10,14]],
+ laidback:[[0,8],[0,7,10],[0,10,14]],
+ soft:[[0],[0,8],[0,10]],
+ floating:[[0],[0,11],[0,8]],
+ minimal:[[0,8],[0,10],[0,6,12]]
+ };
+ const SNARES={
+ straight:[[4,12]],disco:[[4,12]],
+ "two-step":[[4,12],[4,11]],
+ syncopated:[[4,12],[3,12],[4,11]],
+ broken:[[4,11],[5,12],[4,10,14]],
+ jungle:[[4,10,12],[4,11,14]],
+ "half-time":[[8],[8,15]],
+ laidback:[[4,12],[8,12]],
+ soft:[[12]],floating:[[12],[10]],minimal:[[12],[8]]
+ };
+ const drum=(id,create)=>{const r=stream(id);for(let b=0;b<8;b++)create(r,b,b*16,b===5,b===7)};
+ drum("kick",(r,b,o,turn,last)=>{
+   for(const i of choose(r,KICKS[identity.groove])){
+     if(i!==0&&r()>.78+density*.19)continue;
+     add("kick",o+i,1,i===0?.97:.62+r()*.2,undefined,{variant:Math.floor(r()*3)});
    }
+   if((turn||last)&&r()<.6)add("kick",o+15,.5,.4);
  });
- drum("snare",(r,b,o,climax,last)=>{
-   const anchors=kit==="soft"?[12]:kit==="broken"?[4,11]:[4,12];
-   for(const i of anchors)add("snare",o+i,1,i===4?.82:.76,undefined,{variant:Math.floor(r()*3)});
-   if((climax||last)&&style!=="ambient"){for(let i=14;i<=15;i++)if(r()<.6)add("snare",o+i,.5,.4,undefined,{variant:Math.floor(r()*3)});}
+ drum("snare",(r,b,o,turn,last)=>{
+   for(const i of choose(r,SNARES[identity.groove]))
+     add("snare",o+i,1,.68+r()*.2,undefined,{variant:Math.floor(r()*3)});
+   if(turn||last)for(const i of [13,14,15])if(r()<.4+density*.25)
+     add("snare",o+i,.5,.3+r()*.2,undefined,{variant:Math.floor(r()*3)});
  });
- drum("clap",(r,b,o,climax)=>{
-   if(style==="ambient")return;
-   if(b%2===1||climax){for(const i of (style==="house"?[4,12]:[12]))if(r()<.92)add("clap",o+i,1,.52,undefined,{variant:0});}
+ drum("clap",(r,b,o)=>{
+   if(style==="ambient"&&r()<.55)return;
+   const hits=choose(r,[[4,12],[12],[4],[8,12]]);
+   if(b%2===1||r()<.45)for(const i of hits)if(r()<.75)
+     add("clap",o+i,1,.46);
  });
- drum("hat",(r,b,o,climax)=>{
-   const count=style==="ambient"?3:Math.round(5+5*density);
-   const pattern=euclidean(count,16,b%2);
-   for(let i=0;i<16;i++)if(pattern[i]&&r()<.94)add("hat",o+i,.5,i%4===0?.51:.31,undefined,{variant:Math.floor(r()*2)});
+ drum("hat",(r,b,o)=>{
+   const count=style==="ambient"?Math.round(2+r()*3):Math.round(4+density*6+r()*3);
+   const pattern=euclidean(count,16,Math.floor(r()*16));
+   for(let i=0;i<16;i++)if(pattern[i]&&r()<.9)
+     add("hat",o+i,.5,i%4===0?.49:.25+r()*.13);
  });
- drum("openhat",(r,b,o,climax)=>{
-   const positions=style==="house"?[2,6,10,14]:[6,14];
-   for(const i of positions)if(r()<(style==="ambient"?.1:.23+(climax?.22:0)))add("openhat",o+i,2,.48,undefined,{variant:Math.floor(r()*2)});
+ drum("openhat",(r,b,o,turn)=>{
+   for(const i of choose(r,[[2,6,10,14],[6,14],[3,11],[7,15],[2,10]]))
+     if(r()<(style==="ambient"?.2:.3+(turn?.18:0)))add("openhat",o+i,2,.45);
  });
- drum("perc",(r,b,o,climax,last)=>{
-   const count=style==="ambient"?2:Math.round(2+density*3);
-   const pattern=euclidean(count,16,(b*3)%16);
-   for(let i=0;i<16;i++)if(pattern[i]&&r()<(climax?.78:.4))add("perc",o+i,1,.35,undefined,{variant:Math.floor(r()*3)});
-   if(last&&style!=="ambient")for(const i of [13,14,15])add("perc",o+i,.5,.37,undefined,{variant:2});
+ drum("perc",(r,b,o,turn,last)=>{
+   const count=Math.round(2+density*5*r());
+   const pattern=euclidean(count,16,Math.floor(r()*16));
+   for(let i=0;i<16;i++)if(pattern[i]&&r()<.55+(turn?.2:0))
+     add("perc",o+i,.75,.3+r()*.17);
+   if(last&&style!=="ambient")for(const i of [12,14,15])if(r()<.7)
+     add("perc",o+i,.5,.38);
  });
 
  const rb=stream("bass"),bassFigure=choose(rb,bassRhythms);
@@ -199,6 +230,11 @@ export function compose(input={}){
    for(const n of notes)add("pad",b*16,style==="ambient"?30:b===4?16:Math.min(24,128-b*16),
      style==="ambient"?.22:.14,n+12);
  }
+ // Keep sparse forms sparse, but never produce a completely absent mixer channel.
+ for(const t of TRACKS)if(!events.some(e=>e.track===t.id)){
+   const note=t.type==="pitched"?progression[0].notes[0]+(t.id==="bass"?-24:12):undefined;
+   add(t.id,0,Math.min(4,128),t.type==="drum"?.36:.23,note);
+ }
  events.sort((a,b)=>a.step-b.step||TRACKS.findIndex(t=>t.id===a.track)-TRACKS.findIndex(t=>t.id===b.track));
  return {version:ENGINE_VERSION,seed,bpm,density,swing,style,key,mode,variations:Object.fromEntries(TRACKS.map(t=>[t.id,Math.trunc(Number(variants[t.id])||0)])),bars:8,stepsPerBar:16,goldenStep:80,progression,motif,identity,events,
  structure:[{bars:"1–3",role:"Statement"},{bars:"4–5",role:"Answer"},{bars:"6–7",role:"Golden turn"},{bars:"8",role:"Return"}],
@@ -206,7 +242,7 @@ export function compose(input={}){
   "5 + 3 bars form the large phrase; the main lift falls at bar 6.",
   "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
   "Functional harmonic paths with varied chord-change rhythms create distinct progressions.",
-  "Euclidean patterns provide distributed accents while a conventional backbeat maintains the pulse.",
+  "The "+identity.groove+" groove varies kick and snare structures, rotates hat patterns, and develops percussion fills.",
   "Seeded melodic contours are developed using inversion, transposition, reversal and varied phrase rhythms.",
   "The "+identity.turn+" treatment shapes the golden turn at bar six; the final bar prepares the return."
  ]};

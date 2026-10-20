@@ -293,7 +293,7 @@ for(const [track,recordings] of Object.entries(HOUSE_DRUMS))DRUMS[track].push(..
 // Additional *recorded* acoustic drum and percussion one-shots (CC0).
 const vcslUrl=path=>"https://raw.githubusercontent.com/sgossner/VCSL/"+VCSL_REF+"/"+path.split("/").map(encodeURIComponent).join("/");
 for(const [track,samples] of Object.entries(VCSL_DRUMS))
- DRUMS[track].push(...samples.map(([path,label])=>({url:vcslUrl(path),label:"Recorded · "+label,license:"CC0 1.0",source:"Versilian Community Sample Library"})));
+ DRUMS[track==="openHat"?"openhat":track].push(...samples.map(([path,label])=>({url:vcslUrl(path),label:"Recorded · "+label,license:"CC0 1.0",source:"Versilian Community Sample Library"})));
 // Real, pitch-labelled samples. Every filename below is taken from the pinned upstream
 // instrument manifest or Tonejs-Instruments.js map, never inferred from note patterns.
 const TONE="https://raw.githubusercontent.com/nbrosowsky/tonejs-instruments/622c2f1c32c8cfce4158ddc3eb26e518ddef37e5/samples/";

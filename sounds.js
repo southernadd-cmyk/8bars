@@ -19,6 +19,275 @@ export const DRUMS={
   ...variants("cy8",["CY0000","CY0010","CY0025","CY0050","CY1000","CY2500","CY5000","CY7500"],"Cymbal")
  ]
 };
+// Additional CC0 drum one-shots, sourced directly from the published Octal manifest.
+// Git revision is pinned so labels, URLs and sound content are reproducible.
+const HOUSE_DRUMS={
+ "kick": [
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/sub-01.wav",
+   "label": "House · deep, sub",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/sub-02.wav",
+   "label": "House · deep, sub",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/sub-03.wav",
+   "label": "House · deep, round",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/punch-01.wav",
+   "label": "House · punchy, solid",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/punch-02.wav",
+   "label": "House · punchy, solid",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/punch-03.wav",
+   "label": "House · punchy, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/punch-04.wav",
+   "label": "House · punchy, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/deep-01.wav",
+   "label": "House · warm, round",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/deep-02.wav",
+   "label": "House · warm, round",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/tight-01.wav",
+   "label": "House · tight, short",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/tight-02.wav",
+   "label": "House · tight, short",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/kicks/tight-03.wav",
+   "label": "House · tight, clicky",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  }
+ ],
+ "snare": [
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/snares/snap-01.wav",
+   "label": "House · snappy, short",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/snares/body-01.wav",
+   "label": "House · full, warm",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  }
+ ],
+ "clap": [
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/claps/classic-01.wav",
+   "label": "House · tight, dry",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/claps/classic-02.wav",
+   "label": "House · wide, roomy",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/claps/classic-03.wav",
+   "label": "House · snappy, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  }
+ ],
+ "hat": [
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-01.wav",
+   "label": "House · tight, crisp",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-02.wav",
+   "label": "House · crisp, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-03.wav",
+   "label": "House · bright, sizzly",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-04.wav",
+   "label": "House · short, clicky",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-05.wav",
+   "label": "House · loose, airy",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-06.wav",
+   "label": "House · dark, tight",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-07.wav",
+   "label": "House · crunchy, tight",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-08.wav",
+   "label": "House · crunchy, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/closed-09.wav",
+   "label": "House · airy, soft",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  }
+ ],
+ "openhat": [
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/open-01.wav",
+   "label": "House · washy, open",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/open-02.wav",
+   "label": "House · long, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/open-03.wav",
+   "label": "House · airy, long",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/hats/open-04.wav",
+   "label": "House · crunchy, open",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  }
+ ],
+ "perc": [
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/tom-01.wav",
+   "label": "House · low, round",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/tom-02.wav",
+   "label": "House · mid, round",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/tom-03.wav",
+   "label": "House · high, round",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/blip-01.wav",
+   "label": "House · melodic, short",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/blip-02.wav",
+   "label": "House · bright, short",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/blip-03.wav",
+   "label": "House · glassy, short",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/tick-01.wav",
+   "label": "House · dry, tight",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/tick-02.wav",
+   "label": "House · woody, tight",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/shaker-01.wav",
+   "label": "House · loose, airy",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/percs/shaker-02.wav",
+   "label": "House · driving, tight",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/cymbals/crash-01.wav",
+   "label": "House · washy, long",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/octalmusic/octal-samples/22d222ce36e290ba3792c776811aa9c69dcc8776/samples/cymbals/ride-01.wav",
+   "label": "House · metallic, bright",
+   "license": "CC0 1.0",
+   "source": "Octal house-core"
+  }
+ ]
+};
+for(const [track,recordings] of Object.entries(HOUSE_DRUMS))DRUMS[track].push(...recordings);
 // Real, pitch-labelled samples. Every filename below is taken from the pinned upstream
 // instrument manifest or Tonejs-Instruments.js map, never inferred from note patterns.
 const TONE="https://raw.githubusercontent.com/nbrosowsky/tonejs-instruments/622c2f1c32c8cfce4158ddc3eb26e518ddef37e5/samples/";

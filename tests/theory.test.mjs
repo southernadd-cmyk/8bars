@@ -62,3 +62,16 @@ test("theory-aware generation keeps musical events valid and tracks isolated",()
  const initial=compose({seed:"one-part"}),mutated=compose({seed:"one-part",variations:{lead:1}});
  assert.deepEqual(initial.events.filter(e=>e.track!=="lead"),mutated.events.filter(e=>e.track!=="lead"));
 });
+
+test("minor dominant avoids natural seventh melodic clash",()=>{
+ const chord=[64,68,71],tonic=57,scale=[0,2,3,5,7,8,10];
+ for(const target of [79,91,103]){
+  const note=voiceLedPitch({target,chord,tonic,scale,avoidPitchClasses:[(tonic+10)%12]});
+  assert.notEqual((note%12+12)%12,(tonic+10)%12);
+ }
+ for(let i=0;i<200;i++){
+  const song=compose({seed:"v-clash-"+i,key:"A",mode:"minor"});
+  for(const event of song.events.filter(e=>e.track==="lead"&&song.progression[Math.floor(e.step/16)].degree===4))
+   assert.notEqual((event.note%12+12)%12,7);
+ }
+});

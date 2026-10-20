@@ -128,3 +128,10 @@ test("generated bass notes remain in the audible bass register",()=>{
    assert.ok(events.length&&events.every(e=>e.note>=28&&e.note<=52),key);
   }
 });
+
+test("all notes end at the loop boundary",()=>{
+ for(const style of STYLES)for(let i=0;i<120;i++){
+  const piece=compose({seed:"loop-"+i,style,key:"C"});
+  assert.ok(piece.events.every(e=>e.step+e.duration<=128+1e-9));
+ }
+});

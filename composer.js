@@ -1,6 +1,6 @@
 // 8bars v0.5 — deterministic symbolic composer; no audio/DOM dependencies.
 import {planCadence,voiceLedPitch,counterpointPitch} from "./theory.js";
-export const ENGINE_VERSION="0.5.2";
+export const ENGINE_VERSION="0.5.3";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
  {id:"kick",name:"Kick",type:"drum",color:"#e6ac74"},
@@ -96,7 +96,9 @@ export function compose(input={}){
   const events=[];
  function add(track,step,duration,velocity,note,extra={}){
    if(step<0||step>=128)return;
-   events.push({track,step,duration,velocity:Math.round(clamp(velocity,.05,1)*100)/100,
+   const boundedDuration=Math.min(duration,128-step);
+   if(!(boundedDuration>0))return;
+   events.push({track,step,duration:boundedDuration,velocity:Math.round(clamp(velocity,.05,1)*100)/100,
      ...(note===undefined?{}:{note}),...extra});
  }
  // Each channel receives a separate RNG. Mutating one channel cannot alter any other.
@@ -274,7 +276,8 @@ export function compose(input={}){
      const fitted=voiceLedPitch({
        target:pitch,chord:chord.notes.map(n=>n+24+(raised?12:0)),
        scale,tonic,previous:previousLead,previousLeap:previousLeadLeap,
-       strong:pos%4===0||closing,final:closing,cadence:cadential.name
+       strong:pos%4===0||closing,final:closing,cadence:cadential.name,
+       avoidPitchClasses:mode==="minor"&&chord.degree===4?[(tonic+10)%12]:[]
      });
      previousLeadLeap=previousLead===null?0:fitted-previousLead;
      previousLead=fitted;

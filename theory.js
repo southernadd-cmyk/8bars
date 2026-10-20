@@ -25,7 +25,7 @@ export function planCadence(degrees,style,random){
 }
 const pc=x=>((x%12)+12)%12;
 export function pitchClassInChord(note,chord){return chord.some(n=>pc(n)===pc(note))}
-export function voiceLedPitch({target,chord,scale,tonic,previous=null,previousLeap=0,strong=false,final=false,cadence="authentic"}){
+export function voiceLedPitch({target,chord,scale,tonic,previous=null,previousLeap=0,strong=false,final=false,cadence="authentic",avoidPitchClasses=[]}){
  if(!chord?.length||!scale?.length)throw new Error("Chord and scale required");
  // Generate diatonic candidates in a broad melodic register, plus alterations
  // belonging to the current chord (e.g. harmonic-minor leading tones).
@@ -47,6 +47,7 @@ export function voiceLedPitch({target,chord,scale,tonic,previous=null,previousLe
    const chordTone=pitchClassInChord(note,chord);
    if(endOnTonic&&pc(note)!==tonicPc)continue;
    let score=Math.abs(note-target)*.62;
+   if(avoidPitchClasses.some(avoid=>pc(note)===pc(avoid)))score+=18;
    if(strong&&!chordTone)score+=9;
    if(!strong&&!chordTone)score+=1.7; // passing tones allowed on weaker accents
    if(previous!==null){

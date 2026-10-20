@@ -118,10 +118,10 @@ test("switching sounds during a download queues the newly selected recording",as
  );
  const pending=loader();
  selected="second";
- await loader();
+ const queued=loader();
  assert.equal(typeof releaseFirst,"function");
  releaseFirst({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
- await pending;
+ await Promise.all([pending,queued]);
  assert.deepEqual(requested,["first","second"]);
  assert.equal(buffers.size,2);
  assert.equal(failures.size,0);

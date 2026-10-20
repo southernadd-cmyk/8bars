@@ -3,7 +3,7 @@ import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js?v=0.6.0";
+import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js?v=0.6.1";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
@@ -252,7 +252,7 @@ async function loadSamples(){
      await Promise.all(Array.from({length:Math.min(5,items.length)},worker));
    }while(loadAgain);
  }finally{loading=false}
- if(!playing)say(failed?failed+" sound files unavailable; synthesizer fallback enabled":"Sound library ready");
+ if(!playing)say(failed?failed+" recordings unavailable; affected notes stay silent":"Sound library ready");
 }
 function sampleFor(event){
  const own=selectedLocal(event.track);
@@ -263,24 +263,11 @@ function sampleFor(event){
  }
  return nearestSample(state.voices[event.track],event.note);
 }
-function fallback(ctx,event,when,output,duration){
- // Synthesized contingency sound, not a CC0 sample.
- const osc=ctx.createOscillator(),amp=ctx.createGain();
- osc.type=event.track==="bass"?"triangle":isDrum(event.track)?"square":"sine";
- const hz=event.note===undefined?(event.track==="kick"?70:event.track==="hat"?4300:190):
-  440*Math.pow(2,(event.note-69)/12);
- osc.frequency.setValueAtTime(hz,when);
- if(event.track==="kick")osc.frequency.exponentialRampToValueAtTime(45,when+.12);
- const length=Math.max(.02,Math.min(duration,isDrum(event.track)?.19:.75));
- amp.gain.setValueAtTime(Math.max(.001,event.velocity*.14),when);
- amp.gain.exponentialRampToValueAtTime(.001,when+length);
- osc.connect(amp).connect(output);osc.start(when);osc.stop(when+length+.008);
- return osc;
-}
 function playEvent(ctx,event,when,output){
  const sample=sampleFor(event),buffer=buffers.get(sample.url);
  const duration=Math.max(.04,event.duration*(60/composition.bpm/4));
- if(!buffer)return fallback(ctx,event,when,output,duration);
+ // Never pretend a missing recording is an acoustic instrument.
+ if(!buffer)return null;
  const src=ctx.createBufferSource(),gain=ctx.createGain();
  src.buffer=buffer;
  src.connect(gain);
@@ -334,21 +321,15 @@ function scheduleStep(step,when,interval){
    if(!audible(event.track))continue;
    try{
      const node=playEvent(audio,event,when+swingDelay(step,interval),buses[event.track]);
+     if(!node)continue;
      activeNodes.push(node);
      node.onended=()=>{const i=activeNodes.indexOf(node);if(i>=0)activeNodes.splice(i,1)};
    }catch(err){
      schedulingErrors++;
-     console.error("8bars audio scheduling failed",event,err);
-     // A corrupted/undecodable sample must not silence the entire composition.
+     console.error("8bars recorded-sample scheduling failed",event,err);
      const sample=sampleFor(event);
-     if(sample)buffers.delete(sample.url);
-     try{
-       const node=fallback(audio,event,when,buses[event.track],Math.max(.05,event.duration*interval));
-       activeNodes.push(node);
-       node.onended=()=>{const i=activeNodes.indexOf(node);if(i>=0)activeNodes.splice(i,1)};
-     }catch(fallbackError){
-       console.error("8bars synthesis also failed",fallbackError);
-     }
+     if(sample){buffers.delete(sample.url);failures.add(sample.url)}
+     say("Recording unavailable on "+event.track+"; select another sound.");
    }
  }
 }
@@ -368,10 +349,10 @@ async function toggle(){
    const init=transport.start(audio,composition.bpm);
    startTime=init.origin;
    b.textContent="■ Stop";
-   say("Playing · live synth while samples load");
+   say("Playing · loading recorded sounds; unavailable notes stay silent");
    void loadSamples().catch(err=>{
      loading=false;console.error("Sample bank failed",err);
-     say("Playing with synthesized fallback: sample library unavailable");
+     say("Recording library unavailable; affected notes stay silent");
    });
  }catch(err){stop();say("Audio error: "+err.message);console.error("8bars audio startup:",err)}
  finally{b.disabled=false}
@@ -466,6 +447,8 @@ async function exportWav(){
  rendering=true;const b=$("wav");b.disabled=true;b.textContent="Rendering…";
  try{
    await audioStart();await loadSamples();
+   const missing=neededSamples().filter(sound=>!buffers.has(sound.url));
+   if(missing.length)throw Error(missing.length+" recordings unavailable; select working sounds before WAV export");
    const duration=8*4*60/composition.bpm+3,sampleRate=44100;
    const offline=new OfflineAudioContext(2,Math.ceil(duration*sampleRate),sampleRate);
    const sum=offline.createGain();sum.gain.value=.7;sum.connect(offline.destination);

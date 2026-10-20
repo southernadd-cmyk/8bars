@@ -57,6 +57,7 @@ test("recorded samples are connected to the output for ordinary, bass and pad no
        item.start=t=>{item.started=t};
        item.stop=t=>{item.stopped=t};
      }
+     if(kind==="filter")item.frequency={value:0};
      if(kind==="gain"){
        item.gain={setValueAtTime(){},linearRampToValueAtTime(){}};
      }

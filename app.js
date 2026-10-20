@@ -17,7 +17,7 @@ const state={
   muted:new Set(),solo:new Set()
 };
 let composition=null, audio=null, master=null, buses={}, buffers=new Map(), failures=new Set();
-let playing=false,transport=null,startTime=0,activeNodes=[],rendering=false,loading=false;
+let playing=false,transport=null,startTime=0,activeNodes=[],rendering=false,loading=false,loadAgain=false;
 let eventsByStep=Array.from({length:128},()=>[]), lastDisplayedStep=-1, lastDisplayedBar=-1, schedulingErrors=0;
 const SIXTEENTHS=128, STEPS=16;
 const PITCH={kick:36,snare:38,clap:39,hat:42,openhat:46,perc:45};
@@ -203,39 +203,42 @@ function neededSamples(){
  return [...sources.values()];
 }
 async function loadSamples(){
- if(loading)return;
- const items=neededSamples().filter(s=>!buffers.has(s.url)&&!failures.has(s.url));
- if(!items.length)return;
+ // A second selection while a bank is downloading must still be fetched.
+ if(loading){loadAgain=true;return}
  loading=true;
- let cursor=0,failed=0;
+ let failed=0;
  try{
-   async function worker(){
-     while(cursor<items.length){
-       const item=items[cursor++],id=sourceId(item.url);
-       const controller=id?null:new AbortController();
-       const tid=controller?setTimeout(()=>controller.abort(),12000):null;
-       try{
-         let data;
-         if(id){
-           const record=await getSample(id);
-           if(!record)throw Error("Imported sample unavailable in this browser");
-           data=await record.blob.arrayBuffer();
-         }else{
-           const response=await fetch(item.url,{signal:controller.signal});
-           if(!response.ok)throw Error("HTTP "+response.status);
-           data=await response.arrayBuffer();
-         }
-         buffers.set(item.url,await audio.decodeAudioData(data));
-       }catch(error){
-         failed++;failures.add(item.url);
-         console.warn("8bars could not decode sample",item.label||item.url,error);
-       }finally{if(tid!==null)clearTimeout(tid)}
+   do{
+     loadAgain=false;
+     const items=neededSamples().filter(s=>!buffers.has(s.url)&&!failures.has(s.url));
+     let cursor=0;
+     async function worker(){
+       while(cursor<items.length){
+         const item=items[cursor++],id=sourceId(item.url);
+         const controller=id?null:new AbortController();
+         const tid=controller?setTimeout(()=>controller.abort(),12000):null;
+         try{
+           let data;
+           if(id){
+             const record=await getSample(id);
+             if(!record)throw Error("Imported sample unavailable in this browser");
+             data=await record.blob.arrayBuffer();
+           }else{
+             const response=await fetch(item.url,{signal:controller.signal});
+             if(!response.ok)throw Error("HTTP "+response.status);
+             data=await response.arrayBuffer();
+           }
+           buffers.set(item.url,await audio.decodeAudioData(data));
+         }catch(error){
+           failed++;failures.add(item.url);
+           console.warn("8bars could not decode sample",item.label||item.url,error);
+         }finally{if(tid!==null)clearTimeout(tid)}
+       }
      }
-   }
-   await Promise.all(Array.from({length:Math.min(5,items.length)},worker));
+     await Promise.all(Array.from({length:Math.min(5,items.length)},worker));
+   }while(loadAgain);
  }finally{loading=false}
- if(!playing)say(failed?failed+" sound files unavailable; synthesizer fallback enabled":
-     "Sound library ready");
+ if(!playing)say(failed?failed+" sound files unavailable; synthesizer fallback enabled":"Sound library ready");
 }
 function sampleFor(event){
  const own=selectedLocal(event.track);
@@ -352,7 +355,7 @@ async function toggle(){
    startTime=init.origin;
    b.textContent="■ Stop";
    say("Playing · live synth while samples load");
-   if(!loading)void loadSamples().catch(err=>{
+   void loadSamples().catch(err=>{
      loading=false;console.error("CC0 bank failed",err);
      say("Playing with synthesized fallback: sample library unavailable");
    });
@@ -497,11 +500,13 @@ async function refreshLibrary(){
    });
    const use=makeButton("Use","preview","Assign this audio to the selected channel",()=>{
       const track=$("importChannel").value;
+      if(playing)stop();
       userAssignments.set(track,item.id);persistAssignments();paint();
       $("libraryStatus").textContent="Assigned "+item.name+" to "+(TRACKS.find(t=>t.id===track)?.name||track)+".";
     });
    const remove=makeButton("Remove","preview","Remove locally stored audio",async()=>{
-     await removeSample(item.id);buffers.delete("local:"+item.id);
+     if(playing)stop();
+      await removeSample(item.id);buffers.delete("local:"+item.id);
      await refreshLibrary();paint();
      $("libraryStatus").textContent="Removed "+item.name;
    });

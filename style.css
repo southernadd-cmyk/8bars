@@ -18,3 +18,19 @@ dialog{width:min(710px,calc(100vw - 24px));max-height:86vh;background:#273229;co
 }
 
 .instrument{font-size:12px;max-width:170px}
+
+/* Searchable audio catalogue: use existing dialog styling and controls. */
+.commons-search{margin-top:22px;padding-top:15px;border-top:1px solid #4d6250}
+.commons-search h3{margin:5px 0 7px}
+.commons-controls label{display:block;font-size:12px;font-weight:650;color:#cedacc;margin:0 0 6px}
+.commons-search-row{display:flex;gap:7px}
+.commons-search-row input{min-width:0;flex:1;padding:9px 10px;border:1px solid #688069;border-radius:4px;background:#202c23;color:#fff}
+.commons-search-row button,.commons-more{background:#405342;border:1px solid #68816a;border-radius:4px;color:#fff;padding:8px 13px;cursor:pointer}
+#commonsStatus{color:#b0c5ac;font-size:12px;min-height:15px;margin:9px 0}
+.commons-more{margin:11px 0 0;width:100%}
+.commons-result{align-items:flex-start}
+.commons-result .entry-actions{align-self:center}
+.commons-result .entry-actions button:disabled{opacity:.45;cursor:not-allowed}
+.commons-result a{font-size:11px;overflow-wrap:anywhere}
+.commons-result small{max-width:440px}
+@media(max-width:700px){.commons-search-row button{min-width:79px}.commons-result .entry-actions{align-self:stretch}}

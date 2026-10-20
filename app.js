@@ -2,7 +2,7 @@ import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js";
 import {restoreVolumes} from "./settings.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,nearestSample,inventory} from "./sounds.js";
+import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory} from "./sounds.js";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
@@ -110,9 +110,11 @@ function paint(){
      DRUMS[t.id].forEach((item,i)=>choices.append(new Option(item.label||("Variation "+(i+1)),String(i))));
      select.append(choices);
    }else{
-     const choices=el("optgroup");choices.label="CC0 instruments";
-     Object.entries(VOICE_NAMES).forEach(([k,label])=>choices.append(new Option(label,k)));
-     select.append(choices);
+     for(const [family,ids] of Object.entries(VOICE_FAMILIES)){
+       const choices=el("optgroup");choices.label=family;
+       for(const id of ids)choices.append(new Option(VOICE_NAMES[id],id));
+       select.append(choices);
+     }
    }
    const owned=userLibrary; // Any imported sound may be used on any channel.
    if(owned.length){
@@ -123,7 +125,6 @@ function paint(){
    select.value=userAssignments.has(t.id)?"local:"+userAssignments.get(t.id):
      String(t.type==="drum"?state.drumSounds[t.id]:state.voices[t.id]);
    select.addEventListener("change",()=>{
-     if(playing)stop();
      if(select.value.startsWith("local:"))userAssignments.set(t.id,select.value.slice(6));
      else{
        userAssignments.delete(t.id);
@@ -132,7 +133,8 @@ function paint(){
      }
      persistAssignments();
      syncUrl();
-     say(userAssignments.has(t.id)?"Imported sample selected for "+t.name:"CC0 sample selected for "+t.name);
+     say("Selected "+select.selectedOptions[0]?.textContent+" for "+t.name+".");
+     if(audio)void loadSamples().catch(err=>say("Could not load sound: "+err.message));
    });
    const volume=el("input","volume");volume.type="range";volume.min="0";volume.max="100";volume.step="1";
    volume.value=String(Math.round(state.volumes[t.id]*100));volume.title="Volume for "+t.name;

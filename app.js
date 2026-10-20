@@ -114,7 +114,7 @@ function paint(){
      Object.entries(VOICE_NAMES).forEach(([k,label])=>choices.append(new Option(label,k)));
      select.append(choices);
    }
-   const owned=userLibrary.filter(item=>item.track===t.id);
+   const owned=userLibrary; // Any imported sound may be used on any channel.
    if(owned.length){
      const custom=el("optgroup");custom.label="Your samples (this browser)";
      for(const item of owned)custom.append(new Option(item.name,"local:"+item.id));
@@ -495,10 +495,11 @@ async function refreshLibrary(){
        src.buffer=buffers.get(source.url);g.gain.value=.65;src.connect(g).connect(master);src.start();
      }catch(e){$("libraryStatus").textContent="Preview failed: "+e.message}
    });
-   const use=makeButton("Use","preview","Assign this audio to "+item.track,()=>{
-     userAssignments.set(item.track,item.id);persistAssignments();paint();
-     $("libraryStatus").textContent="Assigned "+item.name+" to "+item.track;
-   });
+   const use=makeButton("Use","preview","Assign this audio to the selected channel",()=>{
+      const track=$("importChannel").value;
+      userAssignments.set(track,item.id);persistAssignments();paint();
+      $("libraryStatus").textContent="Assigned "+item.name+" to "+(TRACKS.find(t=>t.id===track)?.name||track)+".";
+    });
    const remove=makeButton("Remove","preview","Remove locally stored audio",async()=>{
      await removeSample(item.id);buffers.delete("local:"+item.id);
      await refreshLibrary();paint();

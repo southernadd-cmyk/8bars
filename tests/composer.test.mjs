@@ -121,3 +121,12 @@ test("spoken Hola uses a single voiced-onset recording rather than arbitrary sil
  assert.equal(sample[0].crop.removeLeadingSilence,true);
  assert.ok(sample[0].crop.duration>=1.2);
 });
+
+test("sung melodic voices use real note-labelled recordings, distinct from spoken chops",()=>{
+ for(const id of ["vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU"]){
+  const bank=VOICES[id];assert.ok(bank.length>=4,id);
+  assert.ok(bank.every(s=>Number.isInteger(s.root)&&s.license==="MIT"&&s.source==="Human Voice Dataset · Vocobox"&&s.url.endsWith(".wav")&&!s.oneShot),id);
+ }
+ assert.ok(new Set(VOICES.vocalSungNotes.map(x=>x.root)).size>=20,"Sung notes need broad pitch coverage");
+ for(const role of ["lead","counter","pad"])assert.ok(REGEN_VOICE_POOLS[role].includes("vocalSungNotes"));
+});

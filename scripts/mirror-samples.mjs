@@ -18,7 +18,7 @@ const pick=[];
 const seen=new Set();
 function add(s){
  if(!s?.url||!s.url.startsWith("https://")||seen.has(s.url))return;
- if(!["CC0 1.0","CC BY 3.0"].includes(s.license))return;
+ if(!["CC0 1.0","CC BY 3.0","MIT"].includes(s.license))return;
  seen.add(s.url);pick.push(s);
 }
 // Prioritise the default voices because first playback must work quickly.

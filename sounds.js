@@ -1,3 +1,4 @@
+import {PITCHED_VOICES,PITCHED_VOCAL_REF} from "./pitched-vocals.js";
 import {VOCAL_VOICES} from "./vocal-samples.js";
 import {EXTRA_VOICES} from "./extra-samples.js";
 import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
@@ -420,6 +421,17 @@ for(const [id,definition] of Object.entries(VOCAL_VOICES)){
  VOICE_NAMES[id]=definition.name;
  VOICE_FAMILIES["Vocal chops"].push(id);
 }
+// Independently recorded, note-labelled human voice samples (MIT dataset).
+// Unlike vocal chops these use the source pitch for melodic playback.
+VOICE_FAMILIES["Vocal melodies"]=[];
+for(const [id,definition] of Object.entries(PITCHED_VOICES)){
+ VOICES[id]=definition.files.map(([root,path])=>({
+  url:"https://raw.githubusercontent.com/vocobox/human-voice-dataset/"+PITCHED_VOCAL_REF+"/"+path.split("/").map(encodeURIComponent).join("/"),
+  root,vel:65,license:"MIT",source:"Human Voice Dataset · Vocobox"
+ }));
+ VOICE_NAMES[id]=definition.name;
+ VOICE_FAMILIES["Vocal melodies"].push(id);
+}
 export const DEFAULT_VOICES={bass:"electricBass",chords:"pianoSoft",arp:"steel",lead:"nylon",counter:"violin",pad:"harmonium"};
 export const DRUM_VARIATIONS=["Mixed"]; // legacy compatibility
 export function nearestSample(voice,note,velocity=.65){
@@ -481,6 +493,7 @@ export const REGEN_VOICE_POOLS={
     "harmonium"
   ],
   "lead": [
+    "vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU",
     "vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects",
     "nylon",
     "nylonBright",
@@ -498,6 +511,7 @@ export const REGEN_VOICE_POOLS={
     "concertPiano"
   ],
   "counter": [
+    "vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU",
     "vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects",
     "violin",
     "cello",
@@ -511,6 +525,7 @@ export const REGEN_VOICE_POOLS={
     "steelSoft"
   ],
   "pad": [
+    "vocalSungNotes","vocalSungAh","vocalSungEh","vocalSungEe","vocalSungOh","vocalSungOo","vocalSungU",
     "vocalOpenAh","vocalMelisma",
     "harmonium",
     "organ",

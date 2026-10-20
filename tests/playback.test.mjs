@@ -157,3 +157,9 @@ test("gain matches recorded sample loudness conservatively without boosting sile
  assert.ok(sampleGain(recorded(.025))>1);
  assert.equal(sampleGain(recorded(0)),1);
 });
+
+test("vocal one-shots preserve their recorded pitch and timing instead of fake melody notes",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ assert.match(source,/sample\.oneShot\|\|event\.note===undefined\?1:/);
+});

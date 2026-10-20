@@ -55,7 +55,7 @@ async function retrieve(item){
  try{
    let cached=await stat(converted).catch(()=>null);
    if(!cached?.size){
-     const response=await fetch(item.url,{signal:AbortSignal.timeout(30000)});
+     const response=await fetch(item.url.split("#")[0],{signal:AbortSignal.timeout(30000)});
      if(!response.ok)throw Error("HTTP "+response.status);
      const body=Buffer.from(await response.arrayBuffer());
      if(!body.length||body.length>25_000_000)throw Error("Empty or oversized source recording");
@@ -65,7 +65,7 @@ async function retrieve(item){
        // MP3 is broadly supported by mobile and desktop browsers.
        await encode("ffmpeg",[
          "-hide_banner","-loglevel","error","-nostdin","-y",
-         "-i",temp,"-vn","-map","0:a:0","-map_metadata","-1",
+         "-i",temp,...(item.crop?["-ss",String(item.crop.start),"-t",String(item.crop.duration)]:[]),"-vn","-map","0:a:0","-map_metadata","-1",
          "-codec:a","libmp3lame","-b:a","96k","-ar","44100",converted
        ],{timeout:45000,maxBuffer:1024*1024});
      }finally{await unlink(temp).catch(()=>{})}

@@ -25,6 +25,7 @@ jobs:
           npm test
           node --check app.js
           node --check sounds.js
+          node --check vocal-samples.js
           node --check extra-samples.js
           node --check sample-levels.js
           node --check instrument-maps.js
@@ -38,7 +39,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html style.css app.js composer.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html style.css app.js composer.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js vocal-samples.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           test -s dist/index.html
           test -s dist/composer.js
           test -s dist/theory.js
@@ -46,6 +47,7 @@ jobs:
           test -s dist/instrument-maps.js
           test -s dist/vcsl-samples.js
           test -s dist/extra-samples.js
+          test -s dist/vocal-samples.js
           test -s dist/sample-levels.js
           test -s dist/settings.js
           test -s dist/transport.js
@@ -55,7 +57,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .sample-cache
-          key: 8bars-mp3-v2-${{ hashFiles('sounds.js', 'instrument-maps.js', 'vcsl-samples.js', 'extra-samples.js') }}
+          key: 8bars-mp3-v2-${{ hashFiles('sounds.js', 'instrument-maps.js', 'vcsl-samples.js', 'extra-samples.js', 'vocal-samples.js') }}
           restore-keys: |
             8bars-mp3-v2-
       - name: Copy recorded samples into site artifact

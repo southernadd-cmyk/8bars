@@ -1,3 +1,4 @@
+import {VOCAL_VOICES} from "./vocal-samples.js";
 import {EXTRA_VOICES} from "./extra-samples.js";
 import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
 import {VCSL_REF,VCSL_VOICES,VCSL_DRUMS} from "./vcsl-samples.js?v=0.6.2";
@@ -411,6 +412,14 @@ for(const [id,definition] of Object.entries(EXTRA_VOICES)){
  VOICE_NAMES[id]=definition.name;
  (VOICE_FAMILIES[definition.family]??=[]).push(id);
 }
+// Short CC0 vocal chops are real recorded sounds, not pitch-labelled instruments.
+// Keep their spoken/vocal speed intact until sung samples have measured pitch.
+VOICE_FAMILIES["Vocal chops"]=[];
+for(const [id,definition] of Object.entries(VOCAL_VOICES)){
+ VOICES[id]=definition.files;
+ VOICE_NAMES[id]=definition.name;
+ VOICE_FAMILIES["Vocal chops"].push(id);
+}
 export const DEFAULT_VOICES={bass:"electricBass",chords:"pianoSoft",arp:"steel",lead:"nylon",counter:"violin",pad:"harmonium"};
 export const DRUM_VARIATIONS=["Mixed"]; // legacy compatibility
 export function nearestSample(voice,note,velocity=.65){
@@ -472,6 +481,7 @@ export const REGEN_VOICE_POOLS={
     "harmonium"
   ],
   "lead": [
+    "vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects",
     "nylon",
     "nylonBright",
     "steel",
@@ -488,6 +498,7 @@ export const REGEN_VOICE_POOLS={
     "concertPiano"
   ],
   "counter": [
+    "vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects",
     "violin",
     "cello",
     "trumpet",
@@ -500,6 +511,7 @@ export const REGEN_VOICE_POOLS={
     "steelSoft"
   ],
   "pad": [
+    "vocalOpenAh","vocalMelisma",
     "harmonium",
     "organ",
     "pianoSoft",

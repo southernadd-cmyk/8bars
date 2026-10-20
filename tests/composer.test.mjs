@@ -107,3 +107,10 @@ test("new pitched and bass sample banks use verified recording paths",()=>{
   assert.ok(VOICES[id].every(x=>Number.isInteger(x.root)&&x.source==="Versilian Community Sample Library"));
  }
 });
+
+test("Vocal sample bank uses locally mirrorable, licensed, short recorded chunks",()=>{
+ for(const id of ["vocalOpenAh","vocalSyllable","vocalMelisma","vocalEffects"]){
+  const sounds=VOICES[id];assert.ok(sounds.length>=4,id);
+  assert.ok(sounds.every(s=>s.oneShot===true&&s.license==="CC0 1.0"&&s.crop.duration>0&&s.crop.duration<=1.2&&s.url.startsWith("https://raw.githubusercontent.com/")));
+ }
+});

@@ -73,7 +73,7 @@ function rerender(){
  eventsByStep=Array.from({length:128},()=>[]);
  for(const event of composition.events)eventsByStep[event.step].push(event);
  syncControls();syncUrl();paint();
- say(composition.events.length+" notes and hits across "+TRACKS.length+" channels · engine "+ENGINE_VERSION);
+ say("Arrangement ready.");
 }
 function el(tag,cls,text){
  const node=document.createElement(tag);
@@ -85,8 +85,8 @@ function makeButton(text,cls,title,fn){
  const b=el("button",cls,text);b.type="button";b.title=title;b.addEventListener("click",fn);return b;
 }
 function paint(){
- const grid=$("grid"),labels=$("barLabels");grid.replaceChildren();labels.replaceChildren(el("span","track-heading","CHANNEL / MIXER"));
- for(let i=1;i<=8;i++)labels.append(el("span",i===6?"turn":"",String(i).padStart(2,"0")));
+ const grid=$("grid"),labels=$("barLabels");grid.replaceChildren();labels.replaceChildren(el("span","track-heading","Tracks"));
+ for(let i=1;i<=8;i++)labels.append(el("span",i===6?"turn":"",String(i)));
  const byTrack=new Map(TRACKS.map(t=>[t.id,Array.from({length:128},()=>[])]));
  for(const e of composition.events)byTrack.get(e.track)[e.step].push(e);
  for(const t of TRACKS){
@@ -165,7 +165,7 @@ function paint(){
  const harmony=$("harmony");harmony.replaceChildren();
  for(const chord of composition.progression){
    const cell=el("div","chord");
-   cell.append(el("span",null,String(chord.bar).padStart(2,"0")),el("strong",null,chordName(chord)));
+   cell.append(el("span",null,String(chord.bar)),el("strong",null,chordName(chord)));
    harmony.append(cell);
  }
 }
@@ -309,7 +309,7 @@ function showStep(){
  if(bar!==lastDisplayedBar){
    lastDisplayedBar=bar;
    const count=transport.snapshot();
-   say("Playing bar "+bar+"/8 · "+count.total+" steps scheduled · "+buffers.size+" CC0 samples loaded"+(schedulingErrors?" · "+schedulingErrors+" errors (see console)":""));
+   say("Playing · bar "+bar+" of 8"+(schedulingErrors?" · Audio error (see console)":""));
  }
 }
 function scheduleStep(step,when,interval){

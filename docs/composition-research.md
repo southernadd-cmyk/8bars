@@ -15,7 +15,7 @@ Changing the seed mostly altered small events. The composer retained a fixed bas
 
 No code from these projects was copied. The rule engine remains a dependency-free ES module.
 
-## Implemented in v0.3
+## Implemented in v0.3–0.5
 
 - 12 functional chord paths in each major/minor mode, varied by seven eight-bar harmonic-change shapes; occasional seventh extensions.
 - Chord voicing candidates selected for minimal change from the preceding chord.
@@ -25,9 +25,28 @@ No code from these projects was copied. The rule engine remains a dependency-fre
 - Five eight-bar form energy arcs altering activity in several parts; all 12 mixer channels continue to produce events.
 - Identical seed, settings and version still reproduce the same event data, and track-local mutations leave other tracks unchanged.
 
+## Tonal theory added in v0.5
+
+The new `theory.js` holds pure testable rules. The composer draws a seed-stable **cadence type** (V–I, IV–I, V–VI, ii–V, or VII–I), then realises functional harmony in the selected key. The leading tone of the minor-key V chord is sharpened as in harmonic minor.
+
+The lead applies a **voice-leading scoring step** after generating a motif pitch: chord tones are preferred at strong attacks, weak positions may include passing or neighbouring scale tones, and larger leaps incur a penalty unless followed by compensating movement. Tonic-resolution cadences preferentially end on the tonic. This is deliberately loose enough for pop/house/breakbeat styles, rather than strict academic four-part writing.
+
+The independent counterline favours consonant intervals (particularly thirds/sixths), avoids exact unisons and rewards motion contrary to a shared harmonic guide. It deliberately does **not** analyse the mutable live lead stream, so the existing one-track regeneration contract still holds.
+
+### Sources
+
+- [Open Music Theory: harmonic functions](https://open-musictheory.github.io/docs/harmony/harmonicFunctions/) — tonic, predominant and dominant functions.
+- [Open Music Theory: embellishing tones](https://open-musictheory.github.io/docs/voice-leading-and-model-composition/strict-four-voice-composition/embellishingTones/) — passing and neighbouring scale tones.
+- [Open Music Theory: composing a cantus firmus](https://open-musictheory.github.io/vi/docs/voice-leading-and-model-composition/strict-two-voice-composition-species-counterpoint/cantus-firmus/) — preference for steps and recovery after leaps.
+- [Open Music Theory: types of contrapuntal motion](https://open-musictheory.github.io/docs/fundamentals/motion-types/) — parallel, similar, contrary and oblique motion.
+- [music21: Roman numeral harmony](https://music21.org/music21docs/moduleReference/moduleRoman.html) — explicit functional chord representation and minor-key V/V7 theory.
+- [Open Music Theory: deceptive resolution](https://open-musictheory.github.io/docs/voice-leading-and-model-composition/strict-four-voice-composition/KBVLschemata/) — V–VI surprise.
+
+No external library code has been copied or bundled.
+
 ## Acceptance / measurement
 
-The checked-in `tests/variety.test.mjs` exercises forty seeds in each style, at fixed key, mode and density. It checks diversity of harmonic movements, bass patterns, lead melodies, kick/snare timing, chord voicings and form; it also tests the presence of every track and a lead event during the golden turn. The ordinary test suite continues to validate regeneration independence and event bounds.
+The checked-in `tests/theory.test.mjs` tests cadence choice, minor dominant quality, melodic chord tones and channel independence. The checked-in `tests/variety.test.mjs` exercises forty seeds in each style, at fixed key, mode and density. It checks diversity of harmonic movements, bass patterns, lead melodies, kick/snare timing, chord voicings and form; it also tests the presence of every track and a lead event during the golden turn. The ordinary test suite continues to validate regeneration independence and event bounds.
 
 These structural signatures are only proxies for *perceived* musical distinctness. A listening test is still necessary. In particular, a similar sound bank patch, identical tempo and uninterrupted level can make very different MIDI sound closer than intended.
 

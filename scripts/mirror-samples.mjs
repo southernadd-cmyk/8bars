@@ -42,6 +42,8 @@ await mkdir(join(output,"samples"),{recursive:true});
 await mkdir(cache,{recursive:true});
 const map={},failed=[];
 let bytes=0,copied=0,skipped=0,done=0;
+// Keep the first deployment bounded; later expand in quality-reviewed batches.
+const candidates=pick.slice(0,420);
 let cursor=0;
 async function retrieve(item){
  const hash=createHash("sha256").update(item.url).digest("hex").slice(0,24);
@@ -67,11 +69,11 @@ async function retrieve(item){
  }catch(error){failed.push({url:item.url,error:String(error.message||error)})}
 }
 async function worker(){
- while(cursor<pick.length){
-   const item=pick[cursor++];
+ while(cursor<candidates.length){
+   const item=candidates[cursor++];
    await retrieve(item);
    done++;
-   if(done%100===0)console.log("Mirror progress",done,"/",pick.length,"stored",copied,"files");
+   if(done%100===0)console.log("Mirror progress",done,"/",candidates.length,"stored",copied,"files");
  }
 }
 await Promise.all(Array.from({length:concurrency},worker));
@@ -79,7 +81,7 @@ await writeFile(join(output,"sample-map.js"),
  "// Generated during the site build. Only verified local recordings appear here.\n"+
  "export const LOCAL_SAMPLES="+JSON.stringify(map)+";\n");
 await writeFile(join(output,"sample-mirror-report.json"),JSON.stringify({
- eligible:pick.length,mirrored:copied,bytes,skippedBudget:skipped,
+ eligible:candidates.length,totalCatalogCandidates:pick.length,mirrored:copied,bytes,skippedBudget:skipped,
  failed:failed.length,failures:failed.slice(0,40)
 },null,2));
 console.log("Mirrored",copied,"of",pick.length,"declared samples,",(bytes/1e6).toFixed(1),"MB; errors",failed.length);

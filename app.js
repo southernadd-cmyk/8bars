@@ -3,7 +3,7 @@ import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js?v=0.4.1";
+import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js?v=0.6.0";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
@@ -204,7 +204,15 @@ function neededSamples(){
      const list=DRUMS[track.id],choice=state.drumSounds[track.id]||0;
      const item=list[Math.min(Math.max(choice,0),list.length-1)];
      sources.set(item.url,item);
-   }else for(const item of (VOICES[state.voices[track.id]]||VOICES.piano))sources.set(item.url,item);
+   }else{
+     // Full multisample packs can have many root notes. Fetch only the ones
+     // actually used in the current eight-bar arrangement.
+     for(const event of composition?.events||[]){
+       if(event.track!==track.id||!Number.isFinite(event.note))continue;
+       const item=nearestSample(state.voices[track.id],event.note);
+       sources.set(item.url,item);
+     }
+   }
  }
  return [...sources.values()];
 }

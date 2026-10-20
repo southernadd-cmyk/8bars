@@ -48,4 +48,7 @@ export function nearestSample(voice,note){
  const list=VOICES[voice]||VOICES.piano;
  return list.reduce((best,s)=>Math.abs(s.root-note)<Math.abs(best.root-note)?s:best,list[0]);
 }
-export function inventory(){return [...Object.values(DRUMS).flat(),...Object.values(VOICES).flat()]}
+export function inventory(){
+ // The same recording may be offered on different channels; count it only once.
+ return [...new Map([...Object.values(DRUMS).flat(),...Object.values(VOICES).flat()].map(s=>[s.url,s])).values()];
+}

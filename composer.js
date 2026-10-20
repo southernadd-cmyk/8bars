@@ -138,29 +138,52 @@ export function compose(input={}){
      add("arp",b*16+s,Math.min(3,16-s),.27+(b===5?.13:0),notes[[0,1,2,1][index]]+12);
    }
  }
- // Short five-note motif, reused and transformed; strong beats target chord tones.
- const rm=stream("lead"),motif=[0,2,4,3,1].map((v,i)=>clamp(v+(i===0?0:Math.floor(rm()*3)-1),0,6));
- const slots=[0,3,6,10,13];
+
+ // Develop a seeded musical idea rather than always playing the same contour.
+ // Phrase rules include inversion, sequence, reversal, changing register and cadence.
+ const contours=[
+  [0,1,2,4,3,5],[6,5,4,2,3,1],[1,3,5,6,4,2],
+  [5,3,1,0,2,4],[1,4,2,5,3,6],[2,2,4,2,5,3],
+  [0,4,1,5,2,6],[1,3,2,4,3,5]
+ ];
+ const leadRhythms=[
+  [0,3,6,10,13],[0,2,4,8,12,14],[2,6,9,13],
+  [0,4,8,11,14],[0,5,7,10,15],[1,3,7,10,12],
+  [0,6,8,12],[0,2,7,8,13],[0,3,8,11]
+ ];
+ const rm=stream("lead"),contour=choose(rm,contours);
+ const leadFigure=choose(rm,leadRhythms);
+ const shift=Math.floor(rm()*3)-1;
+ const motif=contour.map(n=>clamp(n+shift,0,6));
  for(let b=0;b<8;b++){
-   const r=rm;
-   const count=b===5?5:b===7?3:clamp(Math.round(2+density*3),2,5);
-   for(let i=0;i<count;i++){
-     let degree=motif[i];
-     if(b===3||b===4)degree=clamp(degree+(i===2?1:0),0,6);
-     if(b===5)degree=clamp(degree+(i%2===0?2:1),0,6);
-     if(b===6)degree=motif[(i+2)%5];
-     const onStrong=[0,8].includes(slots[i]);
-     let pitch=diatonic(degree,2);
-     if(onStrong||b===7&&i===count-1){
-       const target=progression[b].notes.map(n=>n+24);
-       pitch=target.reduce((best,n)=>Math.abs(n-pitch)<Math.abs(best-pitch)?n:best,target[0]);
+   const chord=progression[b],rhythm=b<4?leadFigure:choose(rm,[leadFigure,...leadRhythms]);
+   let notes=motif.slice();
+   if(b===2||b===3)notes=notes.map(n=>clamp(n+(b===3?1:-1),0,6));
+   if(b===4)notes=notes.map(n=>6-n);
+   if(b===5)notes=identity.turn==="answer"?notes.reverse():notes.map(n=>clamp(n+1,0,6));
+   if(b===6)notes=notes.reverse();
+   if(b===7)notes=notes.map(n=>clamp(n-1,0,6));
+   const count=clamp(Math.round(2+density*4)+(b===5?1:0),3,7);
+   const positions=rhythm.slice(0,count);
+   for(let j=0;j<positions.length;j++){
+     const pos=positions[j];
+     if(b===5&&identity.turn==="break"&&j>1&&rm()<.65)continue;
+     let pitch=diatonic(notes[j%notes.length],2);
+     const raised=b===5&&(identity.turn==="register"||identity.turn==="contrast");
+     if(raised)pitch+=12;
+     if(pos===0||pos===8||b===7&&j===positions.length-1){
+       const chordTones=chord.notes.map(n=>n+24+(raised?12:0));
+       pitch=chordTones.reduce((best,n)=>Math.abs(n-pitch)<Math.abs(best-pitch)?n:best,chordTones[0]);
      }
-     if(b===5)pitch+=12;
-     const dur=i===count-1?Math.max(1,16-slots[i]):2;
-     add("lead",b*16+slots[i],dur,b===5?.83:.61,pitch);
+     const next=positions[j+1]??16;
+     add("lead",b*16+pos,Math.max(.75,Math.min(6,next-pos-.3)),.54+rm()*.2+(b===5?.1:0),pitch);
    }
+   if(b===5&&identity.turn==="rhythm")add("lead",b*16+15,.75,.65,chord.notes[0]+36);
+   if(b===5&&!events.some(e=>e.track==="lead"&&e.step>=80&&e.step<96))
+     add("lead",80,4,.73,chord.notes[0]+24);
  }
- const rCounter=stream("counter");
+
+  const rCounter=stream("counter");
  for(let b=0;b<8;b++){
    if(b<2 && style!=="ambient")continue; // leave space for main motif
    const starts=[2,8,13];
@@ -184,7 +207,7 @@ export function compose(input={}){
   "Each channel has an independent seeded random stream, allowing a single part to be regenerated.",
   "Functional harmonic paths with varied chord-change rhythms create distinct progressions.",
   "Euclidean patterns provide distributed accents while a conventional backbeat maintains the pulse.",
-  "The lead inherits one five-note motif, modifies it at phrase boundaries, and targets chord tones on strong beats.",
-  "At the golden point, the melody moves up an octave; the final bar prepares the loop back into bar 1."
+  "Seeded melodic contours are developed using inversion, transposition, reversal and varied phrase rhythms.",
+  "The "+identity.turn+" treatment shapes the golden turn at bar six; the final bar prepares the return."
  ]};
 }

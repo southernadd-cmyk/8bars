@@ -121,3 +121,24 @@ test("switching sounds during a download queues the newly selected recording",as
  assert.equal(buffers.size,2);
  assert.equal(failures.size,0);
 });
+
+test("missing instrument recordings do not trigger synthetic imitations",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ assert.doesNotMatch(source,/function fallback\(/);
+ const start=source.indexOf("function playEvent("),end=source.indexOf("\nfunction audible(",start);
+ assert.ok(start>=0&&end>start);
+ const player=new Function("sampleFor","buffers","composition","isDrum",source.slice(start,end)+"\nreturn playEvent;")(
+  ()=>({url:"missing.wav",root:60}),new Map(),{bpm:96},()=>false);
+ let oscillators=0;
+ const context={createOscillator(){oscillators++;throw Error("No oscillator fallback allowed")}};
+ assert.equal(player(context,{track:"lead",note:60,duration:2,velocity:.6},.1,{}),null);
+ assert.equal(oscillators,0);
+});
+
+test("WAV export rejects unavailable recordings",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ assert.match(source,/const missing=neededSamples\(\)\.filter\(sound=>!buffers\.has\(sound\.url\)\)/);
+ assert.match(source,/if\(missing\.length\)throw Error/);
+});

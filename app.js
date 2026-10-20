@@ -1,4 +1,4 @@
-import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.0";
+import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.1";
 import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
 import {createTransport} from "./transport.js";

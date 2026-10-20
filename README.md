@@ -106,3 +106,7 @@ it refuses to publish an almost-empty mirror.
 source attribution and licenses in the original manifest. In a future change, the
 rest of the catalogue can be mirrored in compressed formats after checking audible
 quality, bandwidth and deployment size.
+
+### Complete local-sample requirement
+
+The mirror includes every declared licensed source recording, not a fixed-count subset. The build refuses to deploy if any declared file fails download, conversion, or inclusion. Playback waits until all samples needed for the current composition have finished loading, and explicitly refuses to start when a recording remains unavailable. Pressing Play retries transient failures instead of permanently marking that sample unavailable. No synthesised audio is substituted.

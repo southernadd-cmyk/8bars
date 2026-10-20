@@ -1,57 +1,66 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111716">
-<meta name="description" content="Eight-bar deterministic music, composed with golden-ratio structure, Euclidean rhythms and symbolic AI.">
-<title>8bars — a deterministic composition machine</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101614">
+<meta name="description" content="8bars — a twelve-channel rule-based composition machine. Golden ratio form, Euclidean rhythm, sampled instruments, reproducible loops.">
+<title>8bars — rule-based music</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="mast">
-    <div class="identity"><span class="mark">8<span>.</span></span><div><strong>8bars</strong><small>DETERMINISTIC COMPOSITION MACHINE</small></div></div>
-    <a href="https://github.com/southernadd-cmyk/8bars" target="_blank" rel="noreferrer">Source ↗</a>
-  </header>
-  <main>
-    <section class="intro">
-      <div class="eyebrow">RULE-BASED MUSIC / STUDY 001</div>
-      <h1>Eight bars.<br><em>One idea.</em></h1>
-      <p>A small composition machine. Golden-ratio form, Euclidean rhythm and music-theory constraints turn a seed into drums, bass and melody.</p>
-    </section>
-    <section class="console" aria-label="Composer controls">
-      <div class="controls">
-        <label>SEED<input id="seed" type="text" value="618033" maxlength="60" spellcheck="false"></label>
-        <label>TEMPO <span id="bpmValue">96</span> BPM<input id="bpm" type="range" min="60" max="160" value="96"></label>
-        <label>NOTE DENSITY <span id="densityValue">65%</span><input id="density" type="range" min="15" max="100" value="65"></label>
-        <label>KEY<select id="key"><option>A</option><option>C</option><option>D</option><option>E</option><option>G</option></select></label>
-        <label>MODE<select id="mode"><option value="minor">Minor</option><option value="major">Major</option></select></label>
-      </div>
-      <div class="actions">
-        <button id="play" class="primary" type="button">▶ Play loop</button>
-        <button id="another" type="button">Another seed</button>
-        <button id="copy" type="button">Copy link</button>
-        <button id="download" type="button">Export composition JSON</button>
-      </div>
-      <div class="state" id="status" role="status" aria-live="polite">Ready. Press Play to load the CC0 sample bank.</div>
-    </section>
-    <section class="score" aria-label="Eight-bar score">
-      <div class="scoreHead">
-        <h2>Arrangement</h2><span>8 BARS · 4/4 · 16 STEPS PER BAR</span>
-      </div>
-      <div id="barLabels" class="barLabels"></div>
-      <div id="grid" class="grid"></div>
-      <div class="legend"><span><i class="kick"></i>Drums</span><span><i class="bass"></i>Bass</span><span><i class="melody"></i>Melody</span><span class="golden">BAR 6 = GOLDEN TURN</span></div>
-    </section>
-    <section class="bottom">
-      <article><span class="eyebrow">01 / THE FORM</span><h2>Five, then three.</h2><p>The eight-bar loop divides into five bars of statement and three bars of response. Bar six marks the golden-section turn. Repetition is intentional; change has a purpose.</p></article>
-      <article><span class="eyebrow">02 / THE RHYTHM</span><h2>Evenly uneven.</h2><p>Euclidean rhythms distribute accents over a fixed grid. Conventional anchors keep the beat grounded; controlled variation gives it movement.</p></article>
-      <article><span class="eyebrow">03 / THE AI</span><h2>Rules, not prompts.</h2><p>A symbolic composition engine chooses harmony, builds a motif and transforms it. Identical seed and settings produce identical note events.</p></article>
-    </section>
-    <details class="rules"><summary>See this composition's decisions <span>+</span></summary><div id="explanation"></div></details>
-  </main>
-  <footer><span>8BARS / ENGINE 0.1</span><span>Source sounds: <a href="https://github.com/tidalcycles/sounds-tr808-fischer" target="_blank" rel="noreferrer">TR-808 (CC0)</a> · <a href="https://github.com/facebookincubator/Meta-open-sound" target="_blank" rel="noreferrer">Meta Piano (CC0)</a></span></footer>
+<div class="shell">
+<header class="mast">
+ <div class="identity"><span class="mark">8<span>.</span></span>
+ <div><strong>8bars</strong><small>RULE-BASED COMPOSITION MACHINE</small></div></div>
+ <div class="mast-right"><span class="version">ENGINE 0.2</span><a href="https://github.com/southernadd-cmyk/8bars" target="_blank" rel="noreferrer">Source ↗</a></div>
+</header>
+<main>
+<section class="intro">
+ <div class="eyebrow">COMPOSITION STUDY / 002</div>
+ <h1>Make music.<br><em>Keep the idea.</em></h1>
+ <p>Twelve voices, eight bars, one seed. A symbolic composer uses golden-ratio form, Euclidean rhythms and harmony to build parts that belong together.</p>
+</section>
+<section class="console" aria-label="Composition controls">
+ <div class="controls">
+  <label>SEED<input id="seed" type="text" maxlength="64" value="618033" spellcheck="false"></label>
+  <label>STYLE<select id="style"><option value="downtempo">Downtempo</option><option value="house">House</option><option value="breakbeat">Breakbeat</option><option value="ambient">Ambient</option></select></label>
+  <label>KEY<select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></label>
+  <label>MODE<select id="mode"><option value="minor">Minor</option><option value="major">Major</option></select></label>
+  <label>BPM <span id="bpmValue">96</span><input id="bpm" type="range" min="60" max="170" value="96"></label>
+  <label>DENSITY <span id="densityValue">65%</span><input id="density" type="range" min="15" max="100" value="65"></label>
+  <label>SWING <span id="swingValue">12%</span><input id="swing" type="range" min="0" max="65" value="12"></label>
+ </div>
+ <div class="actions">
+  <button type="button" id="play" class="primary">▶ Play</button>
+  <button type="button" id="another">↻ Another composition</button>
+  <button type="button" id="copy">Copy share link</button>
+  <div class="action-separator"></div>
+  <button type="button" id="wav">↓ WAV</button>
+  <button type="button" id="midi">↓ MIDI</button>
+  <button type="button" id="download">↓ JSON</button>
+ </div>
+ <div class="state" id="status" role="status" aria-live="polite">Preparing composer…</div>
+</section>
+<section class="score" aria-label="Sequencer and mixer">
+ <div class="scoreHead"><div><span class="eyebrow">THE ARRANGEMENT</span><h2>Twelve parts. One piece.</h2></div><span id="eventCount">12 CHANNELS</span></div>
+ <p class="scoreHelp">Each channel has its own instrument, level, mute, solo and regenerate control. ↻ changes only that channel's composition. Drag horizontally to explore the full eight-bar score on smaller screens.</p>
+ <div class="scoreViewport">
+  <div id="barLabels" class="barLabels"></div>
+  <div id="grid" class="grid"></div>
+ </div>
+ <div class="legend"><span><i class="drum"></i>Percussion</span><span><i class="tone"></i>Pitched instruments</span><span class="golden">BAR 6 — THE GOLDEN TURN</span></div>
+</section>
+<section class="harmony-section"><div class="section-label"><span class="eyebrow">HARMONIC PLAN</span><h2>Eight bars, four ideas.</h2></div>
+ <div id="harmony" class="harmony" aria-label="Chord progression"></div>
+</section>
+<section class="bottom">
+ <article><span class="eyebrow">01 / FORM</span><h2>Five, then three.</h2><p>The first five bars establish and vary an idea. At the start of bar six, the melody moves into a higher register. The final bar returns to the beginning.</p></article>
+ <article><span class="eyebrow">02 / GROOVE</span><h2>Rhythm with intention.</h2><p>Euclidean spacing distributes accents. Different styles change the backbeat, density and interplay between kick, snare, hats and percussion.</p></article>
+ <article><span class="eyebrow">03 / INSTRUMENTS</span><h2>Real recorded sounds.</h2><p>CC0 TR-808 percussion, upright piano, nylon guitar and steel guitar. Every source is named and pinned to a revision for reproducibility.</p></article>
+</section>
+<details class="rules"><summary>Show the composer's decisions <span>+</span></summary><div id="explanation"></div></details>
+</main>
+<footer><span>8BARS / COMPOSITION ENGINE 0.2</span><span>CC0 recordings: <a href="https://github.com/tidalcycles/sounds-tr808-fischer" target="_blank" rel="noreferrer">Fischer TR-808</a> · <a href="https://github.com/facebookincubator/Meta-open-sound" target="_blank" rel="noreferrer">Meta Open Sound</a></span></footer>
 </div>
 <script type="module" src="./app.js"></script>
 </body>

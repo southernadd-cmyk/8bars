@@ -4,13 +4,16 @@
 // Built-in sources are pinned to upstream commits; this script caches exact bytes.
 import {DRUMS,VOICES,DEFAULT_VOICES} from "../sounds.js";
 import {createHash} from "node:crypto";
-import {mkdir,readFile,writeFile,copyFile,stat} from "node:fs/promises";
+import {mkdir,writeFile,copyFile,stat,unlink,rm} from "node:fs/promises";
+import {execFile} from "node:child_process";
+import {promisify} from "node:util";
 import {join,extname} from "node:path";
 
 const output=process.argv[2]||"dist";
 const cache=process.env.SAMPLE_CACHE||".sample-cache";
-const limit=Number(process.env.SAMPLE_MIRROR_BUDGET_MB||180)*1_000_000;
-const concurrency=8;
+const limit=Number(process.env.SAMPLE_MIRROR_BUDGET_MB||400)*1_000_000;
+const encode=promisify(execFile);
+const concurrency=5;
 const pick=[];
 const seen=new Set();
 function add(s){
@@ -43,30 +46,42 @@ await mkdir(cache,{recursive:true});
 const map={},failed=[];
 let bytes=0,copied=0,skipped=0,done=0;
 // Keep the first deployment bounded; later expand in quality-reviewed batches.
-const candidates=pick.slice(0,420);
+const candidates=pick.slice(0,2100);
 let cursor=0;
 async function retrieve(item){
  const hash=createHash("sha256").update(item.url).digest("hex").slice(0,24);
- const ext=extname(new URL(item.url).pathname).toLowerCase()||".wav";
- const file=hash+ext,path=join(cache,file);
- let buffer;
+ const file=hash+".mp3",converted=join(cache,file);
+ const temp=join(cache,hash+".source");
  try{
-   const info=await stat(path).catch(()=>null);
-   if(info?.size>0)buffer=await readFile(path);
-   else{
-     const response=await fetch(item.url,{signal:AbortSignal.timeout(20000)});
+   let cached=await stat(converted).catch(()=>null);
+   if(!cached?.size){
+     const response=await fetch(item.url,{signal:AbortSignal.timeout(30000)});
      if(!response.ok)throw Error("HTTP "+response.status);
-     buffer=Buffer.from(await response.arrayBuffer());
-     if(!buffer.length||buffer.length>15_000_000)throw Error("Invalid or oversized sample");
-     await writeFile(path,buffer);
+     const body=Buffer.from(await response.arrayBuffer());
+     if(!body.length||body.length>25_000_000)throw Error("Empty or oversized source recording");
+     await writeFile(temp,body);
+     try{
+       // Encode ACTUAL upstream recordings, never generated oscillator sounds.
+       // MP3 is broadly supported by mobile and desktop browsers.
+       await encode("ffmpeg",[
+         "-hide_banner","-loglevel","error","-nostdin","-y",
+         "-i",temp,"-vn","-map","0:a:0","-map_metadata","-1",
+         "-codec:a","libmp3lame","-b:a","96k","-ar","44100",converted
+       ],{timeout:45000,maxBuffer:1024*1024});
+     }finally{await unlink(temp).catch(()=>{})}
+     cached=await stat(converted);
    }
-   if(bytes+buffer.byteLength>limit){skipped++;return}
-   // Reserve budget synchronously after awaited I/O: a single JS turn is atomic.
-   bytes+=buffer.byteLength;
-   await copyFile(path,join(output,"samples",file));
+   if(!cached?.size)throw Error("Encoded recording is empty");
+   if(bytes+cached.size>limit){skipped++;return}
+   bytes+=cached.size;
+   await copyFile(converted,join(output,"samples",file));
    map[item.url]="./samples/"+file;
    copied++;
- }catch(error){failed.push({url:item.url,error:String(error.message||error)})}
+ }catch(error){
+   failed.push({url:item.url,error:String(error.message||error).slice(0,180)});
+   await unlink(temp).catch(()=>{});
+   await unlink(converted).catch(()=>{});
+ }
 }
 async function worker(){
  while(cursor<candidates.length){
@@ -81,8 +96,8 @@ await writeFile(join(output,"sample-map.js"),
  "// Generated during the site build. Only verified local recordings appear here.\n"+
  "export const LOCAL_SAMPLES="+JSON.stringify(map)+";\n");
 await writeFile(join(output,"sample-mirror-report.json"),JSON.stringify({
- eligible:candidates.length,totalCatalogCandidates:pick.length,mirrored:copied,bytes,skippedBudget:skipped,
+ eligible:candidates.length,totalCatalogCandidates:pick.length,format:"mp3",bitrateKbps:96,mirrored:copied,bytes,skippedBudget:skipped,
  failed:failed.length,failures:failed.slice(0,40)
 },null,2));
 console.log("Mirrored",copied,"of",pick.length,"declared samples,",(bytes/1e6).toFixed(1),"MB; errors",failed.length);
-if(copied<80)throw Error("Too few working source samples to publish a useful mirror");
+if(copied<650)throw Error("Insufficient compressed recordings: "+copied+" (at least 650 required)");

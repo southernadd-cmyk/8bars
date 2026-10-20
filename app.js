@@ -2,7 +2,7 @@ import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js";
 import {restoreVolumes} from "./settings.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js";
+import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js?v=0.4.1";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);

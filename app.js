@@ -23,6 +23,7 @@ const state={
 };
 let composition=null, audio=null, master=null, buses={}, buffers=new Map(), failures=new Set();
 let playing=false,transport=null,startTime=0,activeNodes=[],rendering=false,loading=false,loadAgain=false;
+let loadPromise=null;
 let eventsByStep=Array.from({length:128},()=>[]), lastDisplayedStep=-1, lastDisplayedBar=-1, schedulingErrors=0;
 const SIXTEENTHS=128, STEPS=16;
 const PITCH={kick:36,snare:38,clap:39,hat:42,openhat:46,perc:45};
@@ -219,8 +220,10 @@ function neededSamples(){
 }
 async function loadSamples(){
  // A second selection while a bank is downloading must still be fetched.
- if(loading){loadAgain=true;return}
+ if(loading){loadAgain=true;return loadPromise}
  loading=true;
+ let releaseLoad;
+ loadPromise=new Promise(resolve=>{releaseLoad=resolve});
  let failed=0;
  try{
    do{
@@ -255,7 +258,7 @@ async function loadSamples(){
      }
      await Promise.all(Array.from({length:Math.min(5,items.length)},worker));
    }while(loadAgain);
- }finally{loading=false}
+ }finally{loading=false;releaseLoad();loadPromise=null}
  if(!playing)say(failed?failed+" recordings unavailable; affected notes stay silent":"Sound library ready");
 }
 function sampleFor(event){
@@ -344,6 +347,13 @@ async function toggle(){
    await audioStart();
    if(audio.state!=="running")throw new Error("Audio context is "+audio.state+"; browser playback may be blocked");
    schedulingErrors=0;
+   say("Loading recorded sounds before playback…");
+   // Previously playback started before fetch/decode. The resulting missing
+   // first notes made entire channels appear randomly silent.
+   failures.clear(); // retry transient download failures when Play is pressed
+   await loadSamples();
+   const missing=neededSamples().filter(sample=>!buffers.has(sample.url));
+   if(missing.length)throw Error(missing.length+" recordings did not load. Check your connection and try Play again.");
    transport=createTransport({
      onStep:scheduleStep,
      onError:(err,step)=>{schedulingErrors++;console.error("8bars transport step "+step+" failed:",err);say("Playback scheduling error; continuing. "+err.message)},
@@ -353,11 +363,7 @@ async function toggle(){
    const init=transport.start(audio,composition.bpm);
    startTime=init.origin;
    b.textContent="■ Stop";
-   say("Playing · loading recorded sounds; unavailable notes stay silent");
-   void loadSamples().catch(err=>{
-     loading=false;console.error("Sample bank failed",err);
-     say("Recording library unavailable; affected notes stay silent");
-   });
+   say("Playing · all selected recordings ready");
  }catch(err){stop();say("Audio error: "+err.message);console.error("8bars audio startup:",err)}
  finally{b.disabled=false}
 }

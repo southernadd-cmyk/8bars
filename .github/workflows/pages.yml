@@ -29,13 +29,15 @@ jobs:
           node --check transport.js
           node --check audio-files.js
           node --check composer.js
+          node --check theory.js
           node --check commons-audio.js
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html style.css app.js composer.js sounds.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html style.css app.js composer.js theory.js sounds.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           test -s dist/index.html
           test -s dist/composer.js
+          test -s dist/theory.js
           test -s dist/sounds.js
           test -s dist/settings.js
           test -s dist/transport.js

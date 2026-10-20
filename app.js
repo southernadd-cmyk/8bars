@@ -1,10 +1,14 @@
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js";
 import {restoreVolumes} from "./settings.js";
 import {createTransport} from "./transport.js";
+import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
 import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,nearestSample,inventory} from "./sounds.js";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
+let userLibrary=[];
+const userAssignments=new Map();
+const USER_SELECTIONS="8bars:sample-assignments";
 const state={
   seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",
   variations:Object.fromEntries(TRACKS.map(t=>[t.id,0])),
@@ -33,7 +37,7 @@ function loadLink(){
  const inst=(p.get("voices")||"").split(",");
  tones.forEach((id,i)=>{if(VOICES[inst[i]])state.voices[id]=inst[i]});
  const drum=(p.get("drums")||"").split(",");
- TRACKS.filter(t=>t.type==="drum").forEach((t,i)=>state.drumSounds[t.id]=savedNum(drum[i],0,0,2));
+ TRACKS.filter(t=>t.type==="drum").forEach((t,i)=>state.drumSounds[t.id]=savedNum(drum[i],0,0,DRUMS[t.id].length-1));
  state.volumes=restoreVolumes(p.get("volumes"),state.volumes,TRACKS.map(t=>t.id));
  for(const id of (p.get("muted")||"").split(","))if(TRACKS.some(t=>t.id===id))state.muted.add(id);
  for(const id of (p.get("solo")||"").split(","))if(TRACKS.some(t=>t.id===id))state.solo.add(id);
@@ -102,14 +106,34 @@ function paint(){
    const select=el("select","instrument");
    select.setAttribute("aria-label",t.name+" sample or instrument");
    if(t.type==="drum"){
-     DRUM_VARIATIONS.forEach((label,i)=>select.append(new Option(label,i)));
-     select.value=state.drumSounds[t.id];
-     select.addEventListener("change",()=>{state.drumSounds[t.id]=+select.value;if(playing)stop();syncUrl();say("Percussion sample changed. Press Play to hear it.");});
+     const choices=el("optgroup");choices.label="CC0 recordings";
+     DRUMS[t.id].forEach((item,i)=>choices.append(new Option(item.label||("Variation "+(i+1)),String(i))));
+     select.append(choices);
    }else{
-     Object.entries(VOICE_NAMES).forEach(([k,label])=>select.append(new Option(label,k)));
-     select.value=state.voices[t.id];
-     select.addEventListener("change",()=>{state.voices[t.id]=select.value;if(playing)stop();syncUrl();say("Instrument changed. Press Play to load the selected samples.");});
+     const choices=el("optgroup");choices.label="CC0 instruments";
+     Object.entries(VOICE_NAMES).forEach(([k,label])=>choices.append(new Option(label,k)));
+     select.append(choices);
    }
+   const owned=userLibrary.filter(item=>item.track===t.id);
+   if(owned.length){
+     const custom=el("optgroup");custom.label="Your samples (this browser)";
+     for(const item of owned)custom.append(new Option(item.name,"local:"+item.id));
+     select.append(custom);
+   }
+   select.value=userAssignments.has(t.id)?"local:"+userAssignments.get(t.id):
+     String(t.type==="drum"?state.drumSounds[t.id]:state.voices[t.id]);
+   select.addEventListener("change",()=>{
+     if(playing)stop();
+     if(select.value.startsWith("local:"))userAssignments.set(t.id,select.value.slice(6));
+     else{
+       userAssignments.delete(t.id);
+       if(t.type==="drum")state.drumSounds[t.id]=Number(select.value);
+       else state.voices[t.id]=select.value;
+     }
+     persistAssignments();
+     syncUrl();
+     say(userAssignments.has(t.id)?"Imported sample selected for "+t.name:"CC0 sample selected for "+t.name);
+   });
    const volume=el("input","volume");volume.type="range";volume.min="0";volume.max="100";volume.step="1";
    volume.value=String(Math.round(state.volumes[t.id]*100));volume.title="Volume for "+t.name;
    volume.setAttribute("aria-label",t.name+" volume");
@@ -160,47 +184,65 @@ async function audioStart(){
  }
  await audio.resume();updateBuses();
 }
+function selectedLocal(track){
+ const id=userAssignments.get(track);
+ const record=id&&userLibrary.find(item=>item.id===id);
+ return record?localSource(record):null;
+}
 function neededSamples(){
- const set=new Set(),sources=new Map();
- for(const t of TRACKS){
-   if(t.type==="drum"){
-     const options=DRUMS[t.id],setting=state.drumSounds[t.id];
-     const selected=setting===2?options:[options[Math.min(setting,options.length-1)]];
-     for(const s of selected)sources.set(s.url,s);
-   }else{
-     for(const s of VOICES[state.voices[t.id]])sources.set(s.url,s);
-   }
+ const sources=new Map();
+ for(const track of TRACKS){
+   const own=selectedLocal(track.id);
+   if(own){sources.set(own.url,own);continue}
+   if(track.type==="drum"){
+     const list=DRUMS[track.id],choice=state.drumSounds[track.id]||0;
+     const item=list[Math.min(Math.max(choice,0),list.length-1)];
+     sources.set(item.url,item);
+   }else for(const item of (VOICES[state.voices[track.id]]||VOICES.piano))sources.set(item.url,item);
  }
  return [...sources.values()];
 }
 async function loadSamples(){
- const list=neededSamples().filter(s=>!buffers.has(s.url)&&!failures.has(s.url));
- if(!list.length)return;
- loading=true;say("Loading "+list.length+" CC0 recordings…");
+ if(loading)return;
+ const items=neededSamples().filter(s=>!buffers.has(s.url)&&!failures.has(s.url));
+ if(!items.length)return;
+ loading=true;
  let cursor=0,failed=0;
- async function worker(){
-   while(cursor<list.length){
-     const item=list[cursor++],controller=new AbortController(),tid=setTimeout(()=>controller.abort(),12000);
-     try{
-       const response=await fetch(item.url,{signal:controller.signal});
-       if(!response.ok)throw new Error("HTTP "+response.status);
-       const data=await response.arrayBuffer();
-       const buffer=await audio.decodeAudioData(data);
-       buffers.set(item.url,buffer);
-     }catch(e){failed++;failures.add(item.url);console.warn("Sample failed:",item.url,e)}
-     finally{clearTimeout(tid)}
+ try{
+   async function worker(){
+     while(cursor<items.length){
+       const item=items[cursor++],id=sourceId(item.url);
+       const controller=id?null:new AbortController();
+       const tid=controller?setTimeout(()=>controller.abort(),12000):null;
+       try{
+         let data;
+         if(id){
+           const record=await getSample(id);
+           if(!record)throw Error("Imported sample unavailable in this browser");
+           data=await record.blob.arrayBuffer();
+         }else{
+           const response=await fetch(item.url,{signal:controller.signal});
+           if(!response.ok)throw Error("HTTP "+response.status);
+           data=await response.arrayBuffer();
+         }
+         buffers.set(item.url,await audio.decodeAudioData(data));
+       }catch(error){
+         failed++;failures.add(item.url);
+         console.warn("8bars could not decode sample",item.label||item.url,error);
+       }finally{if(tid!==null)clearTimeout(tid)}
+     }
    }
- }
- await Promise.all(Array.from({length:Math.min(6,list.length)},worker));
- loading=false;
- say(failed?buffers.size+" recordings ready; "+failed+" unavailable (synthesis fallback active)":
-    buffers.size+" CC0 recordings loaded. Ready to play.");
+   await Promise.all(Array.from({length:Math.min(5,items.length)},worker));
+ }finally{loading=false}
+ if(!playing)say(failed?failed+" sound files unavailable; synthesizer fallback enabled":
+     "Sound library ready");
 }
 function sampleFor(event){
+ const own=selectedLocal(event.track);
+ if(own)return own;
  if(isDrum(event.track)){
-   const options=DRUMS[event.track],option=state.drumSounds[event.track];
-   const index=option===2?(event.variant||0)%options.length:Math.min(option,options.length-1);
-   return options[index];
+   const options=DRUMS[event.track],choice=state.drumSounds[event.track]||0;
+   return options[Math.min(Math.max(choice,0),options.length-1)];
  }
  return nearestSample(state.voices[event.track],event.note);
 }
@@ -424,6 +466,93 @@ async function exportWav(){
  }catch(err){say("WAV export failed: "+err.message)}
  finally{rendering=false;b.disabled=false;b.textContent="↓ WAV"}
 }
+function persistAssignments(){
+ try{localStorage.setItem(USER_SELECTIONS,JSON.stringify(Object.fromEntries(userAssignments)))}catch{}
+}
+async function refreshLibrary(){
+ const result=await allSamples();
+ userLibrary=result.items;
+ for(const [track,id] of [...userAssignments]){
+   if(!userLibrary.some(item=>item.id===id))userAssignments.delete(track);
+ }
+ persistAssignments();
+ const items=$("libraryItems");items.replaceChildren();
+ if(!userLibrary.length){items.append(el("p",null,"No samples imported yet."));return}
+ for(const item of userLibrary){
+   const row=el("div","library-entry"),detail=el("div"),actions=el("div","entry-actions");
+   detail.append(el("strong",null,item.name),
+     el("small",null,(TRACKS.find(t=>t.id===item.track)?.name||item.track)+" · "+(item.size/1048576).toFixed(1)+" MB"));
+   const listen=makeButton("▶","preview","Preview imported sound",async()=>{
+     try{
+       await audioStart();
+       const source=localSource(item);
+       if(!buffers.has(source.url)){
+         const record=await getSample(item.id);
+         if(!record)throw Error("File not available");
+         buffers.set(source.url,await audio.decodeAudioData(await record.blob.arrayBuffer()));
+       }
+       const src=audio.createBufferSource(),g=audio.createGain();
+       src.buffer=buffers.get(source.url);g.gain.value=.65;src.connect(g).connect(master);src.start();
+     }catch(e){$("libraryStatus").textContent="Preview failed: "+e.message}
+   });
+   const use=makeButton("Use","preview","Assign this audio to "+item.track,()=>{
+     userAssignments.set(item.track,item.id);persistAssignments();paint();
+     $("libraryStatus").textContent="Assigned "+item.name+" to "+item.track;
+   });
+   const remove=makeButton("Remove","preview","Remove locally stored audio",async()=>{
+     await removeSample(item.id);buffers.delete("local:"+item.id);
+     await refreshLibrary();paint();
+     $("libraryStatus").textContent="Removed "+item.name;
+   });
+   actions.append(listen,use,remove);row.append(detail,actions);items.append(row);
+ }
+ const assigned=userLibrary.filter(item=>userAssignments.get(item.track)===item.id).length;
+ $("libraryStatus").textContent=userLibrary.length+" imported files"+(result.persistent?" saved in this browser.": " (session only: persistent storage unavailable).")+
+   (assigned?" "+assigned+" assigned.":"");
+}
+async function importAudio(event){
+ const files=[...event.target.files||[]];
+ if(!files.length)return;
+ const track=$("importChannel").value,root=Number($("importRoot").value);
+ $("libraryStatus").textContent="Checking audio files…";
+ let imported=0;
+ try{
+   await audioStart();
+   for(const file of files){
+     try{
+       // Reject undecodable files before keeping them in browser storage.
+       const buffer=await audio.decodeAudioData(await file.arrayBuffer());
+       if(!buffer.duration||!Number.isFinite(buffer.duration))throw Error("No playable audio");
+       const {item,persistent}=await saveSample(file,{track,root:isDrum(track)?60:root});
+       buffers.set("local:"+item.id,buffer);
+       userAssignments.set(track,item.id);
+       imported++;
+       if(!persistent)console.warn("8bars: persistent browser storage unavailable; file is held for this session only");
+     }catch(e){$("libraryStatus").textContent="Could not import "+file.name+": "+e.message;console.warn("Import rejected:",file.name,e)}
+   }
+   persistAssignments();
+   await refreshLibrary();paint();
+   if(imported)$("libraryStatus").textContent="Imported "+imported+" file"+(imported===1?"":"s")+" and assigned the latest to "+track+".";
+ }catch(e){$("libraryStatus").textContent="Audio import error: "+e.message}
+ finally{event.target.value=""}
+}
+function wireLibrary(){
+ const dlg=$("sampleDialog");
+ $("openLibrary").addEventListener("click",()=>dlg.showModal());
+ $("closeLibrary").addEventListener("click",()=>dlg.close());
+ for(const track of TRACKS)$("importChannel").append(new Option(track.name,track.id));
+ $("importChannel").value="lead";
+ $("importChannel").addEventListener("change",()=>{
+   $("rootWrap").hidden=isDrum($("importChannel").value);
+ });
+ $("importFiles").addEventListener("change",importAudio);
+ try{
+   const stored=JSON.parse(localStorage.getItem(USER_SELECTIONS)||"{}");
+   for(const [track,id] of Object.entries(stored))
+     if(TRACKS.some(t=>t.id===track)&&typeof id==="string")userAssignments.set(track,id);
+ }catch{}
+ void refreshLibrary().then(()=>paint()).catch(e=>console.error("Local library unavailable",e));
+}
 function wire(){
  for(const id of ["seed","bpm","density","swing","key","mode","style"]){
    $(id).addEventListener(id==="seed"?"change":"input",()=>{
@@ -445,4 +574,4 @@ function wire(){
  $("wav").addEventListener("click",exportWav);
  window.addEventListener("pagehide",stop);
 }
-loadLink();wire();rerender();
+loadLink();wire();wireLibrary();rerender();

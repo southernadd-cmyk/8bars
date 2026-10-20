@@ -1,5 +1,6 @@
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.3.0";
 import {restoreVolumes} from "./settings.js";
+import {searchCommonsAudio} from "./commons-audio.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
 import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js?v=0.4.1";
@@ -7,8 +8,11 @@ const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
 let userLibrary=[];
+let commonsContinuation=null,commonsResults=[],commonsController=null;
+const commonsPreview=new Audio();
 const userAssignments=new Map();
 const USER_SELECTIONS="8bars:sample-assignments";
+const MAX_LIBRARY_IMPORT=25*1024*1024;
 const state={
   seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",
   variations:Object.fromEntries(TRACKS.map(t=>[t.id,0])),
@@ -390,7 +394,7 @@ function stem(){return "8bars-"+state.seed.replace(/[^a-z0-9-_]/gi,"-").slice(0,
 function downloadJson(){
  save(new Blob([JSON.stringify({...composition,mixer:{
  voices:state.voices,drumSounds:state.drumSounds,volumes:state.volumes,muted:[...state.muted],solo:[...state.solo]
- },sampleSources:inventory().map(s=>({url:s.url,license:s.license}))},null,2)],{type:"application/json"}),stem()+".json");
+ },sampleSources:inventory().map(s=>({url:s.url,license:s.license})),importedSources:userLibrary.filter(s=>[...userAssignments.values()].includes(s.id)).map(s=>({name:s.name,license:s.license,author:s.author,source:s.source,sourceUrl:s.sourceUrl}))},null,2)],{type:"application/json"}),stem()+".json");
 }
 function vlen(num){
  let value=Math.max(0,Math.floor(num)),bytes=[value&127];value>>>=7;
@@ -487,6 +491,14 @@ async function refreshLibrary(){
    const row=el("div","library-entry"),detail=el("div"),actions=el("div","entry-actions");
    detail.append(el("strong",null,item.name),
      el("small",null,(TRACKS.find(t=>t.id===item.track)?.name||item.track)+" · "+(item.size/1048576).toFixed(1)+" MB"));
+   if(item.license&&item.license!=="User supplied"){
+     detail.append(el("small",null,item.license+" · "+(item.author||item.source||"Creator credited")));
+     if(item.sourceUrl){
+       const credit=el("a",null,"Original recording / attribution ↗");
+       credit.href=item.sourceUrl;credit.target="_blank";credit.rel="noopener noreferrer";
+       detail.append(credit);
+     }
+   }
    const listen=makeButton("▶","preview","Preview imported sound",async()=>{
      try{
        await audioStart();
@@ -544,6 +556,85 @@ async function importAudio(event){
  }catch(e){$("libraryStatus").textContent="Audio import error: "+e.message}
  finally{event.target.value=""}
 }
+
+function renderCommonsResults(){
+ const host=$("commonsItems");host.replaceChildren();
+ if(!commonsResults.length){host.append(el("p",null,"No compatible sounds found yet. Try another search."));return}
+ for(const item of commonsResults){
+   const row=el("div","library-entry commons-result"),detail=el("div"),actions=el("div","entry-actions");
+   detail.append(el("strong",null,item.name),
+     el("small",null,item.license+" · "+item.author+" · "+(item.size/1048576).toFixed(1)+" MB"));
+   const link=el("a",null,"Original recording and licence ↗");
+   link.href=item.descriptionUrl;link.target="_blank";link.rel="noopener noreferrer";
+   detail.append(link);
+   const preview=makeButton("Listen","preview","Preview recording",()=>{
+     try{
+       if(commonsPreview.src===item.url&&!commonsPreview.paused){
+         commonsPreview.pause();commonsPreview.currentTime=0;return;
+       }
+       commonsPreview.pause();commonsPreview.src=item.url;
+       void commonsPreview.play().catch(e=>$("commonsStatus").textContent="Preview unavailable: "+e.message);
+     }catch(e){$("commonsStatus").textContent="Preview unavailable: "+e.message}
+   });
+   const use=makeButton(item.canImport?"Add":"Too large","preview","Save audio to this browser",async()=>{
+     use.disabled=true;use.textContent="Adding…";
+     try{
+       if(!item.canImport)throw Error("File exceeds 25 MB limit");
+       await audioStart();
+       const response=await fetch(item.url);
+       if(!response.ok)throw Error("Audio download HTTP "+response.status);
+       const headerSize=Number(response.headers.get("content-length")||0);
+       if(headerSize>MAX_LIBRARY_IMPORT)throw Error("File too large");
+       const blob=await response.blob();
+       if(!blob.size||blob.size>MAX_LIBRARY_IMPORT)throw Error("File too large or empty");
+       const file=new File([blob],item.filename,{type:item.mime||blob.type});
+       const decoded=await audio.decodeAudioData(await file.arrayBuffer());
+       const track=$("importChannel").value,root=isDrum(track)?60:Number($("importRoot").value);
+       const saved=await saveSample(file,{track,root,license:item.license,
+         author:item.author,source:item.source,sourceUrl:item.descriptionUrl});
+       buffers.set("local:"+saved.item.id,decoded);
+       if(playing)stop();
+       userAssignments.set(track,saved.item.id);persistAssignments();
+       await refreshLibrary();paint();
+       $("commonsStatus").textContent="Added "+item.name+" to "+(TRACKS.find(t=>t.id===track)?.name||track)+". Creator and licence retained.";
+     }catch(error){
+       $("commonsStatus").textContent="Could not add sample: "+error.message;
+     }finally{use.disabled=!item.canImport;use.textContent=item.canImport?"Add":"Too large"}
+   });
+   if(!item.canImport){use.disabled=true;use.title="File exceeds the 25 MB browser-library limit"}
+   actions.append(preview,use);row.append(detail,actions);host.append(row);
+ }
+}
+async function searchCommons(more=false){
+ const query=$("commonsQuery").value.trim();
+ if(query.length<2){$("commonsStatus").textContent="Enter at least two characters.";return}
+ if(commonsController)commonsController.abort();
+ const controller=new AbortController();commonsController=controller;
+ const next=more?commonsContinuation:null;
+ if(!more){commonsResults=[];commonsContinuation=null;$("commonsItems").replaceChildren()}
+ $("commonsStatus").textContent="Searching Commons…";
+ $("commonsMore").hidden=true;
+ try{
+   const result=await searchCommonsAudio(query,{continuation:next,signal:controller.signal});
+   if(commonsController!==controller)return;
+   const known=new Set(commonsResults.map(x=>x.url));
+   for(const sound of result.items)if(!known.has(sound.url)){commonsResults.push(sound);known.add(sound.url)}
+   commonsContinuation=result.next;
+   renderCommonsResults();
+   $("commonsStatus").textContent=commonsResults.length+" compatible sounds listed.";
+   $("commonsMore").hidden=!commonsContinuation;
+ }catch(error){if(error.name!=="AbortError")$("commonsStatus").textContent="Commons search unavailable: "+error.message}
+ finally{if(commonsController===controller)commonsController=null}
+}
+function wireCommons(){
+ $("commonsForm").addEventListener("submit",event=>{event.preventDefault();void searchCommons(false)});
+ $("commonsMore").addEventListener("click",()=>void searchCommons(true));
+ $("sampleDialog").addEventListener("close",()=>{
+   commonsPreview.pause();commonsPreview.removeAttribute("src");commonsPreview.load();
+   if(commonsController)commonsController.abort();
+ });
+}
+
 function wireLibrary(){
  const dlg=$("sampleDialog");
  $("openLibrary").addEventListener("click",()=>dlg.showModal());
@@ -602,4 +693,4 @@ function wire(){
  $("wav").addEventListener("click",exportWav);
  window.addEventListener("pagehide",stop);
 }
-loadLink();wire();wireLibrary();rerender();
+loadLink();wire();wireLibrary();wireCommons();rerender();

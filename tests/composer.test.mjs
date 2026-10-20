@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {compose,euclidean,GOLDEN,ENGINE_VERSION,TRACKS,STYLES} from "../composer.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,nearestSample,inventory} from "../sounds.js";
+import {DRUMS,VOICES,DEFAULT_VOICES,nearestSample,inventory,regenerateSelections,REGEN_VOICE_POOLS} from "../sounds.js";
 
 test("same seed and settings reproduce every event",()=>{
   const config={seed:"618033",bpm:96,density:0.65,key:"A",mode:"minor",style:"downtempo"};
@@ -63,4 +63,39 @@ test("sample bank contains independently sourced CC0 sample choices",()=>{
     assert.ok(/\.(ogg|mp3)$/.test(s.url));
   }
   for(const track of TRACKS.filter(t=>t.type==="pitched"))assert.ok(VOICES[DEFAULT_VOICES[track.id]]);
+});
+
+test("main regeneration changes sounds across all twelve tracks without repeating selections",()=>{
+  const drums=Object.fromEntries(Object.entries(DRUMS).map(([id])=>[id,0]));
+  const oldVoices={...DEFAULT_VOICES};
+  const next=regenerateSelections(oldVoices,drums,()=>0);
+  for(const [track,choices] of Object.entries(REGEN_VOICE_POOLS)){
+    assert.notEqual(next.voices[track],oldVoices[track],track+" must change instrument");
+    assert.ok(choices.includes(next.voices[track]),track+" must use a suitable instrument");
+  }
+  for(const [track,choices] of Object.entries(DRUMS)){
+    assert.notEqual(next.drumSounds[track],drums[track],track+" must change sample");
+    assert.ok(next.drumSounds[track]>=0&&next.drumSounds[track]<choices.length);
+  }
+  assert.deepEqual(oldVoices,DEFAULT_VOICES,"do not mutate original selections");
+  assert.ok(Object.values(drums).every(index=>index===0),"do not mutate drum selections");
+});
+test("main regeneration remains fresh on consecutive clicks",()=>{
+  const drums=Object.fromEntries(Object.entries(DRUMS).map(([id])=>[id,0]));
+  const a=regenerateSelections(DEFAULT_VOICES,drums,n=>n-1);
+  const b=regenerateSelections(a.voices,a.drumSounds,()=>0);
+  for(const id of Object.keys(REGEN_VOICE_POOLS))assert.notEqual(a.voices[id],b.voices[id]);
+  for(const id of Object.keys(DRUMS))assert.notEqual(a.drumSounds[id],b.drumSounds[id]);
+});
+test("main Regenerate button actually uses instrument randomisation",async()=>{
+  const {readFileSync}=await import("node:fs");
+  const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+  const start=source.indexOf('$("another").addEventListener');
+  assert.ok(start>=0);
+  const next=source.indexOf('$("copy").addEventListener',start);
+  const handler=source.slice(start,next);
+  assert.match(handler,/regenerateSelections\(state\.voices,state\.drumSounds,randomIndex\)/);
+  assert.match(handler,/state\.seed=String\(value\[0\]\)/);
+  assert.match(handler,/userAssignments\.clear\(\)/);
+  assert.match(handler,/rerender\(\)/);
 });

@@ -1,4 +1,4 @@
-import {INSTRUMENT_UPGRADES} from "./instrument-maps.js";
+import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
 // CC0 catalogue — sampled instruments and TR-808 source files pinned to immutable commits.
 // The manifest declares choices; audio is fetched only when a choice is used.
 const TR="https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/85fbecf1bec32553395625ea659e2a56dfd7c0e1/";
@@ -306,10 +306,7 @@ export const VOICES={
  steelBright:metaVoice("meta-steel-guitar",[[40,"INSGuitarSteel_StringLowE_Vel03_E2_01"],[48,"INSGuitarSteel_StringA_Vel03_C3_01"],[55,"INSGuitarSteel_StringA_Vel03_G3_01"],[60,"INSGuitarSteel_StringA_Vel03_C4_01"],[67,"INSGuitarSteel_StringB_Vel03_G4_01"],[72,"INSGuitarSteel_StringB_Vel03_C5_01"],[76,"INSGuitarSteel_StringB_Vel03_E5_01"]]),
  electricBass:toneVoice("bass-electric",[[25,"Cs1"],[34,"As1"],[43,"G2"],[52,"E3"],[61,"Cs4"],[70,"As4"]]),
  uprightBass:toneVoice("contrabass",[[30,"Fs1"],[34,"As1"],[40,"E2"],[44,"Gs2"],[52,"E3"],[59,"B3"]]),
- bassoon:toneVoice("bassoon",[[43,"G2"],[48,"C3"],[57,"A3"],[60,"C4"],[67,"G4"],[72,"C5"]]),
  cello:toneVoice("cello",[[36,"C2"],[45,"A2"],[51,"Ds3"],[58,"As3"],[64,"E4"],[72,"C5"]]),
- clarinet:toneVoice("clarinet",[[50,"D3"],[58,"As3"],[65,"F4"],[74,"D5"],[82,"As5"],[90,"Fs6"]]),
- flute:toneVoice("flute",[[60,"C4"],[69,"A4"],[76,"E5"],[81,"A5"],[88,"E6"],[96,"C7"]]),
  horn:toneVoice("french-horn",[[33,"A1"],[39,"Ds2"],[50,"D3"],[53,"F3"],[60,"C4"],[77,"F5"]]),
  acousticGuitar:toneVoice("guitar-acoustic",[[38,"D2"],[45,"A2"],[52,"E3"],[59,"B3"],[67,"G4"],[74,"D5"]]),
  electricGuitar:toneVoice("guitar-electric",[[37,"Cs2"],[45,"A2"],[54,"Fs3"],[66,"Fs4"],[75,"Ds5"],[84,"C6"]]),
@@ -318,7 +315,6 @@ export const VOICES={
  harp:toneVoice("harp",[[28,"E1"],[41,"F2"],[59,"B3"],[72,"C5"],[89,"F6"],[101,"F7"]]),
  organ:toneVoice("organ",[[24,"C1"],[36,"C2"],[48,"C3"],[60,"C4"],[72,"C5"],[84,"C6"]]),
  concertPiano:toneVoice("piano",[[24,"C1"],[41,"F2"],[57,"A3"],[74,"D5"],[90,"Fs6"],[107,"B7"]]),
- sax:toneVoice("saxophone",[[49,"Cs3"],[55,"G3"],[62,"D4"],[69,"A4"],[75,"Ds5"],[81,"A5"]]),
  trombone:toneVoice("trombone",[[34,"As1"],[41,"F2"],[48,"C3"],[56,"Gs3"],[61,"Cs4"],[65,"F4"]]),
  trumpet:toneVoice("trumpet",[[53,"F3"],[60,"C4"],[65,"F4"],[70,"As4"],[77,"F5"],[84,"C6"]]),
  tuba:toneVoice("tuba",[[29,"F1"],[39,"Ds2"],[41,"F2"],[50,"D3"],[53,"F3"],[62,"D4"]]),
@@ -343,10 +339,7 @@ export const VOICE_NAMES={
   "steelBright": "Bright steel-string guitar",
   "electricBass": "Electric bass",
   "uprightBass": "Double bass",
-  "bassoon": "Bassoon",
   "cello": "Cello",
-  "clarinet": "Clarinet",
-  "flute": "Flute",
   "horn": "French horn",
   "acousticGuitar": "Acoustic guitar",
   "electricGuitar": "Electric guitar",
@@ -355,7 +348,6 @@ export const VOICE_NAMES={
   "harp": "Harp",
   "organ": "Organ",
   "concertPiano": "Concert piano",
-  "sax": "Saxophone",
   "trombone": "Trombone",
   "trumpet": "Trumpet",
   "tuba": "Tuba",
@@ -397,12 +389,6 @@ export const VOICE_FAMILIES={
     "trumpet",
     "tuba"
   ],
-  "Winds": [
-    "bassoon",
-    "clarinet",
-    "flute",
-    "sax"
-  ],
   "Mallets": [
     "xylophone"
   ]
@@ -424,12 +410,85 @@ export function inventory(){
  * Mixer dropdowns still offer the full catalogue for manual selection.
  */
 export const REGEN_VOICE_POOLS={
- bass:["electricBass","uprightBass","cello","tuba","bassoon","organ","harmonium","electricGuitar","concertPiano","piano"],
- chords:["piano","pianoSoft","pianoBright","concertPiano","organ","harmonium","nylon","steel","acousticGuitar","electricGuitar","classicalGuitar","harp"],
- arp:["piano","pianoBright","concertPiano","nylon","steel","acousticGuitar","electricGuitar","classicalGuitar","harp","xylophone","harmonium"],
- lead:["nylon","nylonBright","steel","steelBright","acousticGuitar","electricGuitar","classicalGuitar","violin","cello","flute","clarinet","sax","trumpet","horn","xylophone","harp","concertPiano"],
- counter:["violin","cello","flute","clarinet","sax","trumpet","horn","trombone","harp","organ","concertPiano","electricGuitar","steelSoft"],
- pad:["harmonium","organ","pianoSoft","concertPiano","violin","cello","flute","horn","trombone","harp","nylonFinger","steelSoft"]
+  "bass": [
+    "electricBass",
+    "uprightBass",
+    "cello",
+    "tuba",
+    "organ",
+    "harmonium",
+    "electricGuitar",
+    "concertPiano",
+    "piano"
+  ],
+  "chords": [
+    "piano",
+    "pianoSoft",
+    "pianoBright",
+    "concertPiano",
+    "organ",
+    "harmonium",
+    "nylon",
+    "steel",
+    "acousticGuitar",
+    "electricGuitar",
+    "classicalGuitar",
+    "harp"
+  ],
+  "arp": [
+    "piano",
+    "pianoBright",
+    "concertPiano",
+    "nylon",
+    "steel",
+    "acousticGuitar",
+    "electricGuitar",
+    "classicalGuitar",
+    "harp",
+    "xylophone",
+    "harmonium"
+  ],
+  "lead": [
+    "nylon",
+    "nylonBright",
+    "steel",
+    "steelBright",
+    "acousticGuitar",
+    "electricGuitar",
+    "classicalGuitar",
+    "violin",
+    "cello",
+    "trumpet",
+    "horn",
+    "xylophone",
+    "harp",
+    "concertPiano"
+  ],
+  "counter": [
+    "violin",
+    "cello",
+    "trumpet",
+    "horn",
+    "trombone",
+    "harp",
+    "organ",
+    "concertPiano",
+    "electricGuitar",
+    "steelSoft"
+  ],
+  "pad": [
+    "harmonium",
+    "organ",
+    "pianoSoft",
+    "concertPiano",
+    "violin",
+    "cello",
+    "horn",
+    "trombone",
+    "harp",
+    "nylonFinger",
+    "steelSoft"
+  ]
 };
 export function regenerateSelections(currentVoices,currentDrums,randomIndex){
  if(typeof randomIndex!=="function")throw new TypeError("A random index function is required");

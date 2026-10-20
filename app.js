@@ -2,7 +2,7 @@ import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js";
 import {restoreVolumes} from "./settings.js";
 import {createTransport} from "./transport.js";
 import {allSamples,saveSample,getSample,removeSample,localSource,sourceId,ACCEPT_AUDIO} from "./audio-files.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory} from "./sounds.js";
+import {DRUMS,VOICES,DEFAULT_VOICES,DRUM_VARIATIONS,VOICE_NAMES,VOICE_FAMILIES,nearestSample,inventory,regenerateSelections} from "./sounds.js";
 const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
@@ -570,8 +570,28 @@ function wire(){
  $("play").addEventListener("click",toggle);
  $("audioTest").addEventListener("click",testAudio);
  $("another").addEventListener("click",()=>{
-   const a=new Uint32Array(1);crypto.getRandomValues(a);state.seed=String(a[0]);
-   state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));rerender();
+   // Change both the composition and the selected instruments on all 12 tracks.
+   const randomIndex=count=>{
+     const value=new Uint32Array(1);crypto.getRandomValues(value);
+     return value[0]%count;
+   };
+   const sounds=regenerateSelections(state.voices,state.drumSounds,randomIndex);
+   state.voices=sounds.voices;
+   state.drumSounds=sounds.drumSounds;
+   // Clear active imports, not their stored files, so new built-in choices can be heard.
+   userAssignments.clear();
+   persistAssignments();
+   const previousSeed=state.seed;
+   do{
+     const value=new Uint32Array(1);crypto.getRandomValues(value);
+     state.seed=String(value[0]);
+   }while(state.seed===previousSeed);
+   state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));
+   const wasPlaying=playing;
+   rerender();
+   say("New composition and sounds ready.");
+   if(wasPlaying)void toggle();
+   else if(audio)void loadSamples().catch(err=>say("Sound loading failed: "+err.message));
  });
  $("copy").addEventListener("click",async()=>{
    try{await navigator.clipboard.writeText(permalink());say("Link copied — includes every instrument, level and channel variation.")}

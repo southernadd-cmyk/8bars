@@ -103,3 +103,32 @@ test("Regenerating one genre track changes only that track",()=>{
     genre+" "+track+" should change");
  }
 });
+
+test("Songs within EACH subgenre have different musical identities, not just different sample selections",()=>{
+ const signatures=events=>({
+  lead:events.filter(e=>e.track==="lead").map(e=>e.step+":"+e.note).join("|"),
+  leadRhythm:events.filter(e=>e.track==="lead").map(e=>e.step).join("|"),
+  bass:events.filter(e=>e.track==="bass"&&!e.sampleVoice).map(e=>e.step+":"+e.note).join("|"),
+  percussion:events.filter(e=>e.track==="kick"||e.track==="snare").map(e=>e.track+":"+e.step).join("|")
+ });
+ for(const genre of ["pop","hiphop","dnb"]){
+  for(const {id:subgenre} of GENERATOR_GENRES[genre].subgenres){
+   const seen={lead:new Set(),leadRhythm:new Set(),bass:new Set(),percussion:new Set(),harmony:new Set()};
+   for(let i=0;i<36;i++){
+    const seed=genre+"|"+subgenre+"|variety-audit-"+i;
+    const p=genrePreset(genre,subgenre,seed);
+    const song=composeGenreSong({...p,seed,key:"A",mode:"minor",
+      bpm:p.bpm,density:p.density/100,swing:p.swing/100,variations:{},
+      harmonyOverrides:Array(8).fill(null)});
+    const signature=signatures(song.events);
+    for(const [name,value] of Object.entries(signature))seen[name].add(value);
+    seen.harmony.add(song.progression.map(chord=>chord.notes[0]%12).join(","));
+   }
+   assert.ok(seen.lead.size>=27,genre+"/"+subgenre+" has repeated complete melodies: "+seen.lead.size);
+   assert.ok(seen.leadRhythm.size>=12,genre+"/"+subgenre+" has canned note attacks: "+seen.leadRhythm.size);
+   assert.ok(seen.bass.size>=20,genre+"/"+subgenre+" has repeated bass parts: "+seen.bass.size);
+   assert.ok(seen.harmony.size>=10,genre+"/"+subgenre+" has overly narrow harmony: "+seen.harmony.size);
+   assert.ok(seen.percussion.size>=8,genre+"/"+subgenre+" repeats its drum structure: "+seen.percussion.size);
+  }
+ }
+});

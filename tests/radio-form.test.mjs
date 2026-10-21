@@ -78,7 +78,9 @@ test("Harmony-aware transitions prefer actual shared chord tones and avoid inven
  assert.deepEqual(sharedToneBridge(from,to),[],"No unrecorded dissonant bridge should be created");
 });
 test("Long-form sample preloading and boundaries preserve seamless continuous playback",()=>{
- assert.match(app,/buildRadioForm\(\{\.\.\.profile,seed\},piece,compose\)/);
+ assert.match(app,/buildRadioForm\(candidate,baseComposition,compose\)/);
+ assert.match(app,/const alternatives=Array\.from\(\{length:5\},\(\)=>planNext\(false\)\)/);
+ assert.match(app,/const candidate=finishRadioForm\(lightweight\)/);
  assert.match(app,/async function warmNextSection\(piece\)/);
  assert.match(app,/await prepare\(piece,index\)/);
  assert.match(app,/sectionAllowsNote\(e,section\.role\)/);

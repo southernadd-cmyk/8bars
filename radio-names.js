@@ -1,4 +1,4 @@
-// Deterministic artist and song titles for the radio; the word data ships as
+// Deterministic track titles for the radio; the word data ships as
 // a simple, human-editable dictionary in radio-words.txt. No DOM dependency.
 const FALLBACK=["blue","aardvark","only","super","achievement","silver",
   "midnight","echo","velvet","orbit","dream","ocean","violet","signal"];
@@ -18,9 +18,9 @@ export function parseRadioDictionary(text){
  }
  return [...unique];
 }
-export function radioNameForSeed(seed,words=FALLBACK){
+export function radioTitleForSeed(seed,words=FALLBACK){
  const list=words?.length>=10?words:FALLBACK;
- const r=random(String(seed)+"|artist-title");
+ const r=random(String(seed)+"|track-title");
  const used=new Set();
  function make(){
    const size=1+Math.floor(r()*3);
@@ -33,6 +33,10 @@ export function radioNameForSeed(seed,words=FALLBACK){
    }
    return parts.join(" ");
  }
- const artist=make(),title=make();
- return {artist,title};
+ return make();
+}
+
+// Backwards-compatible title-object export for existing integrations.
+export function radioNameForSeed(seed,words=FALLBACK){
+ return {title:radioTitleForSeed(seed,words)};
 }

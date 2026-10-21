@@ -9,6 +9,8 @@ import {planEcology} from "./music-ecology.js";
 import {parseRadioDictionary,radioNameForSeed} from "./radio-names.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
+import {dnbDrumSample} from "./dnb-break-kit.js";
+import {createRadioVisual} from "./radio-visual.js";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
@@ -50,29 +52,10 @@ let livingGenome=null; // Musical memory survives non-Ecology chapters.
 let lastText="";
 let epoch=0,nextRetryTime=0;
 const retiringBuses=[];
-// Slow cinematic crops and colour grading of the ORIGINAL GIF, not alternate footage.
-// Modest changes preserve the characters and scene; new looks arrive on bar boundaries.
-const visualPresets=[
-  {zoom:1.05,x:0,y:0,hue:0,saturation:1.08,brightness:1.02,contrast:1.02},
-  {zoom:1.16,x:-2.6,y:1.3,hue:-15,saturation:1.25,brightness:1.04,contrast:1.06},
-  {zoom:1.12,x:2.7,y:-1.3,hue:18,saturation:.88,brightness:1.06,contrast:1.03},
-  {zoom:1.20,x:-3.2,y:-1.1,hue:36,saturation:1.14,brightness:.97,contrast:1.08},
-  {zoom:1.13,x:1.4,y:1.7,hue:-29,saturation:.77,brightness:1.08,contrast:1.05},
-  {zoom:1.10,x:-1.5,y:0,hue:7,saturation:1.38,brightness:1,contrast:1.04},
-  {zoom:1.18,x:2.5,y:.8,hue:48,saturation:.92,brightness:1.04,contrast:1.08}
-];
-let lastVisual=-1;
-function changeVisual(){
-  const img=document.querySelector(".scene img");
-  if(!img)return;
-  let index=Math.floor(Math.random()*visualPresets.length);
-  if(index===lastVisual)index=(index+1)%visualPresets.length;
-  lastVisual=index;
-  const p=visualPresets[index];
-  img.style.transform="translate("+p.x+"%, "+p.y+"%) scale("+p.zoom+")";
-  img.style.filter="hue-rotate("+p.hue+"deg) saturate("+p.saturation+") brightness("+p.brightness+") contrast("+p.contrast+")";
-}
-
+// Entirely original, event- and spectrum-reactive artwork; no licensed video.
+const visual=createRadioVisual($("radio-art"));
+visual.setStation(selectedChannel);
+function changeVisual(){visual.changePhase()}
 
 function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}}
 function rngToken(){const array=new Uint32Array(2);crypto.getRandomValues(array);return Array.from(array,x=>x.toString(36)).join("")}
@@ -157,12 +140,18 @@ function planNext(expand=true){
    }
  }
  if(profile.channel==="dnb"){
-   voices.bass=choice(["dnbReese","dnbReese","dnbWobble","dnbFm","dnb808"]);
+   voices.bass=choice(["dnbReese","dnbReese","dnbWobble","dnbFm"]);
    voices.chords=choice(["pianoSoft","pianoBright","organ"]);
    voices.pad=choice(["harmonium","organ","pianoSoft"]);
-   voices.lead=profile.scene==="liquid"?
-     choice(["concertPiano","pianoSoft","electricGuitar"]):
-     choice(["electricGuitar","concertPiano"]);
+   // The DnB channel timbre filter remains authoritative; let liquid include
+   // genuine strings rather than hard-overriding every lead to a keyboard.
+   const candidates=paletteFor(profile.engine,"lead",
+     REGEN_VOICE_POOLS.lead.filter(id=>VOICES[id]?.length),"dnb");
+   const sceneLeads=profile.scene==="liquid"?
+     ["violin","cello","concertPiano","electricGuitar"]:
+     ["electricGuitar","concertPiano"];
+   const suitable=sceneLeads.filter(id=>candidates.includes(id));
+   voices.lead=choice(suitable.length?suitable:candidates);
    voices.counter="violin";
    voices.arp="pianoSoft";
  }else if(profile.channel==="pop"){
@@ -177,15 +166,8 @@ function planNext(expand=true){
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
  if(profile.channel==="dnb"){
-   const drumPreferences={
-     kick:/punchy|tight|deep|sub/i,snare:/snappy|TR-808 snare|full/i,
-     hat:/hat|crisp|tight/i,openhat:/open|hat/i,clap:/clap|wide/i
-   };
-   for(const [id,matcher] of Object.entries(drumPreferences)){
-     const choices=DRUMS[id].map((s,i)=>({i,label:s.label||""}))
-       .filter(s=>matcher.test(s.label));
-     if(choices.length)drumSounds[id]=choice(choices).i;
-   }
+   // The acoustic kit is chosen per event by soundFor(), including dynamic
+   // layers and round robins for ghosts. There are no generic 808 overrides.
  }else if(profile.channel==="pop"){
    for(const [id,matcher] of Object.entries({
      kick:/punchy|warm|round/i,snare:/snappy|full/i,
@@ -221,6 +203,10 @@ function planNext(expand=true){
  return expand?finishRadioForm(candidate):candidate;
 }
 function soundFor(piece,e){
+  if(piece.channel==="dnb"&&drums.includes(e.track)){
+    const recorded=dnbDrumSample(e.track,e.velocity,e.step,piece.seed);
+    if(recorded)return recorded;
+  }
   if(drums.includes(e.track)){
     const choices=DRUMS[e.track];
     return choices[Math.max(0,Math.min(piece.drumSounds[e.track]??0,choices.length-1))];
@@ -354,6 +340,7 @@ function playNote(piece,e,when,sectionLevel=1){
     envelope.connect(filter);filter.connect(piece.bus);
   }else envelope.connect(piece.bus);
   src.start(when);src.stop(when+noteLength+.004);
+  visual.onNote(e);
   src.onended=()=>{try{src.disconnect();envelope.disconnect()}catch{}};
 }
 function switchPiece(at){
@@ -436,6 +423,7 @@ async function start(){
       await ctx.resume();
       if(ctx.state!=="running")throw Error("Audio cannot resume");
       paused=false;playing=true;epoch++;
+      visual.start();
       $("play").textContent="Ⅱ Pause";$("skip").disabled=false;
       clearInterval(timer);timer=setInterval(pump,25);
       status("Resumed · continuing the same piece and position");
@@ -443,7 +431,15 @@ async function start(){
       if(!next&&loops>=targetLoops-2)void queueNext();
       return;
     }
-    if(!ctx){ctx=new AudioContext();master=ctx.createGain();master.gain.value=.83;const safety=ctx.createDynamicsCompressor();safety.threshold.value=-12;safety.knee.value=18;safety.ratio.value=3;safety.attack.value=.005;safety.release.value=.2;master.connect(safety);safety.connect(ctx.destination)}
+    if(!ctx){
+      ctx=new AudioContext();master=ctx.createGain();master.gain.value=.83;
+      const safety=ctx.createDynamicsCompressor();
+      safety.threshold.value=-12;safety.knee.value=18;safety.ratio.value=3;
+      safety.attack.value=.005;safety.release.value=.2;
+      const analyser=ctx.createAnalyser();analyser.fftSize=512;analyser.smoothingTimeConstant=.82;
+      master.connect(safety);safety.connect(analyser);analyser.connect(ctx.destination);
+      visual.attach(analyser);
+    }
     await ctx.resume();
     await loadRadioWords();
     if(!current||!current.ready){
@@ -462,6 +458,7 @@ async function start(){
       showSongIdentity(current);
     }
     playing=true;paused=false;epoch++;
+    visual.start();
     step=0;loops=0;targetLoops=current.sections.length;displayedSection=-1;
     stepTime=ctx.currentTime+.09;
     $("intro").hidden=true;$("play").textContent="Ⅱ Pause";$("skip").disabled=false;
@@ -474,6 +471,7 @@ async function start(){
 }
 async function pause(){
   playing=false;paused=true;epoch++;
+  visual.stop();
   clearInterval(timer);timer=null;
   if(ctx)await ctx.suspend();
   $("play").textContent="▶ Resume";
@@ -494,6 +492,7 @@ function changeStation(value){
  else url.searchParams.set("channel",channel);
  history.replaceState(null,"",url.pathname+url.search+url.hash);
  updateStationDisplay();
+ visual.setStation(channel);
  if(playing){
    skipRequested=true;
    status("Tuning to "+RADIO_CHANNELS[channel].name+" · preparing recordings for the next bar boundary");
@@ -520,4 +519,7 @@ $("skip").addEventListener("click",()=>{
   if(next?.ready){targetLoops=loops+1;status("Switching at the next eight-bar boundary")}
   else{skipRequested=true;status("Preparing the next piece · current loop will continue");void queueNext()}
 });
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&playing)pump()});
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)visual.stop();
+ else if(playing){visual.start();pump()}
+});

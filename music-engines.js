@@ -192,7 +192,7 @@ function melodic(c){
    starts=[...new Set(starts)].sort((a,b)=>a-b);
    for(let i=0;i<starts.length;i++){
      const step=starts[i],degree=shape[(i+(b>=4?1:0))%shape.length];
-     let target=melodyDegree(degree,1)+phrase.register*12;
+     let target=melodyDegree(degree,2)+phrase.register*5;
      if(last!==null)while(target-last>10)target-=12;
      if(last!==null)while(last-target>10)target+=12;
      target=clamp(target,62,94);

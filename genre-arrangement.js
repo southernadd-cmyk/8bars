@@ -1,4 +1,4 @@
-// Genre-specific symbolic music for Human Radio. NOT the regular editor.
+// Genre-specific symbolic music shared by Human Radio and the 8bars editor.
 // DnB: two-step break + slower, sparse bass phrase + restrained chord atmosphere.
 // Pop: diatonic four-chord cycle + recurring chorus hook + verse/chorus arrangement.
 // Uses existing real recorded instrument samples; no generated audio or synth.

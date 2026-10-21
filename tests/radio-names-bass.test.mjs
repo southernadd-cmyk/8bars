@@ -80,8 +80,9 @@ test("DnB generates real sub-layer events in the same root pitch class as Reese 
  const subs=events.filter(e=>e.sampleVoice==="dnbSub");
  assert.ok(mains.length>=16);
  assert.ok(subs.length>=8);
- assert.ok(subs.every(e=>mains.some(main=>main.step===e.step&&main.note-e.note===12)));
- assert.ok(subs.every(e=>e.velocity<=.27));
+ assert.ok(subs.every(e=>mains.some(main=>main.step===e.step&&
+   (main.note-e.note===12||main.note===e.note))));
+ assert.ok(subs.every(e=>e.velocity<=.23&&e.note>=28));
  assert.match(radio,/e\.track==="bass"&&e\.sampleVoice\?e\.sampleVoice:piece\.voices\[e\.track\]/);
  assert.match(radio,/voices\.bass=choice\(\["dnbReese"/);
 });

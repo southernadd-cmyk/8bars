@@ -25,7 +25,10 @@
 .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:#eff8ef;letter-spacing:.025em;text-shadow:0 1px 8px #000}
 .pill{background:rgba(9,22,18,.55);border:1px solid #ffffff36;border-radius:18px;padding:8px 13px;backdrop-filter:blur(8px)}
 button{appearance:none;border:1px solid #e0f6dc6e;background:#12241cd9;color:#fff;border-radius:999px;padding:13px 24px;font:inherit;font-weight:600;cursor:pointer}
-button:hover{background:#23553b}button:focus-visible,a:focus-visible{outline:3px solid #b7fcb0;outline-offset:3px}
+button:hover{background:#23553b}button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #b7fcb0;outline-offset:3px}
+.channel-select{display:flex;align-items:center;gap:9px;font-size:13px;color:#e0eee1;font-weight:600}
+.channel-select select{appearance:auto;background:#14251edd;color:#f5faf3;border:1px solid #ffffff5e;border-radius:9px;padding:9px 12px;font:inherit;min-width:145px;max-width:100%}
+.intro-channel{justify-content:center;margin:22px auto 2px}
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #play{background:#c6efbb;color:#102216;border-color:#c6efbb}#play:hover{background:#e2ffdb}
 .details{max-width:45rem}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#ddfbdc;margin:0 0 6px}
@@ -36,17 +39,18 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 #intro h2{font-size:clamp(46px,9vw,96px);letter-spacing:-.065em;margin:0 0 10px}
 #intro p{line-height:1.55;color:#d4e7d5}#intro button{margin:17px 0;font-size:18px}
 #intro small{display:block;font-size:12px;color:#b3c7b6}
-@media(max-width:660px){.bottom{display:block}.details{margin-bottom:18px}.top .meta{display:none}.controls button{padding:10px 17px}}
+@media(max-width:660px){.bottom{display:block}.details{margin-bottom:18px}.top .meta{display:none}.top{align-items:flex-start;gap:12px}.top .brand{font-size:clamp(19px,5vw,26px)}.channel-select{gap:5px}.channel-select select{min-width:0;max-width:150px;padding:9px 7px}.controls button{padding:10px 17px}}
+@media(max-width:380px){.top{flex-wrap:wrap;gap:8px}.top .channel-select{margin-left:auto}}
 </style>
 </head>
 <body>
 <div class="scene"><img src="./humanradio.gif" alt="Jerry driving while listening to Human Music" onerror="this.onerror=null;this.src='https://i.kym-cdn.com/photos/images/newsfeed/001/225/551/385.gif'"></div>
 <div class="shade"></div>
-<header class="top"><a class="brand" href="./index.html" title="Return to the 8bars composer">8<span>bars</span> / human radio</a><div class="meta"><span class="pill">Evolving compositions</span><span class="pill">Real recorded instruments</span></div></header>
+<header class="top"><a class="brand" href="./index.html" title="Return to the 8bars composer">8<span>bars</span> / human radio</a><div class="channel-select"><label for="channel">Channel</label><select id="channel" aria-label="Choose Human Radio channel"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div></header>
 <div class="bottom">
 <div class="details"><p class="eyebrow" id="phase">Human music, continuously</p><h1 id="track">Human Radio</h1><div id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</div></div>
 <div class="controls"><button id="play" type="button" aria-label="Start or pause radio">▶ Start radio</button><button id="skip" type="button" disabled>Next piece ↗</button></div>
 </div>
-<div id="intro"><article><p class="eyebrow">8bars presents</p><h2>Human Radio.</h2><p>An endless stream of rule-composed music. Four different composition systems create patterns, melodies, ambient music and evolving musical processes. Each chapter develops before the next arrives. No two listening sessions are the same.</p><button id="start" type="button">▶ Start listening</button><small>Your browser requires one click to enable audio. Headphones recommended.</small></article></div>
-<script type="module" src="./humanradio.js?v=6"></script>
+<div id="intro"><article><p class="eyebrow">8bars presents</p><h2>Human Radio.</h2><p>An endless stream of original rule-composed music. Each station has its own tempo, groove, instrument palette and developing musical form.</p><div class="channel-select intro-channel"><label for="introChannel">Channel</label><select id="introChannel" aria-label="Choose radio channel before listening"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div><p id="channelDescription">All musical scenes and composition systems.</p><button id="start" type="button">▶ Start listening</button><small>Your browser requires one click to enable audio. Headphones recommended.</small></article></div>
+<script type="module" src="./humanradio.js?v=7"></script>
 </body></html>

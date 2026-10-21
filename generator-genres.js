@@ -5,6 +5,7 @@ import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=3";
 import {composeWithEngine} from "./music-engines.js";
 import {hiphopDrumSample} from "./hiphop-drum-kit.js";
 import {dnbDrumSample} from "./dnb-break-kit.js";
+import {planInstrumentPalette} from "./instrument-palettes.js";
 
 const electronic=[
  {id:"downtempo",name:"Downtempo",styles:["downtempo"],engines:["classic","melodic","pattern","ecology"],bpm:[76,104],density:[.43,.72],swing:[.08,.2]},
@@ -38,36 +39,7 @@ function rng(seed){
   return ((z^(z>>>14))>>>0)/4294967296;};
 }
 const choose=(random,options)=>options[Math.min(options.length-1,Math.floor(random()*options.length))];
-function voicePreset(genre,scene,random){
- const pick=options=>choose(random,options);
- if(genre==="dnb")return {
-  bass:pick(["dnbReese","dnbWobble","dnbFm"]),
-  chords:pick(["pianoSoft","pianoBright","organ"]),
-  arp:"pianoSoft",
-  lead:scene==="liquid"?pick(["violin","cello","concertPiano"]):pick(["electricGuitar","concertPiano"]),
-  counter:scene==="liquid"?"violin":"electricGuitar",
-  pad:pick(["harmonium","organ","pianoSoft"])
- };
- if(genre==="hiphop")return {
-  bass:scene==="trap"?"dnb808":pick(["electricBass","uprightBass","dnbSub"]),
-  chords:scene==="west-coast"?pick(["organ","pianoBright","steelBright"]):pick(["pianoSoft","concertPiano","organ"]),
-  arp:scene==="west-coast"?"steelBright":"pianoSoft",
-  lead:scene==="trap"?pick(["pianoSoft","organ","steelBright"]):
-    pick(["pianoSoft","concertPiano","steelBright","electricGuitar"]),
-  counter:pick(["organ","concertPiano","electricGuitar"]),
-  pad:pick(["pianoSoft","harmonium","organ"])
- };
- if(genre==="pop")return {
-  bass:pick(["electricBass","uprightBass"]),
-  chords:pick(["pianoBright","concertPiano","steelBright","electricGuitar"]),
-  arp:pick(["steelBright","concertPiano","electricGuitar"]),
-  lead:pick(["electricGuitar","concertPiano","steelBright","vocalSungNotes"]),
-  counter:pick(["violin","electricGuitar","concertPiano"]),
-  pad:pick(["pianoSoft","harmonium","organ"])
- };
- return null;
-}
-export function genrePreset(genre,subgenre,seed){
+export function genrePreset(genre,subgenre,seed,previousVoices=null){
  const g=validGeneratorGenre(genre),s=validSubgenre(g,subgenre);
  const scene=GENERATOR_GENRES[g].subgenres.find(item=>item.id===s);
  const random=rng(seed+"|"+g+"|"+s+"|generator");
@@ -79,7 +51,7 @@ export function genrePreset(genre,subgenre,seed){
   swing:Math.round(range(scene.swing)*100),
   style:choose(random,scene.styles),
   engine:choose(random,scene.engines),
-  voices:voicePreset(g,s,random)
+  voices:planInstrumentPalette(g,s,seed,previousVoices)
  };
 }
 export function composeGenreSong(settings){

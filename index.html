@@ -19,11 +19,11 @@
 <section class="console" aria-label="Composition settings">
  <div class="controls">
   <label>Seed<input id="seed" type="text" maxlength="64" spellcheck="false" value="618033"></label>
-  <label>Composition<select id="engine"><option value="classic">Original</option><option value="pattern">Pattern</option><option value="melodic">Melodic</option><option value="ambient">Ambient</option><option value="process">Process</option><option value="ecology">Ecology</option></select></label>
-  <label>Style<select id="style"><option value="downtempo">Downtempo</option><option value="house">House</option><option value="breakbeat">Breakbeat</option><option value="ambient">Ambient</option></select></label>
+  <label>Genre<select id="genre"><option value="pop">Pop</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="electronic" selected>Electronic</option></select></label>
+  <label>Subgenre<select id="subgenre" aria-label="Subgenre"></select></label>
   <label>Key<select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></label>
   <label>Mode<select id="mode"><option value="minor">Minor</option><option value="major">Major</option></select></label>
-  <label>Tempo <span id="bpmValue">96</span> BPM<input id="bpm" type="range" min="60" max="170" value="96"></label>
+  <label>Tempo <span id="bpmValue">96</span> BPM<input id="bpm" type="range" min="60" max="185" value="96"></label>
   <label>Density <span id="densityValue">65%</span><input id="density" type="range" min="15" max="100" value="65"></label>
   <label>Swing <span id="swingValue">12%</span><input id="swing" type="range" min="0" max="65" value="12"></label>
  </div>
@@ -41,7 +41,7 @@
   <p>Choose sounds, mute or solo tracks, and regenerate individual parts with ↻. Use Sound library to import your own samples.</p></div>
   <span id="eventCount" class="sr-only"></span></div>
  <div class="scoreViewport"><div id="barLabels" class="barLabels"></div><div id="grid" class="grid"></div></div>
- <p class="under-score">The highlighted sixth bar marks the golden-section change. Scroll sideways to see later bars on smaller screens.</p>
+ <p class="under-score">Genre and subgenre shape the actual rhythms, melody and instrument palette. The sixth bar marks the golden-section change. Scroll sideways to see later bars on smaller screens.</p>
 </section>
 <section class="harmony-section" aria-label="Chord progression">
  <div class="section-head"><div><h2>Harmony</h2><p>Change any chord to rebuild the pitched parts around it. Changing key or mode starts a new progression.</p></div><button type="button" class="harmony-reset" id="resetHarmony" disabled>Reset chords</button></div>
@@ -80,5 +80,5 @@
   <div class="library-title"><h3>Imported audio</h3><button type="button" id="exportSampleCredits">Download credits</button></div><div id="libraryItems" class="library-items"><p>No samples imported yet.</p></div>
  </div>
 </dialog>
-<script type="module" src="./app.js?v=0.7.10"></script>
+<script type="module" src="./app.js?v=0.8.0"></script>
 </body></html>

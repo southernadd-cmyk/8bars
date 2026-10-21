@@ -1,6 +1,7 @@
-import {sampleGain} from "./sample-levels.js";
+import {sampleGain,samplePeakGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.4";
+import {GENERATOR_GENRES,validGeneratorGenre,validSubgenre,defaultSubgenre,genrePreset,composeGenreSong,genreDrumSample} from "./generator-genres.js?v=1";
 import {composeWithEngine,ENGINE_IDS} from "./music-engines.js?v=0.7.10";
 import {ALL_CHORDS,chordsInKey,chordSymbol,readHarmonyParam,normalizeHarmonyOverrides} from "./harmony.js";
 import {restoreVolumes} from "./settings.js";
@@ -18,7 +19,7 @@ const userAssignments=new Map();
 const USER_SELECTIONS="8bars:sample-assignments";
 const MAX_LIBRARY_IMPORT=25*1024*1024;
 const state={
-  seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",engine:"classic",
+  seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",engine:"classic",genre:"electronic",subgenre:"downtempo",
   variations:Object.fromEntries(TRACKS.map(t=>[t.id,0])),
   harmonyOverrides:normalizeHarmonyOverrides(null),
   voices:{...DEFAULT_VOICES},drumSounds:Object.fromEntries(TRACKS.filter(t=>t.type==="drum").map(t=>[t.id,0])),
@@ -36,27 +37,37 @@ const savedNum=(v,defaultVal,min,max)=>v!==null && v!==undefined && String(v).tr
 function loadLink(){
  const p=new URLSearchParams(location.search);
  state.seed=(p.get("seed")||state.seed).slice(0,64);
- state.bpm=savedNum(p.get("bpm"),96,60,170);
- state.density=savedNum(p.get("density"),65,15,100);
- state.swing=savedNum(p.get("swing"),12,0,65);
+ const hasGenre=p.has("genre");
+ state.genre=validGeneratorGenre(p.get("genre"));
+ state.subgenre=hasGenre?validSubgenre(state.genre,p.get("subgenre")):
+   validSubgenre("electronic",p.get("style")||"downtempo");
+ const preset=genrePreset(state.genre,state.subgenre,state.seed);
+ state.bpm=savedNum(p.get("bpm"),hasGenre?preset.bpm:96,60,185);
+ state.density=savedNum(p.get("density"),hasGenre?preset.density:65,15,100);
+ state.swing=savedNum(p.get("swing"),hasGenre?preset.swing:12,0,65);
  if(["major","minor"].includes(p.get("mode")))state.mode=p.get("mode");
- if(STYLES.includes(p.get("style")))state.style=p.get("style");
- if(ENGINE_IDS.includes(p.get("engine")))state.engine=p.get("engine");
+ state.style=STYLES.includes(p.get("style"))?p.get("style"):hasGenre?preset.style:state.style;
+ state.engine=ENGINE_IDS.includes(p.get("engine"))?p.get("engine"):hasGenre?preset.engine:state.engine;
  if(["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].includes(p.get("key")))state.key=p.get("key");
  state.harmonyOverrides=readHarmonyParam(p.get("harmony"));
+ state.voices={...DEFAULT_VOICES,...(hasGenre?preset.voices:null)};
  const v=(p.get("variations")||"").split(",");
  TRACKS.forEach((t,i)=>state.variations[t.id]=savedNum(v[i],0,0,99999));
  const inst=(p.get("voices")||"").split(",");
  tones.forEach((id,i)=>{if(VOICES[inst[i]])state.voices[id]=inst[i]});
  const drum=(p.get("drums")||"").split(",");
- TRACKS.filter(t=>t.type==="drum").forEach((t,i)=>state.drumSounds[t.id]=savedNum(drum[i],0,0,DRUMS[t.id].length-1));
+ TRACKS.filter(t=>t.type==="drum").forEach((t,i)=>{
+   const special=state.genre==="hiphop"||state.genre==="dnb";
+   state.drumSounds[t.id]=special&&(!drum[i]||drum[i]==="auto")?"auto":
+     savedNum(drum[i],0,0,DRUMS[t.id].length-1);
+ });
  state.volumes=restoreVolumes(p.get("volumes"),state.volumes,TRACKS.map(t=>t.id));
  for(const id of (p.get("muted")||"").split(","))if(TRACKS.some(t=>t.id===id))state.muted.add(id);
  for(const id of (p.get("solo")||"").split(","))if(TRACKS.some(t=>t.id===id))state.solo.add(id);
 }
 function permalink(){
  const u=new URL(location.href),q=new URLSearchParams();
- for(const id of ["seed","bpm","density","swing","key","mode","style","engine"])q.set(id,state[id]);
+ for(const id of ["seed","bpm","density","swing","key","mode","style","engine","genre","subgenre"])q.set(id,state[id]);
  q.set("variations",TRACKS.map(t=>state.variations[t.id]).join(","));
  if(state.harmonyOverrides.some(Boolean))q.set("harmony",state.harmonyOverrides.map(chord=>chord||"").join(","));
  q.set("voices",tones.map(id=>state.voices[id]).join(","));
@@ -68,10 +79,22 @@ function permalink(){
 }
 function syncUrl(){history.replaceState(null,"",permalink())}
 function syncControls(){
- for(const id of ["seed","bpm","density","swing","key","mode","style","engine"])$(id).value=state[id];
+ for(const id of ["seed","bpm","density","swing","key","mode","genre"])$(id).value=state[id];
+ const picker=$("subgenre");
+ picker.replaceChildren(...GENERATOR_GENRES[state.genre].subgenres.map(item=>new Option(item.name,item.id)));
+ picker.value=state.subgenre;
  $("bpmValue").textContent=state.bpm;
  $("densityValue").textContent=state.density+"%";
  $("swingValue").textContent=state.swing+"%";
+}
+function applyGenreDefaults(){
+ const preset=genrePreset(state.genre,state.subgenre,state.seed);
+ for(const id of ["bpm","density","swing","style","engine"])state[id]=preset[id];
+ if(preset.voices)state.voices={...state.voices,...preset.voices};
+ if(state.genre==="hiphop"||state.genre==="dnb")
+   for(const track of TRACKS.filter(t=>t.type==="drum"))state.drumSounds[track.id]="auto";
+ else for(const track of TRACKS.filter(t=>t.type==="drum"))
+   if(state.drumSounds[track.id]==="auto")state.drumSounds[track.id]=0;
 }
 function updateBuses(){
  for(const t of TRACKS){
@@ -82,7 +105,7 @@ function updateBuses(){
 }
 function rerender(){
  if(playing)stop();
- composition=composeWithEngine({...state,density:state.density/100,swing:state.swing/100});
+ composition=composeGenreSong({...state,density:state.density/100,swing:state.swing/100});
  eventsByStep=Array.from({length:128},()=>[]);
  for(const event of composition.events)eventsByStep[event.step].push(event);
  syncControls();syncUrl();paint();
@@ -119,6 +142,7 @@ function paint(){
    const select=el("select","instrument");
    select.setAttribute("aria-label",t.name+" sample or instrument");
    if(t.type==="drum"){
+    if(state.genre==="hiphop"||state.genre==="dnb")select.append(new Option("Genre drum kit · automatic","auto"));
     const sources=new Map();
     DRUMS[t.id].forEach((item,i)=>{
      const source=item.source||"Recorded percussion";
@@ -157,7 +181,7 @@ function paint(){
      if(select.value.startsWith("local:"))userAssignments.set(t.id,select.value.slice(6));
      else{
        userAssignments.delete(t.id);
-       if(t.type==="drum")state.drumSounds[t.id]=Number(select.value);
+       if(t.type==="drum")state.drumSounds[t.id]=select.value==="auto"?"auto":Number(select.value);
        else state.voices[t.id]=select.value;
      }
      persistAssignments();
@@ -242,22 +266,9 @@ function selectedLocal(track){
 }
 function neededSamples(){
  const sources=new Map();
- for(const track of TRACKS){
-   const own=selectedLocal(track.id);
-   if(own){sources.set(own.url,own);continue}
-   if(track.type==="drum"){
-     const list=DRUMS[track.id],choice=state.drumSounds[track.id]||0;
-     const item=list[Math.min(Math.max(choice,0),list.length-1)];
-     sources.set(item.url,item);
-   }else{
-     // Full multisample packs can have many root notes. Fetch only the ones
-     // actually used in the current eight-bar arrangement.
-     for(const event of composition?.events||[]){
-       if(event.track!==track.id||!Number.isFinite(event.note))continue;
-       const item=nearestSample(state.voices[track.id],event.note,event.velocity);
-       sources.set(item.url,item);
-     }
-   }
+ for(const event of composition?.events||[]){
+   const sample=sampleFor(event);
+   if(sample?.url)sources.set(sample.url,sample);
  }
  return [...sources.values()];
 }
@@ -308,10 +319,16 @@ function sampleFor(event){
  const own=selectedLocal(event.track);
  if(own)return own;
  if(isDrum(event.track)){
-   const options=DRUMS[event.track],choice=state.drumSounds[event.track]||0;
-   return options[Math.min(Math.max(choice,0),options.length-1)];
+   const choice=state.drumSounds[event.track];
+   if(choice==="auto"){
+     const speciality=genreDrumSample(state.genre,state.subgenre,event,state.seed);
+     if(speciality)return speciality;
+   }
+   const options=DRUMS[event.track],index=Number.isInteger(choice)?choice:0;
+   return options[Math.min(Math.max(index,0),options.length-1)];
  }
- return nearestSample(state.voices[event.track],event.note,event.velocity);
+ const voice=event.track==="bass"&&event.sampleVoice?event.sampleVoice:state.voices[event.track];
+ return nearestSample(voice,event.note,event.velocity);
 }
 function playEvent(ctx,event,when,output){
  const sample=sampleFor(event),buffer=buffers.get(sample.url);
@@ -323,7 +340,9 @@ function playEvent(ctx,event,when,output){
  src.connect(gain);
  const playback=sample.oneShot||event.note===undefined?1:Math.pow(2,(event.note-sample.root)/12);
  src.playbackRate.value=playback;
- const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52)*sampleGain(buffer);
+ const genreDrum=isDrum(event.track)&&state.drumSounds[event.track]==="auto";
+  const level=genreDrum?samplePeakGain(buffer):sampleGain(buffer);
+  const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52)*level;
  let outputNode=gain;
  if(event.track==="bass"||event.track==="pad"){
    const filter=ctx.createBiquadFilter();filter.type="lowpass";filter.frequency.value=event.track==="bass"?750:1150;
@@ -417,8 +436,8 @@ function save(blob,filename){
 function stem(){return "8bars-"+state.seed.replace(/[^a-z0-9-_]/gi,"-").slice(0,40)}
 function downloadJson(){
  save(new Blob([JSON.stringify({...composition,mixer:{
- voices:state.voices,drumSounds:state.drumSounds,volumes:state.volumes,muted:[...state.muted],solo:[...state.solo]
- },sampleSources:inventory().map(s=>({url:s.url,license:s.license})),importedSources:userLibrary.filter(s=>[...userAssignments.values()].includes(s.id)).map(s=>({name:s.name,license:s.license,author:s.author,source:s.source,sourceUrl:s.sourceUrl}))},null,2)],{type:"application/json"}),stem()+".json");
+ genre:state.genre,subgenre:state.subgenre,voices:state.voices,drumSounds:state.drumSounds,volumes:state.volumes,muted:[...state.muted],solo:[...state.solo]
+ },sampleSources:neededSamples().map(s=>({url:s.url,license:s.license,source:s.source,label:s.label})),importedSources:userLibrary.filter(s=>[...userAssignments.values()].includes(s.id)).map(s=>({name:s.name,license:s.license,author:s.author,source:s.source,sourceUrl:s.sourceUrl}))},null,2)],{type:"application/json"}),stem()+".json");
 }
 function vlen(num){
  let value=Math.max(0,Math.floor(num)),bytes=[value&127];value>>>=7;
@@ -658,8 +677,10 @@ function downloadSampleCredits(){
    const local=selectedLocal(track.id);
    let sources;
    if(local)sources=[local];
-   else if(track.type==="drum")sources=[DRUMS[track.id][state.drumSounds[track.id]||0]];
-   else sources=VOICES[state.voices[track.id]]||VOICES.piano;
+   else sources=[...new Map(
+     composition.events.filter(e=>e.track===track.id)
+       .map(e=>{const item=sampleFor(e);return [item.url,item]})
+   ).values()];
    lines.push(track.name+":");
    const unique=new Map(sources.map(s=>[s.url,s]));
    for(const entry of unique.values()){
@@ -704,7 +725,7 @@ function wireLibrary(){
  void refreshLibrary().then(()=>paint()).catch(e=>console.error("Local library unavailable",e));
 }
 function wire(){
- for(const id of ["seed","bpm","density","swing","key","mode","style","engine"]){
+ for(const id of ["seed","bpm","density","swing","key","mode"]){
    $(id).addEventListener(id==="seed"?"change":"input",()=>{
      state[id]=["bpm","density","swing"].includes(id)?+$(id).value:$(id).value;
      // A new key/mode starts a fresh diatonic plan; other settings keep chosen chords.
@@ -712,6 +733,19 @@ function wire(){
      rerender();
    });
  }
+ $("genre").addEventListener("change",()=>{
+   state.genre=validGeneratorGenre($("genre").value);
+   state.subgenre=defaultSubgenre(state.genre);
+   state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   applyGenreDefaults();rerender();
+   if(audio)void loadSamples().catch(error=>say("Sound loading failed: "+error.message));
+ });
+ $("subgenre").addEventListener("change",()=>{
+   state.subgenre=validSubgenre(state.genre,$("subgenre").value);
+   state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   applyGenreDefaults();rerender();
+   if(audio)void loadSamples().catch(error=>say("Sound loading failed: "+error.message));
+ });
  $("play").addEventListener("click",toggle);
  $("another").addEventListener("click",()=>{
    // Change both the composition and the selected instruments on all 12 tracks.
@@ -732,9 +766,10 @@ function wire(){
    }while(state.seed===previousSeed);
    state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));
    state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   applyGenreDefaults();
    const wasPlaying=playing;
    rerender();
-   say("New composition and sounds ready.");
+   say("New "+GENERATOR_GENRES[state.genre].name+" · "+state.subgenre+" song and sounds ready.");
    if(wasPlaying)void toggle();
    else if(audio)void loadSamples().catch(err=>say("Sound loading failed: "+err.message));
  });

@@ -1,0 +1,33 @@
+name: Verify genre variety
+on:
+  pull_request:
+    paths:
+      - 'humanradio.js'
+      - 'humanradio.html'
+      - 'radio-channels.js'
+      - 'genre-arrangement.js'
+      - 'hiphop-drum-kit.js'
+      - 'scripts/mirror-samples.mjs'
+      - 'tests/**'
+      - '.github/workflows/verify-genre.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: |
+          node --check humanradio.js
+          node --check radio-channels.js
+          node --check genre-arrangement.js
+          node --check hiphop-drum-kit.js
+          node --check scripts/mirror-samples.mjs

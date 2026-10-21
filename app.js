@@ -1,6 +1,7 @@
 import {sampleGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.4";
+import {composeWithEngine,ENGINE_IDS} from "./music-engines.js";
 import {ALL_CHORDS,chordsInKey,chordSymbol,readHarmonyParam,normalizeHarmonyOverrides} from "./harmony.js";
 import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
@@ -17,7 +18,7 @@ const userAssignments=new Map();
 const USER_SELECTIONS="8bars:sample-assignments";
 const MAX_LIBRARY_IMPORT=25*1024*1024;
 const state={
-  seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",
+  seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",engine:"classic",
   variations:Object.fromEntries(TRACKS.map(t=>[t.id,0])),
   harmonyOverrides:normalizeHarmonyOverrides(null),
   voices:{...DEFAULT_VOICES},drumSounds:Object.fromEntries(TRACKS.filter(t=>t.type==="drum").map(t=>[t.id,0])),
@@ -40,6 +41,7 @@ function loadLink(){
  state.swing=savedNum(p.get("swing"),12,0,65);
  if(["major","minor"].includes(p.get("mode")))state.mode=p.get("mode");
  if(STYLES.includes(p.get("style")))state.style=p.get("style");
+ if(ENGINE_IDS.includes(p.get("engine")))state.engine=p.get("engine");
  if(["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].includes(p.get("key")))state.key=p.get("key");
  state.harmonyOverrides=readHarmonyParam(p.get("harmony"));
  const v=(p.get("variations")||"").split(",");
@@ -54,7 +56,7 @@ function loadLink(){
 }
 function permalink(){
  const u=new URL(location.href),q=new URLSearchParams();
- for(const id of ["seed","bpm","density","swing","key","mode","style"])q.set(id,state[id]);
+ for(const id of ["seed","bpm","density","swing","key","mode","style","engine"])q.set(id,state[id]);
  q.set("variations",TRACKS.map(t=>state.variations[t.id]).join(","));
  if(state.harmonyOverrides.some(Boolean))q.set("harmony",state.harmonyOverrides.map(chord=>chord||"").join(","));
  q.set("voices",tones.map(id=>state.voices[id]).join(","));
@@ -66,7 +68,7 @@ function permalink(){
 }
 function syncUrl(){history.replaceState(null,"",permalink())}
 function syncControls(){
- for(const id of ["seed","bpm","density","swing","key","mode","style"])$(id).value=state[id];
+ for(const id of ["seed","bpm","density","swing","key","mode","style","engine"])$(id).value=state[id];
  $("bpmValue").textContent=state.bpm;
  $("densityValue").textContent=state.density+"%";
  $("swingValue").textContent=state.swing+"%";
@@ -80,7 +82,7 @@ function updateBuses(){
 }
 function rerender(){
  if(playing)stop();
- composition=compose({...state,density:state.density/100,swing:state.swing/100});
+ composition=composeWithEngine({...state,density:state.density/100,swing:state.swing/100});
  eventsByStep=Array.from({length:128},()=>[]);
  for(const event of composition.events)eventsByStep[event.step].push(event);
  syncControls();syncUrl();paint();
@@ -702,7 +704,7 @@ function wireLibrary(){
  void refreshLibrary().then(()=>paint()).catch(e=>console.error("Local library unavailable",e));
 }
 function wire(){
- for(const id of ["seed","bpm","density","swing","key","mode","style"]){
+ for(const id of ["seed","bpm","density","swing","key","mode","style","engine"]){
    $(id).addEventListener(id==="seed"?"change":"input",()=>{
      state[id]=["bpm","density","swing"].includes(id)?+$(id).value:$(id).value;
      // A new key/mode starts a fresh diatonic plan; other settings keep chosen chords.

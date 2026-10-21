@@ -1,3 +1,4 @@
+import {RADIO_CHANNELS,validRadioChannel} from "./radio-channels.js";
 // Human Radio's musical memory and scene planning. Pure functions, no Web Audio
 // or DOM dependencies. The music itself is composed in composer.js from real recordings.
 export const RADIO_SCENES=[
@@ -19,29 +20,35 @@ const SCENE_ENGINES={
  afterhours:["ambient","process","melodic","pattern","ecology","ecology"]
 };
 
-export function chooseRadioProfile(previous=null,random=Math.random){
- const previousScene=RADIO_SCENES.find(x=>x.id===previous?.scene);
- const newScene=!previousScene||previous.sceneRemaining<=1;
- const choices=newScene?RADIO_SCENES.filter(x=>x.id!==previous?.scene):[previousScene];
+export function chooseRadioProfile(previous=null,random=Math.random,selectedChannel="mixed"){
+ const channel=validRadioChannel(selectedChannel);
+ // A changed station starts at its own natural tempo, rather than slowly
+ // drifting from (for example) 90 BPM hip-hop to 174 BPM drum & bass.
+ const prior=previous?.channel===channel?previous:null;
+ const channelScenes=channel==="mixed"?RADIO_SCENES:RADIO_CHANNELS[channel].scenes;
+ const previousScene=channelScenes.find(x=>x.id===prior?.scene);
+ const newScene=!previousScene||prior.sceneRemaining<=1;
+ const choices=newScene?channelScenes.filter(x=>x.id!==prior?.scene):[previousScene];
  const scene=choose(choices,random);
- const sceneRemaining=newScene?choose([2,3,4,5],random):(previous.sceneRemaining-1);
+ const sceneRemaining=newScene?choose([2,3,4,5],random):(prior.sceneRemaining-1);
  const targetBpm=quant(scene.bpm[0]+random()*(scene.bpm[1]-scene.bpm[0]),1);
- const bpm=previous?clamp(targetBpm,previous.bpm-12,previous.bpm+12):targetBpm;
+ const bpm=prior?clamp(targetBpm,Math.max(scene.bpm[0],prior.bpm-12),
+   Math.min(scene.bpm[1],prior.bpm+12)):targetBpm;
  const targetDensity=scene.density[0]+random()*(scene.density[1]-scene.density[0]);
- const density=previous&&!newScene?clamp(targetDensity,previous.density-.13,previous.density+.13):targetDensity;
+ const density=prior&&!newScene?clamp(targetDensity,prior.density-.13,prior.density+.13):targetDensity;
  const targetSwing=scene.swing[0]+random()*(scene.swing[1]-scene.swing[0]);
- const swing=previous&&!newScene?clamp(targetSwing,previous.swing-.08,previous.swing+.08):targetSwing;
+ const swing=prior&&!newScene?clamp(targetSwing,prior.swing-.08,prior.swing+.08):targetSwing;
  const style=newScene?choose(scene.styles,random):
-   (random()<.68&&scene.styles.includes(previous.style)?previous.style:choose(scene.styles,random));
- let key=previous?.key??choose(PITCH_NAMES,random);
- let mode=previous?.mode??choose(["major","minor"],random);
- const engineOptions=SCENE_ENGINES[scene.id];
- const engine=previous&&!newScene&&random()<.64?
-   previous.engine:
-   choose(engineOptions.filter(id=>id!==previous?.engine).length?
-     engineOptions.filter(id=>id!==previous?.engine):engineOptions,random);
- let change=newScene?(previous?"new scene":"opening scene"):"new variation";
- if(previous && random()<(newScene?.72:.24)){
+   (random()<.68&&scene.styles.includes(prior.style)?prior.style:choose(scene.styles,random));
+ let key=prior?.key??choose(PITCH_NAMES,random);
+ let mode=prior?.mode??choose(["major","minor"],random);
+ const engineOptions=scene.engines??SCENE_ENGINES[scene.id];
+ const engine=prior&&!newScene&&engineOptions.includes(prior.engine)&&random()<.64?
+   prior.engine:
+   choose(engineOptions.filter(id=>id!==prior?.engine).length?
+     engineOptions.filter(id=>id!==prior?.engine):engineOptions,random);
+ let change=newScene?(prior?"new scene":"opening scene"):"new variation";
+ if(prior&&random()<(newScene?.72:.24)){
    const kind=choose(["relative","fifth","fourth"],random);
    const root=PITCH_NAMES.indexOf(key);
    if(kind==="relative"){
@@ -50,8 +57,8 @@ export function chooseRadioProfile(previous=null,random=Math.random){
    }else key=PITCH_NAMES[(root+(kind==="fifth"?7:5))%12];
    change=(newScene?"new scene · ":"")+kind+" key";
  }
- return {scene:scene.id,sceneName:scene.name,sceneRemaining,style,key,mode,engine,
-   bpm, density:Math.round(clamp(density,.15,1)*100)/100,
+ return {channel,scene:scene.id,sceneName:scene.name,sceneRemaining,style,key,mode,engine,
+   bpm,density:Math.round(clamp(density,.15,1)*100)/100,
    swing:Math.round(clamp(swing,0,.65)*100)/100,
    targetLoops:choose(scene.loops,random),change};
 }

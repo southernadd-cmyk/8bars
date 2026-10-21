@@ -27,6 +27,7 @@ jobs:
           node --check humanradio.js
           node --check radio-visual.js
           node --check dnb-break-kit.js
+          node --check hiphop-drum-kit.js
           node --check radio-planner.js
           node --check radio-channels.js
           node --check radio-names.js
@@ -51,7 +52,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html humanradio.html humanradio.js radio-planner.js radio-channels.js radio-names.js radio-words.txt radio-visual.js dnb-break-kit.js DNB-BREAK-CREDITS.txt genre-arrangement.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html humanradio.html humanradio.js radio-planner.js radio-channels.js radio-names.js radio-words.txt radio-visual.js dnb-break-kit.js hiphop-drum-kit.js DNB-BREAK-CREDITS.txt genre-arrangement.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           python3 -m pip install --break-system-packages --quiet pillow cairosvg
           python3 scripts/build-favicons.py dist
           test -s dist/favicon.ico
@@ -61,6 +62,7 @@ jobs:
           test -s dist/humanradio.js
           test -s dist/radio-visual.js
           test -s dist/dnb-break-kit.js
+          test -s dist/hiphop-drum-kit.js
           test -s dist/DNB-BREAK-CREDITS.txt
           test -s dist/radio-planner.js
           test -s dist/radio-channels.js
@@ -90,7 +92,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .sample-cache
-          key: 8bars-mp3-v2-${{ hashFiles('sounds.js', 'dnb-break-kit.js', 'electronic-bass.js', 'instrument-maps.js', 'vcsl-samples.js', 'extra-samples.js', 'pitched-vocals.js') }}
+          key: 8bars-mp3-v2-${{ hashFiles('sounds.js', 'dnb-break-kit.js', 'hiphop-drum-kit.js', 'electronic-bass.js', 'instrument-maps.js', 'vcsl-samples.js', 'extra-samples.js', 'pitched-vocals.js') }}
           restore-keys: |
             8bars-mp3-v2-
       - name: Copy recorded samples into site artifact

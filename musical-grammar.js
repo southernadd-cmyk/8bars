@@ -127,3 +127,34 @@ export function harmonicDegrees(r,channel,mode){
  if(r()<.45)degrees[3]=r()<.63?4:0;
  return degrees;
 }
+
+const PITCH_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const pitchClass=n=>(n%12+12)%12;
+// Musical candidate scoring instead of snapping every note to the nearest
+// chord tone independently. Strong beats anchor harmony; weaker attacks can
+// be diatonic neighbours. Continuity and stepwise motion beat random leaps.
+export function chooseMelodyNote(source,chord,target,previous,step,r,
+ low=60,high=89,{cadence=false}={}){
+ const tonic=PITCH_NAMES.indexOf(source.key);
+ const minor=source.mode==="minor";
+ const scale=minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];
+ const diatonic=new Set(scale.map(degree=>(tonic+degree)%12));
+ const chordTones=new Set(chord.notes.slice(0,3).map(pitchClass));
+ const strong=step%4===0||cadence;
+ const candidates=[];
+ for(let note=low;note<=high;note++){
+  const pc=pitchClass(note);
+  if(strong?!chordTones.has(pc):!diatonic.has(pc))continue;
+  const gap=previous===null?0:Math.abs(note-previous);
+  const leap=Math.max(0,gap-7);
+  const repeats=previous!==null&&note===previous?2:0;
+  const harmonicCost=strong?0:chordTones.has(pc)?.1:0;
+  const cadenceCost=cadence&&pc!==pitchClass(chord.notes[0])?1.1:0;
+  const score=Math.abs(note-target)*.78+gap*.64+leap*2.6+
+   repeats+harmonicCost+cadenceCost+(r()-.5)*.3;
+  candidates.push({note,score});
+ }
+ if(!candidates.length)return Math.max(low,Math.min(high,Math.round(target)));
+ candidates.sort((a,b)=>a.score-b.score);
+ return candidates[0].note;
+}

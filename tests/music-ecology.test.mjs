@@ -114,3 +114,19 @@ test("Human Radio sections inherit the same harmonic walk; variations return to 
  assert.notDeepEqual(sections[2].events,sections[1].events);
  assert.equal(sections[3].progression[2].notes.join(","),first.progression[2].notes.join(","));
 });
+
+test("The editor's empty harmony slots preserve generated Tonnetz chords; manual edits are local",()=>{
+ const input={seed:"editor-tonnetz",key:"E",mode:"minor",
+   style:"downtempo",engine:"ecology",harmonyOverrides:Array(8).fill(null)};
+ const auto=composeWithEngine(input);
+ assert.deepEqual(auto.harmonyOverrides,auto.ecologyGenome.harmonyOverrides);
+ const one=Array(8).fill(null);one[2]="C#m";
+ const edited=composeWithEngine({...input,harmonyOverrides:one});
+ assert.equal(edited.progression[2].notes[0]%12,1);
+ assert.deepEqual(
+   edited.harmonyOverrides.map((c,i)=>i===2?auto.harmonyOverrides[i]:c)
+     .filter((_,i)=>i!==2),
+   auto.harmonyOverrides.filter((_,i)=>i!==2));
+ for(const bar of [0,1,3,4,5,6,7])
+   assert.deepEqual(edited.progression[bar],auto.progression[bar]);
+});

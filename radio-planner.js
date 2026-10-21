@@ -44,11 +44,22 @@ export function chooseRadioProfile(previous=null,random=Math.random){
 }
 export function radioSignature(piece){
  const events=piece.events||[];
- const notes=id=>events.filter(e=>e.track===id).map(e=>e.step+":"+String(e.note??"-")).join("|");
- const drums=events.filter(e=>["kick","snare"].includes(e.track)).map(e=>e.track+":"+e.step).join("|");
+ const notes=id=>events.filter(e=>e.track===id&&Number.isFinite(e.note));
+ const lead=notes("lead"),bass=notes("bass");
+ const roots=piece.progression?.map(c=>c.notes[0]%12)||[];
+ const reference=roots[0]??0;
+ const contour=lead.slice(0,14).map((e,i)=>i?
+   Math.sign(e.note-lead[i-1].note):0).join("");
+ const rhythm=arr=>arr.filter(e=>e.step<64).map(e=>e.step%16).join("-");
  return {style:piece.style,scene:piece.scene,key:piece.key,mode:piece.mode,
-   progression:piece.progression?.map(c=>c.notes[0]%12).join("-")||"",
-   bass:notes("bass"),lead:notes("lead"),drums,
+   bpm:piece.bpm,density:piece.density,
+   harmonicPath:roots.map(x=>(x-reference+12)%12),
+   lead:lead.map(e=>e.step+":"+e.note).join("|"),
+   leadRhythm:rhythm(lead),leadContour:contour,
+   bass:bass.map(e=>e.step+":"+e.note).join("|"),
+   bassRhythm:rhythm(bass),
+   drums:events.filter(e=>["kick","snare"].includes(e.track)&&e.step<64)
+     .map(e=>e.track+":"+e.step%16).join("|"),
    voices:Object.values(piece.voices||{}).join("|")};
 }
 export function radioNoveltyScore(piece,history=[]){
@@ -56,13 +67,24 @@ export function radioNoveltyScore(piece,history=[]){
  let score=100;
  for(let i=0;i<Math.min(8,history.length);i++){
    const other=radioSignature(history[i]);
-   const weight=i===0?1:i===1?.6:.25;
-   if(sig.progression===other.progression)score-=35*weight;
-   if(sig.lead===other.lead)score-=30*weight;
-   if(sig.bass===other.bass)score-=20*weight;
-   if(sig.drums===other.drums)score-=12*weight;
-   if(sig.voices===other.voices)score-=15*weight;
-   if(sig.style===other.style&&sig.scene===other.scene)score-=2*weight;
+   const weight=i===0?1:i===1?.6:.22;
+   const overlap=sig.harmonicPath.filter((degree,index)=>degree===other.harmonicPath[index]).length;
+   if(overlap>=5)score-=(overlap-4)*5*weight;
+   if(sig.lead===other.lead)score-=25*weight;
+   else{
+     if(sig.leadRhythm===other.leadRhythm)score-=8*weight;
+     if(sig.leadContour===other.leadContour)score-=8*weight;
+   }
+   if(sig.bass===other.bass)score-=18*weight;
+   else if(sig.bassRhythm===other.bassRhythm)score-=8*weight;
+   if(sig.drums===other.drums)score-=9*weight;
+   if(sig.voices===other.voices)score-=12*weight;
+   if(sig.style===other.style)score-=4*weight;
+   if(sig.scene===other.scene)score-=1*weight;
+   if(Number.isFinite(sig.bpm)&&Number.isFinite(other.bpm)&&
+      Math.abs(sig.bpm-other.bpm)<5)score-=5*weight;
+   if(Number.isFinite(sig.density)&&Number.isFinite(other.density)&&
+      Math.abs(sig.density-other.density)<.08)score-=3*weight;
  }
  return score;
 }

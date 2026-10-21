@@ -1,7 +1,7 @@
 // Genre-first interface for the eight-bar editor. Underlying composition
 // algorithms remain implementation details rather than visible musical genres.
 import {RADIO_CHANNELS,applyChannelGroove} from "./radio-channels.js";
-import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=2";
+import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=3";
 import {composeWithEngine} from "./music-engines.js";
 import {hiphopDrumSample} from "./hiphop-drum-kit.js";
 import {dnbDrumSample} from "./dnb-break-kit.js";

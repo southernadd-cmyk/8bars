@@ -9,7 +9,7 @@ import {planEcology} from "./music-ecology.js";
 import {parseRadioDictionary,radioNameForSeed} from "./radio-names.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
-import {dnbDrumSample} from "./dnb-break-kit.js";
+import {dnbDrumSample} from "./dnb-break-kit.js?v=2";
 import {createRadioVisual} from "./radio-visual.js";
 
 const $=id=>document.getElementById(id);

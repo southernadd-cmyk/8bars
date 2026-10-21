@@ -13,7 +13,7 @@ const workflow=read(".github/workflows/pages.yml"),mirror=read("scripts/mirror-s
 test("Acoustic break uses identifiable real-recorded CC0 drumkit strikes",()=>{
  assert.deepEqual(Object.keys(DNB_BREAK_KIT),["kick","snare","ghost","hat","openhat"]);
  for(const [group,samples] of Object.entries(DNB_BREAK_KIT)){
-   assert.equal(samples.length,2,group);
+   assert.equal(samples.length,{kick:16,snare:12,ghost:4,hat:16,openhat:12}[group],group);
    assert.notEqual(samples[0].url,samples[1].url);
    for(const sample of samples){
      assert.equal(sample.license,"CC0 1.0");
@@ -44,6 +44,68 @@ test("Acoustic break uses identifiable real-recorded CC0 drumkit strikes",()=>{
    }
 });
 
+test("Actual acoustic velocities select the correct performance layers, not louder hits with lower gain",()=>{
+ const bands=[
+   {velocity:.14,min:0,max:31},
+   {velocity:.37,min:32,max:63},
+   {velocity:.60,min:64,max:95},
+   {velocity:.88,min:96,max:127}
+ ];
+ const firstOf={
+   kick:{0:4,32:4,64:4,96:4},
+   snare:{32:4,64:4,96:4},
+   ghost:{0:4},
+   hat:{0:4,32:4,64:4,96:4},
+   openhat:{0:3,32:3,64:3,96:3}
+ };
+ assert.equal(Object.values(DNB_BREAK_KIT).flat().length,60);
+ assert.equal(new Set(Object.values(DNB_BREAK_KIT).flat().map(s=>s.url)).size,60);
+ for(const [role,takes] of Object.entries(DNB_BREAK_KIT)){
+   const frequency={};
+   for(const hit of takes){
+     assert.ok(Number.isInteger(hit.velocityMin)&&Number.isInteger(hit.velocityMax));
+     assert.ok(hit.velocityMin<=hit.velocityMax);
+     frequency[hit.velocityMin]=(frequency[hit.velocityMin]||0)+1;
+   }
+   assert.deepEqual(frequency,firstOf[role]);
+ }
+ for(const role of ["kick","snare","hat","openhat"]){
+   for(const {velocity,min,max} of bands){
+     if(role==="snare"&&min===0)continue;
+     const hits=new Set();
+     for(let step=0;step<128;step+=2){
+       const sample=dnbDrumSample(role,velocity,step,"layer-test");
+       assert.ok(sample.velocityMin<=Math.round(velocity*127)&&
+          sample.velocityMax>=Math.round(velocity*127),role+" "+velocity);
+       hits.add(sample.url);
+     }
+     const expectedCount=role==="openhat"?3:4;
+     assert.equal(hits.size,expectedCount,role+" should vary "+min+"-"+max);
+   }
+ }
+ for(const velocity of [.09,.16,.25,.33]){
+   for(let step=0;step<128;step++){
+     const soft=dnbDrumSample("snare",velocity,step,"ghost-tier");
+     assert.equal(soft.velocityMin,0);
+     assert.equal(soft.velocityMax,31);
+   }
+ }
+ const gentle=dnbDrumSample("snare",.4,4,"a");
+ const forceful=dnbDrumSample("snare",.92,4,"a");
+ assert.equal(gentle.velocityMin,32);
+ assert.equal(forceful.velocityMin,96);
+ assert.notEqual(gentle.url,forceful.url);
+});
+
+test("The 60 acoustic takes are declared for build-time mirroring and stay in the real-sample pipeline",()=>{
+ assert.match(mirror,/Object\.values\(DNB_BREAK_KIT\)/);
+ assert.match(mirror,/for\(const s of options\)add\(s\)/);
+ assert.match(workflow,/hashFiles\('sounds\.js', 'dnb-break-kit\.js'/);
+ // The website uses the MP3 URL generated at build time, never an upstream AAC.
+ assert.match(radio,/const url=LOCAL_SAMPLES\[s\.url\]/);
+ assert.match(mirror,/"-codec:a","libmp3lame"/);
+});
+
 test("Ghost notes alternate within the same half-bar, and songs vary with equal-length seeds",()=>{
  for(const seed of ["same-length-0001","same-length-0002","abcdefgh12345"]){
    for(const bar of [0,1,2,7]){
@@ -62,7 +124,7 @@ test("Ghost notes alternate within the same half-bar, and songs vary with equal-
    const seed="same-length-"+String(i).padStart(4,"0");
    selections.add(dnbDrumSample("snare",.2,11,seed).url);
  }
- assert.equal(selections.size,2,"Actual seed characters should vary the chosen hit");
+ assert.equal(selections.size,4,"All four soft ghost takes should be reachable from different seeds");
 });
 
 test("Cello's liquid lead melody is voiced near its C5 sample ceiling",()=>{

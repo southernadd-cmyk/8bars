@@ -58,7 +58,20 @@ function indexEvents(piece){
  for(const event of piece.events)piece.eventsByStep[event.step].push(event);
  return piece;
 }
-function planNext(){
+function finishRadioForm(candidate){
+ const {baseComposition,keep,oldPercussion,...profile}=candidate;
+ const sections=buildRadioForm(candidate,baseComposition,compose);
+ for(const section of sections){
+   const percussion=section.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
+     .concat(oldPercussion.filter(e=>keep.includes(e.track)));
+   section.events=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
+     .sort((a,b)=>a.step-b.step);
+   indexEvents(section);
+ }
+ return {...profile,sections,events:sections[0].events,
+   eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
+}
+function planNext(expand=true){
  const old=current;
  const profile=chooseRadioProfile(old);
  const voices={...DEFAULT_VOICES};
@@ -78,27 +91,20 @@ function planNext(){
  const seed=rngToken();
  const piece=compose({seed,key:profile.key,mode:profile.mode,style:profile.style,
    bpm:profile.bpm,density:profile.density,swing:profile.swing});
- // Retaining one or two recognisable drum motifs gives adjacent pieces a
- // clear connection without leaving the entire backing beat unchanged.
- const generated=piece.events.filter(e=>drums.includes(e.track));
  const oldPercussion=old?.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[];
  const keep=old?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
  ]):[];
  if(old&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
  for(const id of keep)drumSounds[id]=old.drumSounds[id];
- const sections=buildRadioForm({...profile,seed},piece,compose);
- for(const section of sections){
-   const percussion=section.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
-     .concat(oldPercussion.filter(e=>keep.includes(e.track)));
-   section.events=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
-     .sort((a,b)=>a.step-b.step);
-   indexEvents(section);
- }
- return {...profile,seed,voices,drumSounds,sections,
-   events:sections[0].events,eventsByStep:sections[0].eventsByStep,
-   progression:sections[0].progression,ready:false,missing:0};
-
+ const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
+   .concat(oldPercussion.filter(e=>keep.includes(e.track)));
+ const candidate={...profile,seed,voices,drumSounds,baseComposition:piece,
+   keep,oldPercussion,events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
+   progression:piece.progression,ready:false,missing:0};
+ // Five candidates are compared by their first phrase. The remaining four to
+ // six sections are only composed for the winner, not on the audio hot path.
+ return expand?finishRadioForm(candidate):candidate;
 }
 function soundFor(piece,e){
   if(drums.includes(e.track)){
@@ -166,13 +172,14 @@ async function queueNext(){
  try{
    // Several *symbolic* arrangements are cheap to score. Only download the
    // winning recorded-sample set, avoiding needless network requests.
-   const alternatives=Array.from({length:5},()=>planNext())
+   const alternatives=Array.from({length:5},()=>planNext(false))
      .sort((a,b)=>
        radioNoveltyScore(b,[current,...recentPieces])+transitionHarmonyScore(current,b)-
        radioNoveltyScore(a,[current,...recentPieces])-transitionHarmonyScore(current,a));
-   for(const candidate of alternatives){
+   for(const lightweight of alternatives){
      if(!playing||next)break;
      try{
+       const candidate=finishRadioForm(lightweight);
        await prepare(candidate);
        if(playing){
          next=candidate;

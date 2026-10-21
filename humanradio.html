@@ -25,8 +25,6 @@ button:hover{background:#23553b}button:focus-visible,a:focus-visible,select:focu
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #play{background:#c6efbb;color:#102216;border-color:#c6efbb}#play:hover{background:#e2ffdb}
 .details{max-width:50rem;min-width:0}
-.artist{font-size:clamp(17px,2.5vw,26px);font-weight:600;letter-spacing:-.025em;
- color:#e9f7e8;margin:0 0 8px;text-shadow:0 2px 10px #000}
 #track{font-size:clamp(32px,6.6vw,76px);overflow-wrap:break-word;text-wrap:balance}
 .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#ddfbdc;margin:0 0 6px}
 h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 0 9px;text-shadow:0 3px 22px #000a}
@@ -45,9 +43,9 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 <div class="shade"></div>
 <header class="top"><a class="brand" href="./index.html" title="Return to the 8bars composer">8<span>bars</span> / human radio</a><div class="channel-select"><label for="channel">Channel</label><select id="channel" aria-label="Choose Human Radio channel"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div></header>
 <div class="bottom">
-<div class="details"><p id="artist" class="artist" aria-label="Artist"></p><h1 id="track">Human Radio</h1><div id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</div></div>
+<div class="details"><h1 id="track">Human Radio</h1><div id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</div></div>
 <div class="controls"><button id="play" type="button" aria-label="Start or pause radio">▶ Start radio</button><button id="skip" type="button" disabled>Next piece ↗</button></div>
 </div>
 <div id="intro"><article><p class="eyebrow">8bars presents</p><h2>Human Radio.</h2><p>An endless stream of original rule-composed music. Each station has its own tempo, groove, instrument palette and developing musical form.</p><div class="channel-select intro-channel"><label for="introChannel">Channel</label><select id="introChannel" aria-label="Choose radio channel before listening"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div><p id="channelDescription">All musical scenes and composition systems.</p><button id="start" type="button">▶ Start listening</button><small>Your browser requires one click to enable audio. Headphones recommended.</small></article></div>
-<script type="module" src="./humanradio.js?v=12"></script>
+<script type="module" src="./humanradio.js?v=13"></script>
 </body></html>

@@ -3,6 +3,7 @@
 // Pop: diatonic four-chord cycle + recurring chorus hook + verse/chorus arrangement.
 // Uses existing real recorded instrument samples; no generated audio or synth.
 import {chordsInKey,chordSymbol} from "./harmony.js";
+import {phraseBlueprint,developPhrase,smoothVoicing,harmonicDegrees} from "./musical-grammar.js";
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const PC=x=>((x%12)+12)%12;
 function random(seed){
@@ -14,45 +15,12 @@ const choose=(r,list)=>list[Math.floor(r()*list.length)];
 export function planGenreHarmony({channel,seed,key,mode,scene=""}){
  if(!["pop","dnb","hiphop"].includes(channel))return null;
  const r=random(seed+"|genre-harmony"),diatonic=chordsInKey(key,mode);
- const pop=mode==="minor"?
-  [[0,5,3,4],[0,3,5,4],[5,3,0,4],[0,5,6,3],[0,3,4,5]]:
-  [[0,4,5,3],[5,3,0,4],[0,5,3,4],[0,3,4,3],[0,4,3,4],[5,4,0,3]];
- const dnb=mode==="minor"?
-  [[0,5,3,4],[0,3,5,4],[0,6,5,3],[0,3,0,5],[0,5,0,3]]:
-  [[5,3,0,4],[0,5,3,4],[0,3,5,4]];
- const hiphop=mode==="minor"?[[0,5,3,4],[0,3,0,5],[0,6,5,3],[0,3,5,3]]:[[0,5,3,4],[0,3,4,3],[0,4,5,3],[0,5,0,3]];
- const degrees=[...choose(r,channel==="pop"?pop:channel==="hiphop"?hiphop:dnb)];
- // Controlled harmonic grammar: the genre decides what is plausible,
- // but each seed independently chooses substitutions inside that grammar.
- // Repetition happens WITHIN a song, not across every newly generated song.
- const middle=channel==="dnb"?[0,3,5,6]:channel==="hiphop"?[0,2,3,5,6]:[0,3,4,5,6];
- for(const index of [1,2,3]){
-   const chance=index===3?.38:.61;
-   if(r()<chance){
-     const pool=middle.filter(n=>n!==degrees[index]&&
-       (index===1||n!==degrees[index-1]));
-     degrees[index]=choose(r,pool);
-   }
- }
- if(channel==="pop"&&degrees[0]!==0&&r()<.25)degrees[0]=0;
- // Pop: a familiar four-bar cycle returning twice.
- // DnB: each harmony lasts two bars; bass can breathe at 170-176 BPM.
- return channel==="pop"||channel==="hiphop"?
-   [...degrees,...degrees].map(d=>diatonic[d]):
-   degrees.flatMap(d=>[diatonic[d],diatonic[d]]);
-}
-function voicedTriad(chord,target=68){
- const base=chord.notes.slice(0,3);
- const candidate=[];
- for(let inversion=0;inversion<3;inversion++){
-   const shifted=base.slice(inversion).concat(base.slice(0,inversion).map(x=>x+12));
-   for(const octave of [-12,0,12]){
-     const notes=shifted.map(n=>n+12+octave);
-     if(notes[0]>=53&&notes[2]<=92)
-       candidate.push({notes,cost:Math.abs((notes[0]+notes[2])/2-target)});
-   }
- }
- return candidate.sort((a,b)=>a.cost-b.cost)[0]?.notes||base.map(x=>x+12);
+ const degrees=harmonicDegrees(random(seed+"|"+channel+"|"+scene+"|harmony"),channel,mode);
+ // Pop and hip-hop use a four-bar harmonic identity; DnB holds each
+ // change two bars to keep bass and atmospheres spacious at high tempo.
+ return channel==="dnb"?
+   degrees.flatMap(d=>[diatonic[d],diatonic[d]]):
+   [...degrees,...degrees].map(d=>diatonic[d]);
 }
 function chordToneNear(target,chord,low=61,high=90){
  const pcs=new Set(chord.notes.slice(0,3).map(PC)),candidates=[];
@@ -68,27 +36,6 @@ function bassRoot(chord){
 function event(track,bar,step,note,duration,velocity){
  return {track,step:bar*16+step,note,duration:Math.min(duration,16-step),
    velocity:Math.round(clamp(velocity,.06,.95)*100)/100};
-}
-// Build an actual seed-specific phrase rather than choosing a canned melody.
-// Rhythmic placements, note count, contour and register are independent
-// dimensions. The same seed recreates the same hook in each reprise.
-function phraseBlueprint(r,minNotes,maxNotes,options={}){
- const count=minNotes+Math.floor(r()*(maxNotes-minNotes+1));
- const {sparse=false,firstOnBeat=false}=options;
- const pool=sparse?[0,2,4,6,8,10,12,14]:[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
- const steps=new Set([firstOnBeat?0:(r()<.68?0:pool[Math.floor(r()*4)])]);
- while(steps.size<count)steps.add(choose(r,pool));
- const rhythm=[...steps].sort((a,b)=>a-b);
- const contour=[];
- let height=Math.floor(r()*5)-2;
- const direction=r()<.5?-1:1;
- const leaps=[-3,-2,-1,-1,0,1,1,2,3];
- for(let i=0;i<rhythm.length;i++){
-   if(i>0)height=clamp(height+choose(r,leaps)+(r()<.16?direction:0),-5,5);
-   contour.push(height);
- }
- return {rhythm,contour,centre:choose(r,[-8,-5,-2,0,3,5,8]),
-   articulation:choose(r,[.68,.82,.95]),shape:choose(r,[0,1,2])};
 }
 const KEY_PCS=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 function nearestDiatonic(source,target,low,high){

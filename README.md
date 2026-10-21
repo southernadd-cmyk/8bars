@@ -25,6 +25,12 @@ Each station chapter is now **five to seven related eight-bar sections** (40–5
 
 Preload the *next* section's actual recordings while the current one plays; if they are not ready, keep playing the current section instead of starting silent notes. Chord-aware candidate ranking balances novelty with smooth harmonic movement. At a chapter boundary, a gentle crossfade sustains only shared pitches drawn from real, already loaded recordings; no synthesized bridge or incompatible chord is inserted. The status shows the current musical section.
 
+## Composition systems
+
+8bars offers five composition modes. **Original** preserves the existing eight-bar rule engine. The four new independently implemented systems are **Pattern** (fixed groove families, bass hooks, rhythmic repetition), **Melodic** (two-bar question-and-answer phrases and controlled melodic motion), **Ambient** (sustained harmonic textures, sparse notes and deliberate silence), and **Process** (phase-shifting Euclidean pulses, melodic random walks and gradual change). These systems generate their own symbolic note events rather than filtering or simply re-voicing the original song.
+
+The regular editor exposes the Composition selector; the choice survives share URLs and JSON/MIDI/WAV outputs. Human Radio selects among the four new systems according to scene, retains a composition method across linked sections, scores novelty, and avoids imposing a carried drum groove when a new ambient passage begins. All methods play exclusively with the existing genuine recorded instrument samples.
+
 ## Sample bank and playback
 
 Current built-in samples are **all mirrored at build time** into the site's own compressed MP3 assets, using pinned upstream recordings. The Pages build creates sample-map.js and sample-mirror-report.json, and fails if any declared recording cannot be mirrored. The last verified deployment before this engine update contained 2,605 distinct recorded samples; use the latest build report for the current count. Browsers download only the selected song's required sounds, not the full library.

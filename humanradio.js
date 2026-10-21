@@ -1,12 +1,12 @@
-import {compose,TRACKS,STYLES} from "./composer.js?v=0.5.3";
-import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,nearestSample} from "./sounds.js";
+import {TRACKS} from "./composer.js?v=0.5.3";
+import {composeWithEngine} from "./music-engines.js";
+import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
 
 const $=id=>document.getElementById(id);
-const pitchNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const roles=["bass","chords","arp","lead","counter","pad"];
 const drums=TRACKS.filter(x=>x.type==="drum").map(x=>x.id);
 const sampleCache=new Map();
@@ -60,7 +60,7 @@ function indexEvents(piece){
 }
 function finishRadioForm(candidate){
  const {baseComposition,keep,oldPercussion,...profile}=candidate;
- const sections=buildRadioForm(candidate,baseComposition,compose);
+ const sections=buildRadioForm(candidate,baseComposition,composeWithEngine);
  for(const section of sections){
    const percussion=section.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
@@ -71,15 +71,41 @@ function finishRadioForm(candidate){
  return {...profile,sections,events:sections[0].events,
    eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
 }
+// Each compositional system also gets a coherent *recorded instrument* palette.
+// Filter through the existing role-safe bank; never substitute artificial sound.
+const ENGINE_TIMBRES={
+ pattern:{bass:["Bass","Plucked strings"],chords:["Keys & organs","Guitars"],
+   arp:["Guitars","Mallets","Mallets & bells","Plucked strings"],
+   lead:["Guitars","Plucked strings","Mallets","Mallets & bells"],
+   counter:["Strings","Bowed strings"],pad:["Keys & organs"]},
+ melodic:{bass:["Bass","Strings"],chords:["Keys & organs","Guitars"],
+   arp:["Plucked strings","Guitars"],lead:["Strings","Bowed strings","Winds","Vocal melodies"],
+   counter:["Strings","Bowed strings","Winds","Vocal melodies"],
+   pad:["Keys & organs","Strings","Bowed strings"]},
+ ambient:{bass:["Bass","Keys & organs"],chords:["Keys & organs","Bowed strings"],
+   arp:["Mallets","Mallets & bells","Plucked strings"],
+   lead:["Mallets","Mallets & bells","Plucked strings","Strings"],
+   counter:["Bowed strings","Winds"],pad:["Keys & organs","Bowed strings","Winds"]},
+ process:{bass:["Bass","Keys & organs"],chords:["Keys & organs","Mallets & bells"],
+   arp:["Mallets","Mallets & bells","Plucked strings"],
+   lead:["Mallets","Mallets & bells","Plucked strings","Vocal melodies"],
+   counter:["Strings","Bowed strings","Winds"],pad:["Keys & organs","Bowed strings"]}};
+function paletteFor(engine,role,voices){
+ const categories=ENGINE_TIMBRES[engine]?.[role]||[];
+ const preferred=new Set(categories.flatMap(name=>VOICE_FAMILIES[name]||[]));
+ const filtered=voices.filter(voice=>preferred.has(voice));
+ return filtered.length>=2?filtered:voices;
+}
 function planNext(expand=true){
  const old=current;
  const profile=chooseRadioProfile(old);
  const voices={...DEFAULT_VOICES};
  for(const role of roles){
-   const pool=REGEN_VOICE_POOLS[role].filter(v=>VOICES[v]?.length &&
+   const suitable=REGEN_VOICE_POOLS[role].filter(v=>VOICES[v]?.length &&
      (!v.startsWith("vocalSung")||v==="vocalSungNotes"));
+   const pool=paletteFor(profile.engine,role,suitable);
    const previous=old?.voices[role];
-   if(previous&&Math.random()<.43&&VOICES[previous])voices[role]=previous;
+   if(previous&&Math.random()<.43&&pool.includes(previous))voices[role]=previous;
    else{
      const options=pool.filter(id=>id!==previous);
      voices[role]=choice(options.length?options:pool);
@@ -89,13 +115,14 @@ function planNext(expand=true){
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
  const seed=rngToken();
- const piece=compose({seed,key:profile.key,mode:profile.mode,style:profile.style,
+ const piece=composeWithEngine({seed,key:profile.key,mode:profile.mode,style:profile.style,engine:profile.engine,
    bpm:profile.bpm,density:profile.density,swing:profile.swing});
  const oldPercussion=old?.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[];
  const keep=old?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
  ]):[];
- if(old&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
+ if(old&&profile.engine!=="ambient"&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
+ if(profile.engine==="ambient")keep.length=0;
  for(const id of keep)drumSounds[id]=old.drumSounds[id];
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
    .concat(oldPercussion.filter(e=>keep.includes(e.track)));
@@ -258,7 +285,7 @@ function switchPiece(at){
  for(const note of sharedToneBridge(prev,current))playNote(prev,note,at);
  retiringBuses.push({bus:prev.bus,until:at+blend+.5});
  pruneSampleCache();
- $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM";
+ $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM · "+current.engine;
  $("phase").textContent=current.sceneName+" · Opening";
  status("New musical chapter · linked through the harmony");
  void warmNextSection(current);
@@ -292,7 +319,7 @@ function switchPiece(at){
       if(displayedSection!==loops){
         displayedSection=loops;
         const part=current.sections[loops];
-        $("phase").textContent=current.sceneName+" · "+part.name+" ("+(loops+1)+"/"+targetLoops+")";
+        $("phase").textContent=current.sceneName+" · "+current.engine+" · "+part.name+" ("+(loops+1)+"/"+targetLoops+")";
         if(loops>0)pruneSampleCache();
         void warmNextSection(current);
       }

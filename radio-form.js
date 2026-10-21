@@ -42,7 +42,7 @@ export function buildRadioForm(config,first,composeFn){
  const count=clamp(Math.round(config.targetLoops||6),5,7);
  return RADIO_FORMS[count].map((role,index)=>{
    const composition=index===0?first:composeFn({
-     seed:config.seed,key:config.key,mode:config.mode,style:config.style,
+     seed:config.seed,key:config.key,mode:config.mode,style:config.style,engine:config.engine,
      bpm:config.bpm,density:config.density,swing:config.swing,
      variations:SECTION_VARIATIONS[role],
      harmonyOverrides:harmonyVariation(first,role)

@@ -16,6 +16,7 @@ let playing=false,paused=false,timer=null,step=0,stepTime=0,loops=0,targetLoops=
 const recentPieces=[]; // Previous musical identities, oldest discarded after eight pieces.
 let lastText="";
 let epoch=0,nextRetryTime=0;
+const retiringBuses=[];
 // Slow cinematic crops and colour grading of the ORIGINAL GIF, not alternate footage.
 // Modest changes preserve the characters and scene; new looks arrive on bar boundaries.
 const visualPresets=[
@@ -206,7 +207,7 @@ function switchPiece(at){
  prev.bus.gain.linearRampToValueAtTime(.0001,at+blend);
  for(const note of prev.eventsByStep[0]||[])
    if(note.track==="pad")playNote(prev,note,at);
- setTimeout(()=>{try{prev.bus.disconnect()}catch{}},Math.ceil((blend+1)*1000));
+ retiringBuses.push({bus:prev.bus,until:at+blend+.5});
  pruneSampleCache();
  $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM";
  $("phase").textContent=current.sceneName+" · "+current.change;
@@ -216,6 +217,21 @@ function switchPiece(at){
 function pump(){
   if(!playing||!ctx||!current)return;
   const now=ctx.currentTime;
+  // A suspended/throttled browser may miss scheduling windows. Advance the
+  // musical clock without dispatching a pile of notes scheduled in the past.
+  if(stepTime<now-.12){
+    const duration=60/current.bpm/4;
+    const missed=Math.ceil((now-stepTime)/duration);
+    loops+=Math.floor((step+missed)/128);
+    step=(step+missed)%128;
+    stepTime=now+.04;
+  }
+  for(let i=retiringBuses.length-1;i>=0;i--){
+    if(now>=retiringBuses[i].until){
+      try{retiringBuses[i].bus.disconnect()}catch{}
+      retiringBuses.splice(i,1);
+    }
+  }
   let count=0;
   while(stepTime<now+.23&&count++<64){
     if(step===0&&loops>=targetLoops)switchPiece(stepTime);
@@ -226,8 +242,6 @@ function pump(){
     stepTime+=60/scheduled.bpm/4;
     if(step===128){step=0;loops++;if(loops%2===0)changeVisual()}
   }
-  // If the tab was suspended, realign rather than playing a backlog of stale notes.
-  if(stepTime<now-.5)stepTime=now+.04;
   if(!next&&!loadingNext&&loops>=1)void queueNext();
 }
 async function start(){

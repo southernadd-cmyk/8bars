@@ -5,6 +5,7 @@ import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
+import {planEcology} from "./music-ecology.js";
 
 const $=id=>document.getElementById(id);
 const roles=["bass","chords","arp","lead","counter","pad"];
@@ -120,10 +121,11 @@ function planNext(expand=true){
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
  const seed=rngToken();
- const ecologyGenome=profile.engine==="ecology"?null:undefined;
+ const ecologyGenome=profile.engine==="ecology"?
+   planEcology({seed,key:profile.key,mode:profile.mode,
+     previous:old?.ecologyGenome||livingGenome}):undefined;
  const piece=composeWithEngine({seed,key:profile.key,mode:profile.mode,style:profile.style,engine:profile.engine,
-   bpm:profile.bpm,density:profile.density,swing:profile.swing,
-   ...(profile.engine==="ecology"?{ecologyGenome:undefined}: {})});
+   bpm:profile.bpm,density:profile.density,swing:profile.swing,ecologyGenome});
  const oldPercussion=old?.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[];
  const keep=old?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
@@ -278,6 +280,7 @@ function switchPiece(at){
  recentPieces.unshift(prev);
  if(recentPieces.length>8)recentPieces.length=8;
  current=next;next=null;loops=0;targetLoops=current.sections.length;
+ if(current.ecologyGenome)livingGenome=current.ecologyGenome;
  skipRequested=false;
  displayedSection=-1;segments++;
  changeVisual();

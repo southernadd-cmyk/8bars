@@ -108,8 +108,10 @@ function soundFor(piece,e){
   return nearestSample(piece.voices[e.track],e.note,e.velocity);
 }
 function uniqueSamples(piece,sectionIndex=0){
- const events=piece.sections?.[sectionIndex]?.events??piece.events;
- return [...new Map(events.map(e=>{const s=soundFor(piece,e);return [s.url,s]})).values()];
+ const section=piece.sections?.[sectionIndex];
+ const events=section?.events??piece.events;
+ return [...new Map(events.filter(e=>!section||sectionAllowsNote(e,section.role))
+   .map(e=>{const s=soundFor(piece,e);return [s.url,s]})).values()];
 }
 async function loadSound(s){
  if(sampleCache.has(s.url))return sampleCache.get(s.url);
@@ -225,7 +227,7 @@ function playNote(piece,e,when,sectionLevel=1){
   src.onended=()=>{try{src.disconnect();envelope.disconnect()}catch{}};
 }
 function switchPiece(at){
- if(!next?.ready){targetLoops=loops+1;void queueNext();return}
+ if(!next?.ready){loops=current.sections.length-1;targetLoops=current.sections.length;void queueNext();return}
  const prev=current;
  recentPieces.unshift(prev);
  if(recentPieces.length>8)recentPieces.length=8;

@@ -38,7 +38,7 @@ const FAMILIES={
 const BASS={
  pop:["electricBass","uprightBass","vcClavisynth","vcBassRecorderVib","vcFMPiano","organ"],
  hiphop:["electricBass","uprightBass","dnbSub","dnb808","vcClavisynth","vcBassRecorderVib","vcFMPiano"],
- dnb:["dnbReese","dnbWobble","dnbFm","dnbSub","dnb808","electricBass"],
+ dnb:["dnbReese","dnbWobble","dnbFm","dnbSub","electricBass"],
  electronic:["dnbReese","dnbWobble","dnbFm","dnbSub","dnb808","electricBass","uprightBass","vcClavisynth","vcFMPiano"]
 };
 const TUNING={

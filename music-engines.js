@@ -302,7 +302,10 @@ function ecology(c,input){
      add("hat",bar*16+step,.5,.26);
    if(bar%2===1&&r("clap")<.5)add("clap",bar*16+12,.6,.31);
    if(bar%3===2)add("openhat",bar*16+14,1.5,.28);
-   const leadBeats=new Set(lead.map(e=>e.step%16));
+   // Percussion shares the inherited rhythmic *genome*, not the currently
+   // regenerated lead events: mutating lead alone never changes another track.
+   const leadBeats=new Set(genome.motif.steps.map(step=>
+     (step+(bar%2===1?1:0)+(bar>=4?1:0))%16));
    for(const step of euclideanPositions(3,phase+bar*7))
      if(!leadBeats.has(step)&&r("perc")<.36)
        add("perc",bar*16+step,.5,.27);

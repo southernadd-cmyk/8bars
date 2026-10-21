@@ -79,7 +79,8 @@ function finishRadioForm(candidate){
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
    const combined=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
      .sort((a,b)=>a.step-b.step);
-   const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene},
+   const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
+     leadVoice:candidate.voices.lead},
      candidate.channel,candidate.seed,section.role);
    section.events=applyChannelGroove(genreEvents,
      candidate.channel,candidate.seed,section.role);

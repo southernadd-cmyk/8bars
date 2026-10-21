@@ -35,6 +35,58 @@ test("Acoustic break uses identifiable real-recorded CC0 drumkit strikes",()=>{
  assert.match(mirror,/DNB_BREAK_KIT/);
  assert.match(mirror,/Object\.values\(DNB_BREAK_KIT\)/);
  assert.match(workflow,/dnb-break-kit\.js/);
+ assert.match(mirror,/"-codec:a","libmp3lame"/);
+ assert.match(mirror,/format:"mp3"/);
+ for(const options of Object.values(DNB_BREAK_KIT))
+   for(const sample of options){
+     assert.equal(sample.originalRelease,"https://versilian-studios.com/virtuosity-drums/");
+     assert.match(sample.originalLicense,/sfzinstruments\/virtuosity_drums.*LICENSE$/);
+   }
+});
+
+test("Ghost notes alternate within the same half-bar, and songs vary with equal-length seeds",()=>{
+ for(const seed of ["same-length-0001","same-length-0002","abcdefgh12345"]){
+   for(const bar of [0,1,2,7]){
+     const base=bar*16;
+     for(const [a,b] of [[3,7],[11,15]]){
+       const first=dnbDrumSample("snare",.2,base+a,seed);
+       const second=dnbDrumSample("snare",.2,base+b,seed);
+       assert.notEqual(first.url,second.url,seed+" / "+(base+a)+"/"+(base+b));
+     }
+   }
+   assert.deepEqual(dnbDrumSample("snare",.2,11,seed),
+     dnbDrumSample("snare",.2,11,seed));
+ }
+ const selections=new Set();
+ for(let i=0;i<80;i++){
+   const seed="same-length-"+String(i).padStart(4,"0");
+   selections.add(dnbDrumSample("snare",.2,11,seed).url);
+ }
+ assert.equal(selections.size,2,"Actual seed characters should vary the chosen hit");
+});
+
+test("Cello's liquid lead melody is voiced near its C5 sample ceiling",()=>{
+ const settings={seed:"liquid-range",engine:"melodic",key:"F#",mode:"minor",
+   bpm:172,style:"breakbeat",density:.7,swing:.02,channel:"dnb",scene:"liquid"};
+ const harmonyOverrides=planGenreHarmony(settings);
+ const piece=composeWithEngine({...settings,harmonyOverrides});
+ const cello=arrangeGenreMusic({...piece,scene:"liquid",leadVoice:"cello"},
+   "dnb",settings.seed,"lift").filter(e=>e.track==="lead");
+ const violin=arrangeGenreMusic({...piece,scene:"liquid",leadVoice:"violin"},
+   "dnb",settings.seed,"lift").filter(e=>e.track==="lead");
+ assert.ok(cello.length>0);
+ assert.ok(cello.every(e=>e.note>=55&&e.note<=74));
+ assert.ok(violin.every(e=>e.note>=66&&e.note<=90));
+ assert.ok(violin.some((e,i)=>e.note!==cello[i].note));
+ assert.match(radio,/leadVoice:candidate\.voices\.lead/);
+ for(const mode of ["minor","major"])for(const key of ["A","F#","C","D#"]){
+   const chords=planGenreHarmony({...settings,key,mode});
+   const score=composeWithEngine({...settings,key,mode,harmonyOverrides:chords});
+   const melody=arrangeGenreMusic({...score,scene:"liquid",leadVoice:"cello"},
+     "dnb",settings.seed,"statement").filter(e=>e.track==="lead");
+   assert.ok(melody.length>0);
+   assert.ok(melody.every(e=>e.note>=55&&e.note<=74),key+" "+mode);
+ }
 });
 
 test("808 stays available but cannot be main DnB bass; octave-aligned sub floor",()=>{

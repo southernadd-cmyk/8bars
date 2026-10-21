@@ -186,7 +186,13 @@ function drumBassMusic(source,seed,role){
      for(let i=0;i<steps.length;i++){
        if(!liquid&&!drop&&i>0)continue;
        const pos=steps[i],motion=leadShape[(i+bar%2)%leadShape.length]-2;
-       const target=chordToneNear(74+motion*3,chord,66,90);
+       // Cello recordings end at C5 (MIDI 72); give the cello its own
+       // restrained, lower melodic register instead of pushing it to F#6.
+       // Violins, guitars and keys retain the upper lead range.
+       const celloLead=liquid&&source.leadVoice==="cello";
+       const target=celloLead?
+         chordToneNear(65+motion*2,chord,55,74):
+         chordToneNear(74+motion*3,chord,66,90);
        out.push(event("lead",bar,pos,target,Math.min(liquid?6:3,16-pos),
          liquid?.31:.39));
      }

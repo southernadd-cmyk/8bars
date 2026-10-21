@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {phraseBlueprint,developPhrase,smoothVoicing,harmonicDegrees} from "../musical-grammar.js";
+import {phraseBlueprint,developPhrase,smoothVoicing,harmonicDegrees,chooseMelodyNote} from "../musical-grammar.js";
 import {composeGenreSong,genrePreset,GENERATOR_GENRES} from "../generator-genres.js";
 import {chordsInKey,chordFromSymbol} from "../harmony.js";
 
@@ -73,6 +73,24 @@ test("Pop, hip-hop and DnB songs have recognisable phrase development inside eac
    }
    assert.ok(developed>=12,genre+"/"+scene+" should develop melodies, not replay bars");
    assert.ok(stable>=13,genre+"/"+scene+" should keep its harmonic foundation");
+  }
+ }
+});
+
+test("Melodic voice leading favours stepwise motion and anchors strong beats",()=>{
+ const chord=chordFromSymbol("Am",1),source={key:"A",mode:"minor"};
+ for(let seed=0;seed<40;seed++){
+  const r=rand(seed),line=[];
+  const targets=[69,71,74,75,72,69,67,64];
+  for(let i=0;i<targets.length;i++){
+   const step=i*2;
+   const note=chooseMelodyNote(source,chord,targets[i],
+      line.length?line.at(-1):null,step,r,60,84,{cadence:i===7});
+   line.push(note);
+   assert.ok(note>=60&&note<=84);
+   if(step%4===0||i===7)
+     assert.ok(chord.notes.some(n=>n%12===note%12),"Strong beat must be harmonic");
+   if(i>0)assert.ok(Math.abs(note-line.at(-2))<=8,"Avoid unsupported melodic leaps");
   }
  }
 });

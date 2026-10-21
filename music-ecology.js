@@ -39,7 +39,17 @@ export function tonnetzDistance(from,to){
 }
 export function chordToSymbol(chord){return ROOTS[PC(chord.root)]+(chord.quality==="minor"?"m":"")}
 function motifFromRandom(r){
- return {steps:[0,2,5,8,12,15],degrees:[0,2,4,3,1,0],
+ const contours=[
+   [0,2,4,3,1,0],[0,3,2,5,4,2],[0,-1,2,4,3,1],
+   [0,2,1,4,2,3],[0,4,2,3,1,-1],[0,-2,0,3,1,2],
+   [0,1,3,5,2,0],[0,3,4,2,1,-1]
+ ];
+ const rhythms=[
+   [0,2,5,8,12,15],[0,3,6,9,12,14],[0,4,6,10,13,15],
+   [0,2,7,9,11,14],[0,3,7,8,12,15],[0,4,7,11,13,15]
+ ];
+ return {steps:[...rhythms[Math.floor(r()*rhythms.length)]],
+   degrees:[...contours[Math.floor(r()*contours.length)]],
    phase:Math.floor(r()*16),bassPulses:2+Math.floor(r()*3),
    leadPulses:4+Math.floor(r()*3)};
 }
@@ -106,7 +116,7 @@ export function planEcology({seed="ecology",key="C",mode="major",previous=null}=
  };
 }
 export function euclideanPositions(pulses,rotation=0){
- const n=16,k=clamp(Math.floor(pulses),1,15),phase=PC(rotation)%16;
+ const n=16,k=clamp(Math.floor(pulses),1,15),phase=((Math.floor(rotation)%16)+16)%16;
  return Array.from({length:16},(_,i)=>i).filter(i=>((i-phase+16)*k)%n<k);
 }
 export function nearestChordTone(target,chord,lower=63,upper=93){
@@ -120,7 +130,13 @@ export function livingMelody(genome,bar,variant=0){
  const {motif,path}=genome,chord=path[bar];
  const degrees=motif.degrees;
  const rotation=variant==="answer"?1:variant==="return"?0:variant==="lift"?2:0;
- const positions=euclideanPositions(motif.leadPulses, motif.phase+bar*3+rotation);
+ const rhythmicGuide=euclideanPositions(motif.leadPulses,motif.phase+bar*2+rotation);
+ // Inherited six-note attack pattern is the recognizable rhythmic signature.
+ // Euclidean phase rotation supplies a second, slowly drifting pulse layer.
+ const phraseShift=(bar%2===1?1:0)+(bar>=4?1:0)+(rotation?1:0);
+ const inherited=motif.steps.map(step=>(step+phraseShift)%16);
+ const positions=[...new Set([...inherited.slice(0,motif.leadPulses),
+   ...rhythmicGuide.slice(0,2)])].sort((a,b)=>a-b).slice(0,7);
  const notes=[];let previous=72+PC(chord.root);
  for(let index=0;index<positions.length;index++){
    const degree=degrees[(index+(bar%2?1:0))%degrees.length];

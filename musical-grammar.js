@@ -54,8 +54,9 @@ export function developPhrase(hook,bar,{answer=false,closing=true}={}){
  }
  if(phrase===2||answer){
   // Answer: inverted first motion, a sequence up/down, and a short rest.
+  const anchor=contour[0];
   for(let i=0;i<contour.length;i++)
-   contour[i]=clamp(contour[0]-(hook.contour[i]-hook.contour[0])+hook.response,-5,5);
+   contour[i]=clamp(anchor-(hook.contour[i]-hook.contour[0])+hook.response,-5,5);
   if(rhythm.length>3)rhythm.splice(1,1),contour.splice(1,1);
  }
  if(phrase===3){

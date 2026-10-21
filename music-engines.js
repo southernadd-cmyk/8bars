@@ -2,7 +2,7 @@
 // All produce the same symbolic event format and use the same *recorded*
 // instruments at playback; there is no oscillator, synthesized fallback,
 // audio dependency or DOM dependency in these composition engines.
-import {compose,rng,euclidean,TRACKS} from "./composer.js";
+import {compose,rng,euclidean,TRACKS} from "./composer.js?v=0.5.5";
 import {planEcology,euclideanPositions,livingMelody,nearestChordTone} from "./music-ecology.js";
 
 export const COMPOSITION_ENGINES=[

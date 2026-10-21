@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=1">
 <meta name="description" content="8bars — deterministic rule-based music composition with a sample library and multitrack mixer.">
 <title>8bars — music composer</title>
-<link rel="stylesheet" href="./style.css?v=0.4.6">
+<link rel="stylesheet" href="./style.css?v=0.4.7">
 </head>
 <body>
 <div class="shell">
@@ -19,6 +19,7 @@
 <section class="console" aria-label="Composition settings">
  <div class="controls">
   <label>Seed<input id="seed" type="text" maxlength="64" spellcheck="false" value="618033"></label>
+  <label>Composition<select id="engine"><option value="classic">Original</option><option value="pattern">Pattern</option><option value="melodic">Melodic</option><option value="ambient">Ambient</option><option value="process">Process</option></select></label>
   <label>Style<select id="style"><option value="downtempo">Downtempo</option><option value="house">House</option><option value="breakbeat">Breakbeat</option><option value="ambient">Ambient</option></select></label>
   <label>Key<select id="key"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option selected>A</option><option>A#</option><option>B</option></select></label>
   <label>Mode<select id="mode"><option value="minor">Minor</option><option value="major">Major</option></select></label>
@@ -79,5 +80,5 @@
   <div class="library-title"><h3>Imported audio</h3><button type="button" id="exportSampleCredits">Download credits</button></div><div id="libraryItems" class="library-items"><p>No samples imported yet.</p></div>
  </div>
 </dialog>
-<script type="module" src="./app.js?v=0.7.7"></script>
+<script type="module" src="./app.js?v=0.7.8"></script>
 </body></html>

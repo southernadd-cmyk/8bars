@@ -10,6 +10,14 @@ const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const choose=(values,random)=>values[Math.min(values.length-1,Math.floor(random()*values.length))];
 export const PITCH_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const quant=(value,step)=>Math.round(value/step)*step;
+// Each station scene favours compatible ways of composing while keeping the
+// engine independent of the sample/genre choices.
+const SCENE_ENGINES={
+ drift:["ambient","ambient","process","melodic"],
+ headnod:["melodic","pattern","melodic","process"],
+ motion:["pattern","pattern","process","melodic"],
+ afterhours:["ambient","process","melodic","pattern"]
+};
 
 export function chooseRadioProfile(previous=null,random=Math.random){
  const previousScene=RADIO_SCENES.find(x=>x.id===previous?.scene);
@@ -27,6 +35,11 @@ export function chooseRadioProfile(previous=null,random=Math.random){
    (random()<.68&&scene.styles.includes(previous.style)?previous.style:choose(scene.styles,random));
  let key=previous?.key??choose(PITCH_NAMES,random);
  let mode=previous?.mode??choose(["major","minor"],random);
+ const engineOptions=SCENE_ENGINES[scene.id];
+ const engine=previous&&!newScene&&random()<.64?
+   previous.engine:
+   choose(engineOptions.filter(id=>id!==previous?.engine).length?
+     engineOptions.filter(id=>id!==previous?.engine):engineOptions,random);
  let change=newScene?(previous?"new scene":"opening scene"):"new variation";
  if(previous && random()<(newScene?.72:.24)){
    const kind=choose(["relative","fifth","fourth"],random);
@@ -37,7 +50,7 @@ export function chooseRadioProfile(previous=null,random=Math.random){
    }else key=PITCH_NAMES[(root+(kind==="fifth"?7:5))%12];
    change=(newScene?"new scene · ":"")+kind+" key";
  }
- return {scene:scene.id,sceneName:scene.name,sceneRemaining,style,key,mode,
+ return {scene:scene.id,sceneName:scene.name,sceneRemaining,style,key,mode,engine,
    bpm, density:Math.round(clamp(density,.15,1)*100)/100,
    swing:Math.round(clamp(swing,0,.65)*100)/100,
    targetLoops:choose(scene.loops,random),change};
@@ -51,7 +64,7 @@ export function radioSignature(piece){
  const contour=lead.slice(0,14).map((e,i)=>i?
    Math.sign(e.note-lead[i-1].note):0).join("");
  const rhythm=arr=>arr.filter(e=>e.step<64).map(e=>e.step%16).join("-");
- return {style:piece.style,scene:piece.scene,key:piece.key,mode:piece.mode,
+ return {style:piece.style,scene:piece.scene,engine:piece.engine,key:piece.key,mode:piece.mode,
    bpm:piece.bpm,density:piece.density,
    harmonicPath:roots.map(x=>(x-reference+12)%12),
    lead:lead.map(e=>e.step+":"+e.note).join("|"),
@@ -80,6 +93,7 @@ export function radioNoveltyScore(piece,history=[]){
    if(sig.drums===other.drums)score-=9*weight;
    if(sig.voices===other.voices)score-=12*weight;
    if(sig.style===other.style)score-=4*weight;
+   if(sig.engine===other.engine)score-=6*weight;
    if(sig.scene===other.scene)score-=1*weight;
    if(Number.isFinite(sig.bpm)&&Number.isFinite(other.bpm)&&
       Math.abs(sig.bpm-other.bpm)<5)score-=5*weight;

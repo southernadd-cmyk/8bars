@@ -1,8 +1,9 @@
-// Genre-specific symbolic music for Human Radio. NOT the regular editor.
+// Genre-specific symbolic music shared by Human Radio and the 8bars editor.
 // DnB: two-step break + slower, sparse bass phrase + restrained chord atmosphere.
 // Pop: diatonic four-chord cycle + recurring chorus hook + verse/chorus arrangement.
 // Uses existing real recorded instrument samples; no generated audio or synth.
 import {chordsInKey,chordSymbol} from "./harmony.js";
+import {phraseBlueprint,developPhrase,smoothVoicing,harmonicDegrees,chooseMelodyNote} from "./musical-grammar.js";
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const PC=x=>((x%12)+12)%12;
 function random(seed){
@@ -13,46 +14,13 @@ function random(seed){
 const choose=(r,list)=>list[Math.floor(r()*list.length)];
 export function planGenreHarmony({channel,seed,key,mode,scene=""}){
  if(!["pop","dnb","hiphop"].includes(channel))return null;
- const r=random(seed+"|genre-harmony"),diatonic=chordsInKey(key,mode);
- const pop=mode==="minor"?
-  [[0,5,3,4],[0,3,5,4],[5,3,0,4],[0,5,6,3],[0,3,4,5]]:
-  [[0,4,5,3],[5,3,0,4],[0,5,3,4],[0,3,4,3],[0,4,3,4],[5,4,0,3]];
- const dnb=mode==="minor"?
-  [[0,5,3,4],[0,3,5,4],[0,6,5,3],[0,3,0,5],[0,5,0,3]]:
-  [[5,3,0,4],[0,5,3,4],[0,3,5,4]];
- const hiphop=mode==="minor"?[[0,5,3,4],[0,3,0,5],[0,6,5,3],[0,3,5,3]]:[[0,5,3,4],[0,3,4,3],[0,4,5,3],[0,5,0,3]];
- const degrees=[...choose(r,channel==="pop"?pop:channel==="hiphop"?hiphop:dnb)];
- // Controlled harmonic grammar: the genre decides what is plausible,
- // but each seed independently chooses substitutions inside that grammar.
- // Repetition happens WITHIN a song, not across every newly generated song.
- const middle=channel==="dnb"?[0,3,5,6]:channel==="hiphop"?[0,2,3,5,6]:[0,3,4,5,6];
- for(const index of [1,2,3]){
-   const chance=index===3?.38:.61;
-   if(r()<chance){
-     const pool=middle.filter(n=>n!==degrees[index]&&
-       (index===1||n!==degrees[index-1]));
-     degrees[index]=choose(r,pool);
-   }
- }
- if(channel==="pop"&&degrees[0]!==0&&r()<.25)degrees[0]=0;
- // Pop: a familiar four-bar cycle returning twice.
- // DnB: each harmony lasts two bars; bass can breathe at 170-176 BPM.
- return channel==="pop"||channel==="hiphop"?
-   [...degrees,...degrees].map(d=>diatonic[d]):
-   degrees.flatMap(d=>[diatonic[d],diatonic[d]]);
-}
-function voicedTriad(chord,target=68){
- const base=chord.notes.slice(0,3);
- const candidate=[];
- for(let inversion=0;inversion<3;inversion++){
-   const shifted=base.slice(inversion).concat(base.slice(0,inversion).map(x=>x+12));
-   for(const octave of [-12,0,12]){
-     const notes=shifted.map(n=>n+12+octave);
-     if(notes[0]>=53&&notes[2]<=92)
-       candidate.push({notes,cost:Math.abs((notes[0]+notes[2])/2-target)});
-   }
- }
- return candidate.sort((a,b)=>a.cost-b.cost)[0]?.notes||base.map(x=>x+12);
+ const diatonic=chordsInKey(key,mode);
+ const degrees=harmonicDegrees(random(seed+"|"+channel+"|"+scene+"|harmony"),channel,mode);
+ // Pop and hip-hop use a four-bar harmonic identity; DnB holds each
+ // change two bars to keep bass and atmospheres spacious at high tempo.
+ return channel==="dnb"?
+   degrees.flatMap(d=>[diatonic[d],diatonic[d]]):
+   [...degrees,...degrees].map(d=>diatonic[d]);
 }
 function chordToneNear(target,chord,low=61,high=90){
  const pcs=new Set(chord.notes.slice(0,3).map(PC)),candidates=[];
@@ -69,45 +37,6 @@ function event(track,bar,step,note,duration,velocity){
  return {track,step:bar*16+step,note,duration:Math.min(duration,16-step),
    velocity:Math.round(clamp(velocity,.06,.95)*100)/100};
 }
-// Build an actual seed-specific phrase rather than choosing a canned melody.
-// Rhythmic placements, note count, contour and register are independent
-// dimensions. The same seed recreates the same hook in each reprise.
-function phraseBlueprint(r,minNotes,maxNotes,options={}){
- const count=minNotes+Math.floor(r()*(maxNotes-minNotes+1));
- const {sparse=false,firstOnBeat=false}=options;
- const pool=sparse?[0,2,4,6,8,10,12,14]:[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
- const steps=new Set([firstOnBeat?0:(r()<.68?0:pool[Math.floor(r()*4)])]);
- while(steps.size<count)steps.add(choose(r,pool));
- const rhythm=[...steps].sort((a,b)=>a-b);
- const contour=[];
- let height=Math.floor(r()*5)-2;
- const direction=r()<.5?-1:1;
- const leaps=[-3,-2,-1,-1,0,1,1,2,3];
- for(let i=0;i<rhythm.length;i++){
-   if(i>0)height=clamp(height+choose(r,leaps)+(r()<.16?direction:0),-5,5);
-   contour.push(height);
- }
- return {rhythm,contour,centre:choose(r,[-8,-5,-2,0,3,5,8]),
-   articulation:choose(r,[.68,.82,.95]),shape:choose(r,[0,1,2])};
-}
-const KEY_PCS=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-function nearestDiatonic(source,target,low,high){
- const tonic=KEY_PCS.indexOf(source.key);
- if(tonic<0)return target;
- const scale=source.mode==="minor"?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];
- const pitchClasses=new Set(scale.map(n=>(tonic+n)%12));
- const candidates=[];
- for(let n=low;n<=high;n++)if(pitchClasses.has(PC(n)))candidates.push(n);
- return candidates.reduce((best,n)=>Math.abs(n-target)<Math.abs(best-target)?n:best,candidates[0]??target);
-}
-function phrasePitch(source,chord,target,step,r,low=60,high=89){
- // Phrase anchors stay in the harmony. Short weak notes may become diatonic
- // passing tones, giving the tune melodic motion without random chromatics.
- const chordPitch=chordToneNear(target,chord,low,high);
- if(step%4===0||r()>.27)return chordPitch;
- const passing=nearestDiatonic(source,target+(r()<.5?-2:2),low,high);
- return Math.abs(passing-chordPitch)<=5?passing:chordPitch;
-}
 function popMusic(source,seed,role){
  const r=random(seed+"|pop-music"),out=[];
  const chorus=["lift","reprise","return"].includes(role);
@@ -121,6 +50,7 @@ function popMusic(source,seed,role){
  const verseBass=choose(r,[[0,7,10],[0,8,13],[0,6,10,14],[0,9,12]]);
  const chorusBass=choose(r,[[0,4,8,10,12],[0,3,7,10,13],[0,4,7,11,14],[0,5,8,11,14],[0,4,8,12,15]]);
  const bassAccent=choose(r,[0,5,7,12]);
+ let previousVoicing=null,previousLead=null;
  for(let bar=0;bar<8;bar++){
    const chord=roots[bar],next=roots[Math.min(7,bar+1)];
    // Pop bass changes with the chords, retaining a singable, bouncy motif.
@@ -135,7 +65,8 @@ function popMusic(source,seed,role){
        chorus?Math.min(3.5,16-step):Math.min(6,16-step),
        chorus?.71:.62));
    }
-   const notes=voicedTriad(chord,chorus?72:66);
+   const notes=smoothVoicing(chord,chorus?72:66,previousVoicing);
+   previousVoicing=notes;
    const chordTimes=chorus?chordBeats:bridge?[0]:[0,8];
    for(const pos of chordTimes){
      const level=chorus?.27:bridge?.12:.19;
@@ -154,18 +85,21 @@ function popMusic(source,seed,role){
    // during verses. Contour is rooted on the current chord, not rolled per note.
    if(!intro||bar>=2){
      const phraseAnswer=!chorus&&(bar%4>=2||answer);
-     const beats=hook.rhythm;
+     const developed=developPhrase(hook,bar,{answer:phraseAnswer});
+     const beats=developed.rhythm;
      const centre=71+shift+hook.centre;
      for(let i=0;i<beats.length;i++){
        if(bridge&&i%2===1)continue;
        const pos=beats[i];
-       const contour=hook.contour[i];
-       const motion=phraseAnswer?-contour:contour;
-       let pitch=phrasePitch(source,chord,centre+motion*3,pos,r,62,89);
-       if(bar===7&&i===beats.length-1)pitch=chordToneNear(centre,chord,62,89);
+       const motion=developed.contour[i];
+       let pitch=chooseMelodyNote(source,chord,centre+motion*3,
+         previousLead,pos,r,62,89,{cadence:developed.cadence&&i===beats.length-1});
+       if(developed.cadence&&i===beats.length-1)
+         pitch=chordToneNear(centre-(developed.finalCadence?3:0),chord,62,89);
+       previousLead=pitch;
        const nextPos=beats[i+1]??16;
        out.push(event("lead",bar,pos,pitch,
-         Math.min(6,Math.max(.75,(nextPos-pos-.2)*hook.articulation)),
+         Math.min(6,Math.max(.75,(nextPos-pos-.2)*developed.articulation)),
          chorus?.76:bridge?.38:.59));
      }
    }
@@ -191,6 +125,7 @@ function drumBassMusic(source,seed,role){
  const leadHook=phraseBlueprint(r,liquid?3:2,liquid?4:3,
    {sparse:source.scene==="techstep",firstOnBeat:liquid});
  const leadCentre=choose(r,[-6,-3,0,3,6]);
+ let previousVoicing=null,previousLead=null;
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
    const bass=bassRoot(chord);
@@ -223,7 +158,8 @@ function drumBassMusic(source,seed,role){
    }
    // Chords don't fire as 16th-note EDM arpeggios: restrained stabs/long
    // liquid pads leave room for bass and the break.
-   const tones=voicedTriad(chord,liquid?70:64);
+   const tones=smoothVoicing(chord,liquid?70:64,previousVoicing);
+   previousVoicing=tones;
    if(bar%2===0||drop&&bar%2===1){
      const pos=drop&&!liquid?2:0;
      for(const tone of tones){
@@ -238,17 +174,22 @@ function drumBassMusic(source,seed,role){
    // DnB must not sound like a randomly busy lead synth over a break.
    // The drop hook is sparse; liquid builds longer, lyrical phrases.
    if((drop||liquid&&!intro)&&!breakdown){
-     const steps=drop?leadHook.rhythm:
-       bar%2===0?leadHook.rhythm.slice(0,2):leadHook.rhythm.slice(-2);
+     const phrase=developPhrase(leadHook,bar);
+     const steps=drop?phrase.rhythm:
+       bar%2===0?phrase.rhythm.slice(0,2):phrase.rhythm.slice(-2);
      for(let i=0;i<steps.length;i++){
        if(!liquid&&!drop&&i>0)continue;
-       const pos=steps[i],motion=leadHook.contour[i%leadHook.contour.length];
+       const pos=steps[i],motion=phrase.contour[i%phrase.contour.length];
        // Cello recordings have a lower melodic register than violin/keys.
        const celloLead=liquid&&source.leadVoice==="cello";
        const low=celloLead?55:66,high=celloLead?74:90;
-       const target=phrasePitch(source,chord,
+       let target=chooseMelodyNote(source,chord,
          (celloLead?65:74)+leadCentre+leadHook.centre+motion*3,
-         pos,r,low,high);
+         previousLead,pos,r,low,high,
+         {cadence:phrase.cadence&&i===steps.length-1});
+       if(phrase.cadence&&i===steps.length-1)
+         target=chordToneNear((celloLead?65:74)+leadCentre,chord,low,high);
+       previousLead=target;
        out.push(event("lead",bar,pos,target,Math.min(liquid?7:4,16-pos),
          liquid?.31:.39));
      }
@@ -282,9 +223,11 @@ function hiphopMusic(source,seed,role){
    west?[[0,8],[0,6,12],[2,10]]:
    lofi?[[0],[0,10]]:
    [[0,8],[0,7,12],[0,4,10]]);
+ let previousVoicing=null,previousLead=null;
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
-   const root=bassRoot(chord),tones=voicedTriad(chord,lofi?66:west?72:68);
+   const root=bassRoot(chord),tones=smoothVoicing(chord,lofi?66:west?72:68,previousVoicing);
+   previousVoicing=tones;
    const bassPositions=quiet?bassSteps.slice(0,1):bassSteps;
    for(let i=0;i<bassPositions.length;i++){
      const pos=i===0?0:clamp(bassPositions[i]+bassPickup,1,15);
@@ -311,18 +254,23 @@ function hiphopMusic(source,seed,role){
    // Recognisable two-bar phrase with contrast between sparse verses and hooks.
    if(!quiet||(!trap&&!lofi&&bar>=4)){
      const phraseBar=bar%2,active=lift||!trap||bar%2===0;
+     const phrase=developPhrase(hook,bar,{answer:answering});
      if(active){
-       for(let i=0;i<hook.rhythm.length;i++){
+       for(let i=0;i<phrase.rhythm.length;i++){
          if(quiet&&i>0)continue;
          if(!lift&&trap&&i>1)continue;
          if(!lift&&lofi&&i>1)continue;
-         const pos=clamp(hook.rhythm[i]+motifOffset,0,15);
-         const last=hook.rhythm[i+1]===undefined?16:
-           Math.max(pos+1,clamp(hook.rhythm[i+1]+motifOffset,0,16));
-         const shift=hook.contour[(i+phraseBar)%hook.contour.length]*(answering?-1:1);
-         const pitch=phrasePitch(source,chord,
+         const pos=clamp(phrase.rhythm[i]+motifOffset,0,15);
+         const last=phrase.rhythm[i+1]===undefined?16:
+           Math.max(pos+1,clamp(phrase.rhythm[i+1]+motifOffset,0,16));
+         const shift=phrase.contour[(i+phraseBar)%phrase.contour.length];
+         let pitch=chooseMelodyNote(source,chord,
            (west?73:lofi?68:71)+centreOffset+hook.centre+shift*3,
-           pos,r,60,84);
+           previousLead,pos,r,60,84,
+           {cadence:phrase.cadence&&i===phrase.rhythm.length-1});
+         if(phrase.cadence&&i===phrase.rhythm.length-1)
+           pitch=chordToneNear((west?73:lofi?68:71)+centreOffset,chord,60,84);
+         previousLead=pitch;
          out.push(event("lead",bar,pos,pitch,
            Math.min(trap?3.5:lofi?6:4.5,Math.max(.75,(last-pos-.3)*hook.articulation)),
            lift?.47:trap?.24:lofi?.25:.34));

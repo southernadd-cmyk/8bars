@@ -1,5 +1,5 @@
-import {TRACKS} from "./composer.js?v=0.5.3";
-import {composeWithEngine} from "./music-engines.js";
+import {TRACKS} from "./composer.js?v=0.5.5";
+import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";

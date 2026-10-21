@@ -29,6 +29,10 @@ The old **Rick and Morty GIF** and its external fallback are not used. `radio-vi
 
 **Dynamics and performance refinement:** Acoustic DnB kit takes now retain their own recorded relative loudness (with peak-only attenuation for excessive sample peaks), rather than receiving RMS makeup gain. If a velocity zone is missing, the nearest labelled take is used; if an entire role has no samples, Human Radio falls back to the ordinary recorded kit instead of throwing. DnB hi-hats gain occasional stronger offbeat accents that select the MIDI 64–95 source tier; other hats and breakdowns remain restrained. On narrow screens the original animated visual uses fewer stars, contour points, arms and folds while preserving the same scene and a capped device pixel ratio.
 
+## Musical diversity: generator and Human Radio
+
+The genre arrangers no longer select their hooks from a few canned note sequences. Each song seed produces its own melodic contour, rhythm, register, controlled passing notes, bass figures and functional chord substitutions; recurring sections retain the same hook within that song. The generator also varies Pop/Hip-hop song fullness between verses/answers and choruses, rather than always starting at peak density. **New song** changes key by default and selects a genre-appropriate mode, unless the listener explicitly set those controls. The user's settings, selected instruments and per-track regeneration remain supported. The regression test `tests/generator-genres.test.mjs` examines 36 seeded songs **per Pop, Hip-hop and Drum & Bass subgenre** for distinct lead phrases, attack rhythms, bass, harmonic paths and percussion; passing numerical tests does not replace critical listening.
+
 ## Human Radio: distinct genre scenes and sound libraries
 
 Pop keeps its previous drum catalogue and hook-led arrangement. Drum & Bass and Hip-hop now have more than one rhythmic identity, with repeatable chapter-level hooks rather than a single fixed pattern for an entire station.

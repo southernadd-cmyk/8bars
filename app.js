@@ -142,6 +142,7 @@ function paint(){
    const select=el("select","instrument");
    select.setAttribute("aria-label",t.name+" sample or instrument");
    if(t.type==="drum"){
+    if(state.genre==="hiphop"||state.genre==="dnb")select.append(new Option("Genre drum kit · automatic","auto"));
     const sources=new Map();
     DRUMS[t.id].forEach((item,i)=>{
      const source=item.source||"Recorded percussion";
@@ -180,7 +181,7 @@ function paint(){
      if(select.value.startsWith("local:"))userAssignments.set(t.id,select.value.slice(6));
      else{
        userAssignments.delete(t.id);
-       if(t.type==="drum")state.drumSounds[t.id]=Number(select.value);
+       if(t.type==="drum")state.drumSounds[t.id]=select.value==="auto"?"auto":Number(select.value);
        else state.voices[t.id]=select.value;
      }
      persistAssignments();
@@ -265,22 +266,9 @@ function selectedLocal(track){
 }
 function neededSamples(){
  const sources=new Map();
- for(const track of TRACKS){
-   const own=selectedLocal(track.id);
-   if(own){sources.set(own.url,own);continue}
-   if(track.type==="drum"){
-     const list=DRUMS[track.id],choice=state.drumSounds[track.id]||0;
-     const item=list[Math.min(Math.max(choice,0),list.length-1)];
-     sources.set(item.url,item);
-   }else{
-     // Full multisample packs can have many root notes. Fetch only the ones
-     // actually used in the current eight-bar arrangement.
-     for(const event of composition?.events||[]){
-       if(event.track!==track.id||!Number.isFinite(event.note))continue;
-       const item=nearestSample(state.voices[track.id],event.note,event.velocity);
-       sources.set(item.url,item);
-     }
-   }
+ for(const event of composition?.events||[]){
+   const sample=sampleFor(event);
+   if(sample?.url)sources.set(sample.url,sample);
  }
  return [...sources.values()];
 }
@@ -331,10 +319,16 @@ function sampleFor(event){
  const own=selectedLocal(event.track);
  if(own)return own;
  if(isDrum(event.track)){
-   const options=DRUMS[event.track],choice=state.drumSounds[event.track]||0;
-   return options[Math.min(Math.max(choice,0),options.length-1)];
+   const choice=state.drumSounds[event.track];
+   if(choice==="auto"){
+     const speciality=genreDrumSample(state.genre,state.subgenre,event,state.seed);
+     if(speciality)return speciality;
+   }
+   const options=DRUMS[event.track],index=Number.isInteger(choice)?choice:0;
+   return options[Math.min(Math.max(index,0),options.length-1)];
  }
- return nearestSample(state.voices[event.track],event.note,event.velocity);
+ const voice=event.track==="bass"&&event.sampleVoice?event.sampleVoice:state.voices[event.track];
+ return nearestSample(voice,event.note,event.velocity);
 }
 function playEvent(ctx,event,when,output){
  const sample=sampleFor(event),buffer=buffers.get(sample.url);
@@ -346,7 +340,9 @@ function playEvent(ctx,event,when,output){
  src.connect(gain);
  const playback=sample.oneShot||event.note===undefined?1:Math.pow(2,(event.note-sample.root)/12);
  src.playbackRate.value=playback;
- const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52)*sampleGain(buffer);
+ const genreDrum=isDrum(event.track)&&state.drumSounds[event.track]==="auto";
+  const level=genreDrum?samplePeakGain(buffer):sampleGain(buffer);
+  const amp=event.velocity*(event.track==="pad"?.35:isDrum(event.track)?.7:event.track==="bass"?.72:.52)*level;
  let outputNode=gain;
  if(event.track==="bass"||event.track==="pad"){
    const filter=ctx.createBiquadFilter();filter.type="lowpass";filter.frequency.value=event.track==="bass"?750:1150;
@@ -681,7 +677,10 @@ function downloadSampleCredits(){
    const local=selectedLocal(track.id);
    let sources;
    if(local)sources=[local];
-   else if(track.type==="drum")sources=[DRUMS[track.id][state.drumSounds[track.id]||0]];
+   else if(track.type==="drum")sources=[...new Map(
+      composition.events.filter(e=>e.track===track.id)
+        .map(e=>{const item=sampleFor(e);return [item.url,item]})
+    ).values()];
    else sources=VOICES[state.voices[track.id]]||VOICES.piano;
    lines.push(track.name+":");
    const unique=new Map(sources.map(s=>[s.url,s]));

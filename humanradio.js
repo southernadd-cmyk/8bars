@@ -4,9 +4,9 @@ import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSamp
 import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
-import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
+import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js?v=2";
 import {planEcology} from "./music-ecology.js";
-import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js";
+import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
 
 const $=id=>document.getElementById(id);

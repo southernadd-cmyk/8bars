@@ -6,7 +6,7 @@ import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js?v=2";
 import {planEcology} from "./music-ecology.js";
-import {parseRadioDictionary,radioNameForSeed} from "./radio-names.js";
+import {parseRadioDictionary,radioTitleForSeed} from "./radio-names.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
 import {dnbDrumSample} from "./dnb-break-kit.js?v=2";
@@ -27,10 +27,9 @@ function loadRadioWords(){
 }
 function showSongIdentity(piece){
  if(!piece)return;
- const names=piece.names||radioNameForSeed(piece.seed,radioWords);
- $("artist").textContent=names.artist;
- $("track").textContent=names.title;
- document.title=names.title+" — "+names.artist+" · Human Radio";
+ const title=piece.title||radioTitleForSeed(piece.seed,radioWords);
+ $("track").textContent=title;
+ document.title=title+" · Human Radio";
 }
 let channelVersion=0;
 function updateStationDisplay(){
@@ -197,7 +196,7 @@ function planNext(expand=true){
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
    .concat(oldPercussion.filter(e=>keep.includes(e.track)));
  const candidate={...profile,seed,voices,drumSounds,genreHarmony,ecologyGenome:piece.ecologyGenome,baseComposition:piece,
-   keep,oldPercussion,names:radioNameForSeed(seed,radioWords),events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
+   keep,oldPercussion,title:radioTitleForSeed(seed,radioWords),events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
    progression:piece.progression,ready:false,missing:0};
  // Five candidates are compared by their first phrase. The remaining four to
  // six sections are only composed for the winner, not on the audio hot path.
@@ -400,7 +399,7 @@ function switchPiece(at){
       if(displayedSection!==loops){
         displayedSection=loops;
         const part=current.sections[loops];
-        // Keep the artist and song title stable throughout the arrangement.
+        // Keep the track title stable throughout the arrangement.
         if(loops>0)pruneSampleCache();
         void warmNextSection(current);
       }

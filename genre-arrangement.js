@@ -186,20 +186,26 @@ function drumBassMusic(source,seed,role){
    source.scene==="jump-up"?[[0,6,10],[0,10,14],[0,7,10]]:
    [[0,10],[0,7,10],[0,10,14],[0,6,10],[0,10,15]];
  const figure=choose(r,bassFigures);
- const leadShapes=[[0,2,3,1],[0,1,3,2],[0,3,2,4],[0,2,4,2]];
- const leadShape=choose(r,leadShapes);
- const leadSteps=liquid?[0,6,10,14]:source.scene==="jungle"?[2,8,14]:[2,8,12];
+ const turnaround=choose(r,[[0,10,14],[0,7,10],[0,9,14],[0,6,11]]);
+ const bassMovement=choose(r,[[0,0,7],[0,7,0],[0,12,7],[0,-5,0],[0,0,12]]);
+ const leadHook=phraseBlueprint(r,liquid?3:2,liquid?4:3,
+   {sparse:source.scene==="techstep",firstOnBeat:liquid});
+ const leadCentre=choose(r,[-6,-3,0,3,6]);
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
    const bass=bassRoot(chord);
    // Bass uses *half-time* phrases against the fast two-step drums.
    // Leave the snare backbeats at 4/12 free of new bass attacks.
    let steps=intro?[0]:breakdown?[0,10]:figure;
-   if(drop&&bar%4===3)steps=[0,10,14];
+   if(drop&&bar%4===3)steps=turnaround;
    for(let i=0;i<steps.length;i++){
      const pos=steps[i];
-     const note=i===steps.length-1&&pos===14&&bar%2===1?
-       bassRoot(next):bass+(i===1&&pos!==10&&r()<.24?12:0);
+     const phraseMove=bassMovement[(i+bar%2)%bassMovement.length];
+     let note=i===steps.length-1&&bar%4===3&&r()<.43?
+       bassRoot(next):bass+phraseMove;
+     // Keep real sample transpositions in an appropriate audible bass range.
+     while(note>52)note-=12;
+     while(note<33)note+=12;
      const length=i===0?(steps[1]??16)-.6:
        (steps[i+1]??16)-pos-.7;
      const main=event("bass",bar,pos,clamp(note,33,52),Math.max(1.5,length),
@@ -232,18 +238,18 @@ function drumBassMusic(source,seed,role){
    // DnB must not sound like a randomly busy lead synth over a break.
    // The drop hook is sparse; liquid builds longer, lyrical phrases.
    if((drop||liquid&&!intro)&&!breakdown){
-     const steps=drop?leadSteps:bar%2===0?[0,8]:[6,13];
+     const steps=drop?leadHook.rhythm:
+       bar%2===0?leadHook.rhythm.slice(0,2):leadHook.rhythm.slice(-2);
      for(let i=0;i<steps.length;i++){
        if(!liquid&&!drop&&i>0)continue;
-       const pos=steps[i],motion=leadShape[(i+bar%2)%leadShape.length]-2;
-       // Cello recordings end at C5 (MIDI 72); give the cello its own
-       // restrained, lower melodic register instead of pushing it to F#6.
-       // Violins, guitars and keys retain the upper lead range.
+       const pos=steps[i],motion=leadHook.contour[i%leadHook.contour.length];
+       // Cello recordings have a lower melodic register than violin/keys.
        const celloLead=liquid&&source.leadVoice==="cello";
-       const target=celloLead?
-         chordToneNear(65+motion*2,chord,55,74):
-         chordToneNear(74+motion*3,chord,66,90);
-       out.push(event("lead",bar,pos,target,Math.min(liquid?6:3,16-pos),
+       const low=celloLead?55:66,high=celloLead?74:90;
+       const target=phrasePitch(source,chord,
+         (celloLead?65:74)+leadCentre+leadHook.centre+motion*3,
+         pos,r,low,high);
+       out.push(event("lead",bar,pos,target,Math.min(liquid?7:4,16-pos),
          liquid?.31:.39));
      }
    }

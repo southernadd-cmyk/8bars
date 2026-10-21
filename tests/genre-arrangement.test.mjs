@@ -31,7 +31,9 @@ test("Pop has repeated four-bar functional harmony, DnB has two-bar harmonic mot
    for(let bar=0;bar<8;bar+=2)assert.equal(dnb[bar],dnb[bar+1]);
   }
  }
- assert.equal(planGenreHarmony({channel:"hiphop",seed:"x",key:"C",mode:"major"}),null);
+ const hiphop=planGenreHarmony({channel:"hiphop",seed:"x",key:"C",mode:"major",scene:"boom-bap"});
+ assert.equal(hiphop.length,8);
+ assert.deepEqual(hiphop.slice(0,4),hiphop.slice(4));
 });
 test("Pop choruses repeat melodic hooks and intensify bass and chord attacks",()=>{
  const a=song("pop");

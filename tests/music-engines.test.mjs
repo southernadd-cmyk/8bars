@@ -105,7 +105,7 @@ test("Browser interfaces connect audio-safe engines, sharing and downloaded outp
  assert.match(app,/q\.set\(id,state\[id\]\)/);
  assert.match(radio,/const piece=composeWithEngine\(/);
  assert.match(radio,/buildRadioForm\(candidate,baseComposition,composeWithEngine\)/);
- assert.match(radio,/paletteFor\(profile\.engine,role,suitable\)/);
+ assert.match(radio,/paletteFor\(profile\.engine,role,suitable,profile\.channel\)/);
  assert.match(radio,/VOICE_FAMILIES\[name\]/);
  assert.doesNotMatch(radio,/createOscillator/);
 });

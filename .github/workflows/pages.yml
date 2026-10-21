@@ -33,6 +33,7 @@ jobs:
           node --check radio-names.js
           node --check electronic-bass.js
           node --check genre-arrangement.js
+          node --check generator-genres.js
           node --check radio-form.js
           node --check sounds.js
           node --check pitched-vocals.js
@@ -52,7 +53,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html humanradio.html humanradio.js radio-planner.js radio-channels.js radio-names.js radio-words.txt radio-visual.js dnb-break-kit.js hiphop-drum-kit.js DNB-BREAK-CREDITS.txt genre-arrangement.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html humanradio.html humanradio.js radio-planner.js radio-channels.js radio-names.js radio-words.txt radio-visual.js dnb-break-kit.js hiphop-drum-kit.js DNB-BREAK-CREDITS.txt genre-arrangement.js generator-genres.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           python3 -m pip install --break-system-packages --quiet pillow cairosvg
           python3 scripts/build-favicons.py dist
           test -s dist/favicon.ico
@@ -71,6 +72,7 @@ jobs:
           test -s dist/electronic-bass.js
           test -s dist/ELECTRONIC-BASS-LICENSE.txt
           test -s dist/genre-arrangement.js
+          test -s dist/generator-genres.js
           test -s dist/radio-form.js
           test ! -e dist/humanradio.gif
           test -s dist/composer.js

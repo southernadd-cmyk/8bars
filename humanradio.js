@@ -7,9 +7,10 @@ import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js?v=2";
 import {planEcology} from "./music-ecology.js";
 import {parseRadioDictionary,radioTitleForSeed} from "./radio-names.js";
-import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=3";
+import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=4";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
 import {dnbDrumSample} from "./dnb-break-kit.js?v=3";
+import {hiphopDrumSample} from "./hiphop-drum-kit.js?v=1";
 import {createRadioVisual} from "./radio-visual.js?v=3";
 
 const $=id=>document.getElementById(id);
@@ -80,7 +81,7 @@ function finishRadioForm(candidate){
      .sort((a,b)=>a.step-b.step);
    const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
      leadVoice:candidate.voices.lead},
-     candidate.channel,candidate.seed,section.role);
+     candidate.channel,candidate.seed,section.role,candidate.scene);
    section.events=applyChannelGroove(genreEvents,
      candidate.channel,candidate.seed,section.role);
    indexEvents(section);
@@ -154,7 +155,20 @@ function planNext(expand=true){
    voices.lead=choice(suitable.length?suitable:candidates);
    voices.counter="violin";
    voices.arp="pianoSoft";
- }else if(profile.channel==="pop"){
+ }else if(profile.channel==="hiphop"){
+    const trap=profile.scene==="trap",west=profile.scene==="west-coast";
+    const lofi=profile.scene==="lofi";
+    voices.bass=trap?"dnb808":choice(["electricBass","uprightBass","dnbSub"]);
+    voices.chords=choice(lofi?["pianoSoft","pianoSoft","organ"]:
+      west?["organ","pianoBright","steelBright"]:
+      ["pianoSoft","concertPiano","organ"]);
+    voices.pad=lofi?"pianoSoft":choice(["organ","harmonium","pianoSoft"]);
+    voices.lead=choice(trap?["pianoSoft","organ","steelBright"]:
+      west?["organ","steelBright","electricGuitar"]:
+      ["pianoSoft","concertPiano","steelBright"]);
+    voices.arp=west?"steelBright":"pianoSoft";
+    voices.counter=choice(["organ","concertPiano","electricGuitar"]);
+  }else if(profile.channel==="pop"){
    voices.bass=choice(["electricBass","uprightBass"]);
    voices.chords=choice(["pianoBright","concertPiano","steelBright","electricGuitar"]);
    voices.pad=choice(["pianoSoft","harmonium","organ"]);
@@ -179,7 +193,7 @@ function planNext(expand=true){
    }
  }
  const seed=rngToken();
- const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode});
+ const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode,scene:profile.scene});
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,
      previous:sameChannel?(old.ecologyGenome||livingGenome):null}):undefined;
@@ -203,9 +217,20 @@ function planNext(expand=true){
  return expand?finishRadioForm(candidate):candidate;
 }
 function soundFor(piece,e){
-  if(piece.channel==="dnb"&&drums.includes(e.track)){
-    const recorded=dnbDrumSample(e.track,e.velocity,e.step,piece.seed);
+  if(piece.channel==="hiphop"&&drums.includes(e.track)){
+    const recorded=hiphopDrumSample(piece.scene,e.track,e.step,piece.seed);
     if(recorded)return recorded;
+  }
+  if(piece.channel==="dnb"&&drums.includes(e.track)){
+    // Jungle/roller/liquid use acoustic breaks; techstep and jump-up use hybrids.
+    const hybrid=piece.scene==="techstep"||piece.scene==="jump-up";
+    const electronic=hybrid&&(e.track==="kick"||
+      piece.scene==="techstep"&&e.track==="hat"||
+      piece.scene==="techstep"&&e.track==="snare"&&e.velocity>=.34);
+    if(!electronic){
+      const recorded=dnbDrumSample(e.track,e.velocity,e.step,piece.seed);
+      if(recorded)return recorded;
+    }
   }
   if(drums.includes(e.track)){
     const choices=DRUMS[e.track];
@@ -329,9 +354,8 @@ function playNote(piece,e,when,sectionLevel=1){
   const fade=Math.min(.075,noteLength*.35);
   const role=drums.includes(e.track)?.62:e.track==="bass"?.75:e.track==="pad"?.24:.42;
   // Keep the original loud/quiet contrast in source-recorded DnB velocity layers.
-  const acousticDnb=piece.channel==="dnb"&&
-    ["kick","snare","hat","openhat"].includes(e.track);
-  const level=acousticDnb?samplePeakGain(buffer):sampleGain(buffer);
+  const genreDrum=(piece.channel==="dnb"||piece.channel==="hiphop")&&drums.includes(e.track);
+   const level=genreDrum?samplePeakGain(buffer):sampleGain(buffer);
   const amp=Math.max(.0001,e.velocity*role*level*sectionLevel);
   envelope.gain.setValueAtTime(amp,when);
   envelope.gain.setValueAtTime(amp,when+Math.max(.001,noteLength-fade));

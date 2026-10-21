@@ -11,8 +11,8 @@ function random(seed){
  return ()=>{x=(x+0x6d2b79f5)>>>0;let z=x;z=Math.imul(z^(z>>>15),z|1);z^=z+Math.imul(z^(z>>>7),z|61);return((z^(z>>>14))>>>0)/4294967296;};
 }
 const choose=(r,list)=>list[Math.floor(r()*list.length)];
-export function planGenreHarmony({channel,seed,key,mode}){
- if(channel!=="pop"&&channel!=="dnb")return null;
+export function planGenreHarmony({channel,seed,key,mode,scene=""}){
+ if(!["pop","dnb","hiphop"].includes(channel))return null;
  const r=random(seed+"|genre-harmony"),diatonic=chordsInKey(key,mode);
  const pop=mode==="minor"?
   [[0,5,3,4],[0,3,5,4],[5,3,0,4],[0,5,6,3],[0,3,4,5]]:
@@ -20,10 +20,11 @@ export function planGenreHarmony({channel,seed,key,mode}){
  const dnb=mode==="minor"?
   [[0,5,3,4],[0,3,5,4],[0,6,5,3],[0,3,0,5],[0,5,0,3]]:
   [[5,3,0,4],[0,5,3,4],[0,3,5,4]];
- const degrees=choose(r,channel==="pop"?pop:dnb);
+ const hiphop=mode==="minor"?[[0,5,3,4],[0,3,0,5],[0,6,5,3],[0,3,5,3]]:[[0,5,3,4],[0,3,4,3],[0,4,5,3],[0,5,0,3]];
+ const degrees=choose(r,channel==="pop"?pop:channel==="hiphop"?hiphop:dnb);
  // Pop: a familiar four-bar cycle returning twice.
  // DnB: each harmony lasts two bars; bass can breathe at 170-176 BPM.
- return channel==="pop"?
+ return channel==="pop"||channel==="hiphop"?
    [...degrees,...degrees].map(d=>diatonic[d]):
    degrees.flatMap(d=>[diatonic[d],diatonic[d]]);
 }
@@ -134,11 +135,14 @@ function drumBassMusic(source,seed,role){
  const drop=["lift","reprise","return"].includes(role);
  const intro=role==="opening",breakdown=role==="breakdown";
  const liquid=source.scene==="liquid";
- const bassFigures=[[0,10],[0,7,10],[0,10,14],[0,6,10],[0,10,15]];
+ const bassFigures=source.scene==="jungle"?[[0,7,10],[0,10,14],[0,6,11]]:
+   source.scene==="techstep"?[[0,10],[0,9],[0,10,15]]:
+   source.scene==="jump-up"?[[0,6,10],[0,10,14],[0,7,10]]:
+   [[0,10],[0,7,10],[0,10,14],[0,6,10],[0,10,15]];
  const figure=choose(r,bassFigures);
  const leadShapes=[[0,2,3,1],[0,1,3,2],[0,3,2,4],[0,2,4,2]];
  const leadShape=choose(r,leadShapes);
- const leadSteps=liquid?[0,6,10,14]:[2,8,12];
+ const leadSteps=liquid?[0,6,10,14]:source.scene==="jungle"?[2,8,14]:[2,8,12];
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
    const bass=bassRoot(chord);
@@ -200,8 +204,81 @@ function drumBassMusic(source,seed,role){
  }
  return out.sort((a,b)=>a.step-b.step);
 }
+
+function hiphopMusic(source,seed,role){
+ const r=random(seed+"|hiphop-arrangement"),out=[];
+ const scene=source.scene||"boom-bap";
+ const trap=scene==="trap",west=scene==="west-coast";
+ const lofi=scene==="lofi",headnod=scene==="head-nod";
+ const lift=["lift","reprise","return"].includes(role);
+ const quiet=["opening","breakdown"].includes(role);
+ const answering=role==="answer";
+ const leadFigures=trap?[[2,10],[0,11],[6,14]]:
+   west?[[2,6,10,14],[0,7,11],[3,8,13]]:
+   lofi?[[0,9],[2,10,14],[0,7]]:
+   [[0,6,10],[2,8,14],[0,7,12],[3,10]];
+ const figure=choose(r,leadFigures);
+ // Seed independent rhythm displacement, motif register and bass pickups;
+ // a new chapter must not merely replay one of three canned phrases.
+ const motifOffset=choose(r,[-2,-1,0,1,2]);
+ const centreOffset=choose(r,[-7,-4,0,4,7]);
+ const bassPickup=choose(r,[-1,0,1]);
+ const motion=choose(r,[[0,2,1,-1],[0,-2,1,2],[1,0,-1,2],[0,1,3,1]]);
+ const bassSteps=trap?[0,7,11]:west?[0,3,7,11]:
+   lofi?[0,10]:headnod?[0,9,13]:[0,7,10,14];
+ const chordSteps=trap?[0]:west?[0,8]:lofi?[0]:[0,8];
+ for(let bar=0;bar<8;bar++){
+   const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
+   const root=bassRoot(chord),tones=voicedTriad(chord,lofi?66:west?72:68);
+   const bassPositions=quiet?bassSteps.slice(0,1):bassSteps;
+   for(let i=0;i<bassPositions.length;i++){
+     const pos=i===0?0:clamp(bassPositions[i]+bassPickup,1,15);
+     const nextPos=bassPositions[i+1]===undefined?16:
+       Math.max(pos+1,clamp(bassPositions[i+1]+bassPickup,1,16));
+     const walk=i===bassPositions.length-1&&bar%4===3;
+     const pitch=walk?bassRoot(next):root+(west&&i%2===1?7:0);
+     out.push(event("bass",bar,pos,clamp(pitch,33,52),
+       Math.max(1.5,Math.min(trap?7:lofi?8:5,nextPos-pos-.3)),
+       quiet?.45:trap?.8:west?.76:.64));
+   }
+   if(!quiet||bar%2===0){
+     for(const pos of chordSteps){
+       if(trap&&bar%2===1)continue;
+       for(const n of tones)out.push(event("chords",bar,pos,n,
+         Math.min(lofi?12:trap?8:west?3.5:6,16-pos),
+         quiet?.11:lofi?.18:trap?.12:.23));
+     }
+   }
+   if(lofi&&bar%2===0)for(const n of tones)
+     out.push(event("pad",bar,0,n,15,.095));
+   // Recognisable two-bar phrase with contrast between sparse verses and hooks.
+   if(!quiet||(!trap&&!lofi&&bar>=4)){
+     const phraseBar=bar%2,active=lift||!trap||bar%2===0;
+     if(active){
+       for(let i=0;i<figure.length;i++){
+         if(quiet&&i>0)continue;
+         if(!lift&&trap&&i>1)continue;
+         if(!lift&&lofi&&i>1)continue;
+         const pos=clamp(figure[i]+motifOffset,0,15);
+         const last=figure[i+1]===undefined?16:
+           Math.max(pos+1,clamp(figure[i+1]+motifOffset,0,16));
+         const shift=motion[(i+phraseBar)%motion.length]*(answering?-1:1);
+         const pitch=chordToneNear((west?73:lofi?68:71)+centreOffset+shift*2,chord,60,84);
+         out.push(event("lead",bar,pos,pitch,
+           Math.min(trap?3.5:lofi?6:4.5,Math.max(1,last-pos-.35)),
+           lift?.47:trap?.24:lofi?.25:.34));
+       }
+     }
+   }
+   if(west&&lift&&bar%2===1)for(const pos of [4,12]){
+     out.push(event("arp",bar,pos,chordToneNear(77,chord,68,86),1.7,.18));
+   }
+ }
+ return out.sort((a,b)=>a.step-b.step);
+}
 export function arrangeGenreMusic(source,channel,seed,role){
  if(channel==="pop")return popMusic(source,seed,role);
+ if(channel==="hiphop")return hiphopMusic(source,seed,role);
  if(channel==="dnb")return drumBassMusic(source,seed,role);
  return source.events;
 }

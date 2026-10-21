@@ -13,6 +13,12 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
+## Human Radio
+
+Human Radio now evolves through four musical scenes covering ambient, downtempo, breakbeat and house. It varies tempo, density and swing in coherent ranges and compares five prospective arrangements against the preceding eight pieces before preloading the best candidate. A song develops over its repeated loops through instrument entrances, fullness and short breakdowns. Musical transitions use bar-length crossfades and carry a brief pad bridge; some drum motifs and instruments are retained across related-key changes.
+
+Playback resumes at the actual paused musical position. Scheduler events are indexed by step and decoded recordings are pruned from the cache as the session progresses. No generated-oscillator audio is used.
+
 ## Sample bank and playback
 
 Current built-in samples are **all mirrored at build time** into the site's own compressed MP3 assets, using pinned upstream recordings. The Pages build creates sample-map.js and sample-mirror-report.json, and fails if any declared recording cannot be mirrored. The last verified deployment before this engine update contained 2,605 distinct recorded samples; use the latest build report for the current count. Browsers download only the selected song's required sounds, not the full library.

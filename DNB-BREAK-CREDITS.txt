@@ -18,5 +18,7 @@ velocity/round-robin strikes encoded as AAC-LC (.m4a).
 re-encodes them as 44.1 kHz, 96 kbps MP3. Visitors receive same-origin MP3s
 via sample-map.js and Web Audio; .m4a is never directly used for playback.
 
-The kit contains individually performed kick, snare, soft ghost-snare,
-closed and open hi-hat strikes. No copyrighted breakbeat loops are copied.
+The kit contains 60 distinct individually performed strikes: 16 kicks,
+12 main snares, four quiet snare ghost takes, 16 closed hi-hats and
+12 open hi-hats, across MIDI velocity layers 0–31 / 32–63 / 64–95 /
+96–127 (main snares exclude 0–31; those are used as ghosts). No copyrighted breakbeat loops are copied.

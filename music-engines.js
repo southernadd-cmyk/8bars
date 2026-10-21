@@ -253,7 +253,7 @@ function ecology(c,input){
  const genome={...planned,path};
  const phase=genome.motif.phase;
  const variant=(input.variations?.lead||0)%4;
- const kind=["statement","answer","lift","return"][variant];
+ const kind=["statement","answer","lift","reprise"][variant];
  let leadPrev=null;
  for(let bar=0;bar<8;bar++){
    const chord=path[bar],harmonic=triad(bar);

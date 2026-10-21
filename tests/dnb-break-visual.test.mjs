@@ -124,7 +124,7 @@ test("Ghost notes alternate within the same half-bar, and songs vary with equal-
    const seed="same-length-"+String(i).padStart(4,"0");
    selections.add(dnbDrumSample("snare",.2,11,seed).url);
  }
- assert.equal(selections.size,2,"Actual seed characters should vary the chosen hit");
+ assert.equal(selections.size,4,"All four soft ghost takes should be reachable from different seeds");
 });
 
 test("Cello's liquid lead melody is voiced near its C5 sample ceiling",()=>{

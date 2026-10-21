@@ -113,24 +113,22 @@ function popMusic(source,seed,role){
  const chorus=["lift","reprise","return"].includes(role);
  const intro=role==="opening",bridge=role==="breakdown",answer=role==="answer";
  const roots=source.progression;
- const patterns=[
-   {steps:[0,3,6,10,13],contour:[0,2,1,4,2]},
-   {steps:[0,4,7,10,12,14],contour:[0,1,3,2,4,2]},
-   {steps:[2,5,8,11,14],contour:[0,3,2,1,4]},
-   {steps:[0,3,7,9,12,14],contour:[0,2,4,3,1,2]},
-   {steps:[0,2,6,10,13,15],contour:[0,1,3,1,4,2]}
- ];
- const hook=choose(r,patterns);
- const baseDegree=Math.floor(r()*3),shift=choose(r,[-2,-1,0,0,1,2]);
- const chordBeats=choose(r,[[0,8],[0,4,8,12],[0,8,12],[2,10]]);
+ // Song-level hook identity: 3–7 notes, chosen rhythmic subdivisions,
+ // independently shaped pitch motion and register. Reprises use this same hook.
+ const hook=phraseBlueprint(r,3,7,{firstOnBeat:source.scene!=="indie"});
+ const shift=choose(r,[-5,-3,-1,0,2,4,6]);
+ const chordBeats=choose(r,[[0,8],[0,4,8,12],[0,8,12],[2,10],[0,6,12],[0,12],[0,4,10]]);
+ const verseBass=choose(r,[[0,7,10],[0,8,13],[0,6,10,14],[0,9,12]]);
+ const chorusBass=choose(r,[[0,4,8,10,12],[0,3,7,10,13],[0,4,7,11,14],[0,5,8,11,14],[0,4,8,12,15]]);
+ const bassAccent=choose(r,[0,5,7,12]);
  for(let bar=0;bar<8;bar++){
    const chord=roots[bar],next=roots[Math.min(7,bar+1)];
    // Pop bass changes with the chords, retaining a singable, bouncy motif.
    const bass=bassRoot(chord);
-   const bassBeats=chorus?[0,4,8,10,12]:bridge?[0,8]:[0,7,10,14];
+   const bassBeats=chorus?chorusBass:bridge?[0,8]:verseBass;
    for(let i=0;i<bassBeats.length;i++){
      const step=bassBeats[i];
-     const fifth=(i===bassBeats.length-2&&r()<.76)?7:0;
+     const fifth=i>0&&i===bassBeats.length-2&&r()<.62?bassAccent:0;
      const target=i===bassBeats.length-1&&bar%4===3?
        bassRoot(next):bass+fifth;
      out.push(event("bass",bar,step,clamp(target,33,55),
@@ -156,22 +154,18 @@ function popMusic(source,seed,role){
    // during verses. Contour is rooted on the current chord, not rolled per note.
    if(!intro||bar>=2){
      const phraseAnswer=!chorus&&(bar%4>=2||answer);
-     const beats=hook.steps;
-     const centre=chordToneNear(71+shift*2,chord,64,84);
+     const beats=hook.rhythm;
+     const centre=71+shift+hook.centre;
      for(let i=0;i<beats.length;i++){
        if(bridge&&i%2===1)continue;
        const pos=beats[i];
-       const contour=hook.contour[i%hook.contour.length];
-       const motion=phraseAnswer?(i%2?-1:1)*(contour-baseDegree):contour-baseDegree;
-       let pitch=chordToneNear(centre+motion*2,chord,64,89);
-       if(i!==0&&pos%4!==0&&r()<.3){
-         // Small diatonic neighbour on an unaccented passing note.
-         const neighbour=pitch+(r()<.5?-2:2);
-         if(neighbour>=64&&neighbour<=89)pitch=neighbour;
-       }
-       if(bar===7&&i===beats.length-1)pitch=chordToneNear(centre,chord,64,89);
+       const contour=hook.contour[i];
+       const motion=phraseAnswer?-contour:contour;
+       let pitch=phrasePitch(source,chord,centre+motion*3,pos,r,62,89);
+       if(bar===7&&i===beats.length-1)pitch=chordToneNear(centre,chord,62,89);
        const nextPos=beats[i+1]??16;
-       out.push(event("lead",bar,pos,pitch,Math.min(5.5,Math.max(1,nextPos-pos-.25)),
+       out.push(event("lead",bar,pos,pitch,
+         Math.min(6,Math.max(.75,(nextPos-pos-.2)*hook.articulation)),
          chorus?.76:bridge?.38:.59));
      }
    }

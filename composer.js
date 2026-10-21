@@ -1,5 +1,6 @@
 // 8bars v0.5 — deterministic symbolic composer; no audio/DOM dependencies.
 import {planCadence,voiceLedPitch,counterpointPitch} from "./theory.js";
+import {normalizeHarmonyOverrides,chordFromSymbol} from "./harmony.js";
 export const ENGINE_VERSION="0.5.3";
 export const GOLDEN=(1+Math.sqrt(5))/2;
 export const TRACKS=[
@@ -32,6 +33,8 @@ export function compose(input={}){
  const bpm=clamp(Number(input.bpm)||96,60,170);
  const swing=clamp(Number(input.swing??0)||0,0,.65);
  const variants=input.variations||{};
+ const harmonyOverrides=normalizeHarmonyOverrides(input.harmonyOverrides);
+ const hasEditedHarmony=harmonyOverrides.some(Boolean);
  const stream=id=>rng(seed,id,Math.trunc(Number(variants[id])||0));
  const scale=SCALE[mode],tonic=ROOTS[key],rForm=stream("form");
 
@@ -59,8 +62,11 @@ export function compose(input={}){
    if(rForm()<(deg===4&&bar===6?.65:.28))notes.push(diatonic(deg+6));
    return {bar:bar+1,degree:deg,notes};
  });
+ for(let bar=0;bar<8;bar++)if(harmonyOverrides[bar])
+   progression[bar]=chordFromSymbol(harmonyOverrides[bar],bar+1);
+ const cadenceName=harmonyOverrides[6]||harmonyOverrides[7]?"custom":cadential.name;
  const identity={
-  cadence:cadential.name,
+  cadence:cadenceName,
   groove:choose(rForm,style==="house"?["straight","disco","two-step","syncopated"]:style==="breakbeat"?["broken","syncopated","jungle","half-time"]:style==="ambient"?["soft","floating","half-time","minimal"]:["laidback","half-time","broken","syncopated"]),
   harmonyRhythm,
   form:choose(rForm,["crescendo","call-response","waves","breakdown","suspension"]),
@@ -273,12 +279,22 @@ export function compose(input={}){
        pitch=chordTones.reduce((best,n)=>Math.abs(n-pitch)<Math.abs(best-pitch)?n:best,chordTones[0]);
      }
      const closing=b===7&&j===positions.length-1;
-     const fitted=voiceLedPitch({
+     let fitted=voiceLedPitch({
        target:pitch,chord:chord.notes.map(n=>n+24+(raised?12:0)),
        scale,tonic,previous:previousLead,previousLeap:previousLeadLeap,
-       strong:pos%4===0||closing,final:closing,cadence:cadential.name,
+       strong:pos%4===0||closing,final:closing,cadence:cadenceName,
        avoidPitchClasses:mode==="minor"&&chord.degree===4?[(tonic+10)%12]:[]
      });
+     // An edited final chord must resolve to one of *its* real chord tones,
+     // not the original automatically planned tonic.
+     if(closing&&harmonyOverrides[7]){
+       const candidates=chord.notes.slice(0,3).flatMap(n=>[-12,0,12,24,36].map(o=>n+o))
+         .filter(n=>n>=62&&n<=101);
+       if(candidates.length)fitted=candidates.reduce((best,n)=>{
+         const score=x=>Math.abs(x-pitch)+(previousLead===null?0:Math.abs(x-previousLead)*.4);
+         return score(n)<score(best)?n:best;
+       },candidates[0]);
+     }
      previousLeadLeap=previousLead===null?0:fitted-previousLead;
      previousLead=fitted;
      const next=positions[j+1]??16;
@@ -311,7 +327,7 @@ export function compose(input={}){
    if(b!==0&&b!==5&&rPad()>.4*energy[b])continue;
    if(style==="breakbeat"&&rPad()<.24)continue;
    const notes=progression[b].notes;
-   for(const n of notes)add("pad",b*16,style==="ambient"?30:b===4?16:Math.min(24,128-b*16),
+   for(const n of notes)add("pad",b*16,hasEditedHarmony?16:style==="ambient"?30:b===4?16:Math.min(24,128-b*16),
      style==="ambient"?.22:.14,n+12);
  }
  // Keep sparse forms sparse, but never produce a completely absent mixer channel.
@@ -320,12 +336,13 @@ export function compose(input={}){
    add(t.id,0,Math.min(4,128),t.type==="drum"?.36:.23,note);
  }
  events.sort((a,b)=>a.step-b.step||TRACKS.findIndex(t=>t.id===a.track)-TRACKS.findIndex(t=>t.id===b.track));
- return {version:ENGINE_VERSION,seed,bpm,density,swing,style,key,mode,variations:Object.fromEntries(TRACKS.map(t=>[t.id,Math.trunc(Number(variants[t.id])||0)])),bars:8,stepsPerBar:16,goldenStep:80,progression,motif,identity,events,
+ return {version:ENGINE_VERSION,seed,bpm,density,swing,style,key,mode,variations:Object.fromEntries(TRACKS.map(t=>[t.id,Math.trunc(Number(variants[t.id])||0)])),bars:8,stepsPerBar:16,goldenStep:80,progression,harmonyOverrides,motif,identity,events,
  structure:[{bars:"1–3",role:"Statement"},{bars:"4–5",role:"Answer"},{bars:"6–7",role:"Golden turn"},{bars:"8",role:"Return"}],
  explanation:[
   "Eight-bar "+identity.form+" form, with 5 + 3 phrasing and a sixth-bar turn.",
   "Individual tracks retain independent seeds; the countermelody uses contrary motion and consonant harmonic intervals.",
-  "Harmonic function: "+cadential.description+" cadence, with varied chord-change rhythms and inversion choices.",
+  hasEditedHarmony?"Custom chord progression: pitched parts rebuilt from the edited harmony.":
+    "Harmonic function: "+cadential.description+" cadence, with varied chord-change rhythms and inversion choices.",
   "The "+identity.groove+" groove uses interlocking Euclidean "+pulsePlan.bass+"/"+pulsePlan.chords+"/"+pulsePlan.melody+"/"+pulsePlan.arp+" pulses, with phase shifts after bar five.",
   "Melodic voice leading favours chord tones at accented notes, stepwise motion and recovery after leaps.",
   "The "+identity.turn+" treatment shapes the golden turn at bar six; the final bar prepares the return."

@@ -5,7 +5,7 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 ## Current features
 
 - Six percussion tracks (kick, snare, clap, closed hat, open hat, auxiliary percussion) and six pitched tracks (bass, chords, arpeggio, lead, countermelody, pad).
-- Four styles: downtempo, house, breakbeat, ambient. Twelve keys, major/minor, tempo, density, swing and independently seeded channel variation.
+- **Genre → Subgenre** controls in the generator: Pop (Bright, Indie), Hip-hop (Boom-bap, Head-nod, Lo-fi, West Coast, Trap), Drum & Bass (Roller, Liquid, Jungle, Techstep, Jump-up) and Electronic (Downtempo, House, Breakbeat, Ambient). Twelve keys, major/minor, tempo, density, swing and independent channel regeneration remain available.
 - Five functional cadence types, inversion-aware chord voicing, Euclidean rhythm, motif transformations, contramotion and a sixth-bar golden-section turn.
 - Euclidean rotation is normalised. Bass events stay in MIDI register 28–52. Notes cannot extend beyond step 128. On minor dominant chords, the melody avoids the natural seventh against the raised leading tone.
 - The **New song** button changes the seed and sound choices; each channel's ↻ regenerates only that channel. Mute, solo, level and instrument selection are per channel.
@@ -67,7 +67,7 @@ Preload the *next* section's actual recordings while the current one plays; if t
 
 8bars offers five composition modes. **Original** preserves the existing eight-bar rule engine. The four new independently implemented systems are **Pattern** (fixed groove families, bass hooks, rhythmic repetition), **Melodic** (two-bar question-and-answer phrases and controlled melodic motion), **Ambient** (sustained harmonic textures, sparse notes and deliberate silence), and **Process** (phase-shifting Euclidean pulses, melodic random walks and gradual change). These systems generate their own symbolic note events rather than filtering or simply re-voicing the original song.
 
-The regular editor exposes the Composition selector; the choice survives share URLs and JSON/MIDI/WAV outputs. Human Radio selects among the four new systems according to scene, retains a composition method across linked sections, scores novelty, and avoids imposing a carried drum groove when a new ambient passage begins. All methods play exclusively with the existing genuine recorded instrument samples.
+The regular editor now exposes **Genre** and **Subgenre**, rather than Composition and Style. Each subgenre chooses musical methods, tempo and characteristic recorded instruments, along with genre-specific harmony and drum patterns. An automatic kit uses the pinned acoustic Drum & Bass breaks or specialised CC0 hip-hop samples where appropriate; users can still choose any individual recording, adjust settings and regenerate individual tracks. These choices survive share links and exports. Technical `engine` and `style` URL parameters remain readable so old saved links work. The original composition engines remain inside the generator rather than being removed. Human Radio also continues selecting these systems by scene, retaining a method across linked sections and scoring musical novelty. All methods play exclusively recorded samples.
 
 ## Experimental engine: Musical ecology
 

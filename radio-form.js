@@ -20,11 +20,11 @@ const SECTION_VARIATIONS={
 };
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(n,hi));
 
-function harmonyVariation(base,role){
+function harmonyVariation(base,role,channel){
  const chords=base.progression;
  // A genre-specific song keeps its recognizable cycle across verse, chorus
  // and drop, rather than receiving unrelated substitutions every section.
- if(["pop","dnb"].includes(base.radioChannel))
+ if(["pop","dnb"].includes(channel))
    return chords.map(chord=>chordSymbol({...chord,notes:chord.notes.slice(0,3)}));
  const overrides=base.ecologyGenome?base.ecologyGenome.harmonyOverrides.slice():Array(8).fill(null);
  const triad=index=>chordSymbol({...chords[index],notes:chords[index].notes.slice(0,3)});
@@ -44,13 +44,12 @@ export function buildRadioForm(config,first,composeFn){
  if(typeof composeFn!=="function"||!first?.progression||first.progression.length!==8)
    throw new TypeError("A source composition and composer function are required");
  const count=clamp(Math.round(config.targetLoops||6),5,7);
- first.radioChannel=config.channel;
  return RADIO_FORMS[count].map((role,index)=>{
    const composition=index===0?first:composeFn({
      seed:config.seed,key:config.key,mode:config.mode,style:config.style,engine:config.engine,
      bpm:config.bpm,density:config.density,swing:config.swing,
      variations:SECTION_VARIATIONS[role],
-     harmonyOverrides:harmonyVariation(first,role),
+     harmonyOverrides:harmonyVariation(first,role,config.channel),
      ecologyGenome:config.ecologyGenome
    });
    const events=composition.events;

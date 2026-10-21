@@ -13,10 +13,10 @@ const quant=(value,step)=>Math.round(value/step)*step;
 // Each station scene favours compatible ways of composing while keeping the
 // engine independent of the sample/genre choices.
 const SCENE_ENGINES={
- drift:["ambient","ambient","process","melodic"],
- headnod:["melodic","pattern","melodic","process"],
- motion:["pattern","pattern","process","melodic"],
- afterhours:["ambient","process","melodic","pattern"]
+ drift:["ambient","ambient","process","melodic","ecology"],
+ headnod:["melodic","pattern","melodic","process","ecology","ecology"],
+ motion:["pattern","pattern","process","melodic","ecology"],
+ afterhours:["ambient","process","melodic","pattern","ecology","ecology"]
 };
 
 export function chooseRadioProfile(previous=null,random=Math.random){

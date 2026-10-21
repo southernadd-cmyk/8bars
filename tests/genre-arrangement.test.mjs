@@ -73,15 +73,20 @@ test("DnB bass does not attack on snare backbeats and leaves harmonic space",()=
  const a=song("dnb");
  const lift=section(a,"lift");
  const bass=tracks(lift,"bass"),chords=tracks(lift,"chords");
- assert.ok(bass.length>=16&&bass.length<=32);
+ const mainBass=bass.filter(e=>!e.sampleVoice);
+ const subBass=bass.filter(e=>e.sampleVoice==="dnbSub");
+ assert.ok(mainBass.length>=16&&mainBass.length<=32);
+ assert.ok(subBass.length>=8);
  assert.ok(bass.every(e=>![4,12].includes(e.step%16)));
- assert.ok(bass.every(e=>e.note>=33&&e.note<=52&&e.duration>=1.5));
+ assert.ok(mainBass.every(e=>e.note>=33&&e.note<=52&&e.duration>=1.5));
+ assert.ok(subBass.every(e=>e.note>=21&&e.note<=40&&e.duration>=1.5&&e.velocity<=.27));
+ assert.ok(subBass.every(e=>mainBass.some(m=>m.step===e.step&&m.note===e.note+12)));
  assert.ok(chords.length<80);
  assert.ok(tracks(lift,"lead").length<35);
  assert.ok(tracks(lift,"hat").length>=48);
  const opening=section(a,"opening");
  assert.ok(tracks(opening,"lead").length===0);
- assert.ok(tracks(opening,"bass").length<=8);
+ assert.ok(tracks(opening,"bass").filter(e=>!e.sampleVoice).length<=8);
 });
 test("Genre arrangements are deterministic, bounded and preserve all event types",()=>{
  for(const channel of ["pop","dnb"]){

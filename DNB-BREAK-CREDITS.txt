@@ -1,0 +1,22 @@
+Drum & Bass acoustic kit — source and licence
+
+PRIMARY RECORDING
+Virtuosity Drums — Versilian Studios LLC and Karoryfer Samples
+Performed by Austin McMahon on an acoustic kit in Boston, MA.
+Original publisher: https://versilian-studios.com/virtuosity-drums/
+Original source: https://github.com/sfzinstruments/virtuosity_drums
+Original licence (CC0 1.0 Universal):
+https://github.com/sfzinstruments/virtuosity_drums/blob/9f04cf9a734527edfbb0a4eee1f674e45bbf71bc/LICENSE
+
+WEB DELIVERY ADAPTATION
+Keyboardia — https://github.com/adewale/keyboardia
+Pinned source commit: 869d3f5095084003e1251aa3ebf2eab8f65f62fe
+Uses the Virtuosity Drums mid-microphone recordings and provides selected
+velocity/round-robin strikes encoded as AAC-LC (.m4a).
+
+8bars mirrors the upstream AAC-LC files during the GitHub Pages build and
+re-encodes them as 44.1 kHz, 96 kbps MP3. Visitors receive same-origin MP3s
+via sample-map.js and Web Audio; .m4a is never directly used for playback.
+
+The kit contains individually performed kick, snare, soft ghost-snare,
+closed and open hi-hat strikes. No copyrighted breakbeat loops are copied.

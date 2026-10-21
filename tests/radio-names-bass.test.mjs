@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {parseRadioDictionary,radioNameForSeed} from "../radio-names.js";
+import {parseRadioDictionary,radioTitleForSeed,radioNameForSeed} from "../radio-names.js";
 import {ELECTRONIC_BASS_NAMES,ELECTRONIC_BASS_VOICES} from "../electronic-bass.js";
 import {VOICES,VOICE_NAMES} from "../sounds.js";
 import {composeWithEngine} from "../music-engines.js";
@@ -20,34 +20,35 @@ test("Local dictionary is clean, substantial, alphabetic and contains example wo
  assert.ok(words.every(x=>/^[a-z]{3,14}$/.test(x)));
  assert.equal(new Set(words).size,words.length);
 });
-test("Artist and title each have 1–3 capitalised dictionary words, with distinct words",()=>{
+test("Track titles have 1–3 capitalised dictionary words, with distinct words",()=>{
  const words=parseRadioDictionary(dictionary),set=new Set(words);
  const signatures=new Set(),counts=new Set();
  for(let i=0;i<300;i++){
    const seed="song-"+i;
-   const name=radioNameForSeed(seed,words);
-   assert.deepEqual(name,radioNameForSeed(seed,words));
-   const artist=name.artist.split(" "),title=name.title.split(" ");
-   counts.add(artist.length);counts.add(title.length);
-   assert.ok(artist.length>=1&&artist.length<=3);
-   assert.ok(title.length>=1&&title.length<=3);
-   assert.ok([...artist,...title].every(x=>set.has(x.toLowerCase())&&/^[A-Z][a-z]+$/.test(x)));
-   assert.equal(new Set([...artist,...title]).size,artist.length+title.length);
-   signatures.add(name.artist+" — "+name.title);
+   const title=radioTitleForSeed(seed,words);
+   assert.equal(title,radioTitleForSeed(seed,words));
+   assert.deepEqual(radioNameForSeed(seed,words),{title});
+   const parts=title.split(" ");
+   counts.add(parts.length);
+   assert.ok(parts.length>=1&&parts.length<=3);
+   assert.ok(parts.every(x=>set.has(x.toLowerCase())&&/^[A-Z][a-z]+$/.test(x)));
+   assert.equal(new Set(parts).size,parts.length);
+   signatures.add(title);
  }
  assert.deepEqual(counts,new Set([1,2,3]));
- assert.ok(signatures.size>=295);
+ assert.ok(signatures.size>=280);
 });
-test("Radio shows names instead of technical composition metadata and removes section line/capsules",()=>{
- assert.match(page,/id="artist"/);
+test("Radio displays only the track title, not an artist or technical metadata",()=>{
+ assert.doesNotMatch(page,/id="artist"/);
  assert.match(page,/id="track"/);
  assert.doesNotMatch(page,/id="phase"/);
  assert.doesNotMatch(page,/class="pill"/);
  assert.doesNotMatch(page,/class="meta"/);
  assert.match(radio,/function showSongIdentity\(piece\)/);
- assert.match(radio,/radioNameForSeed\(seed,radioWords\)/);
+ assert.match(radio,/radioTitleForSeed\(seed,radioWords\)/);
  assert.match(radio,/fetch\("\.\/radio-words\.txt\?v=1"\)/);
  assert.match(radio,/showSongIdentity\(current\)/);
+ assert.doesNotMatch(radio,/\$\("artist"\)/);
  assert.doesNotMatch(radio,/\$\("phase"\)/);
  assert.doesNotMatch(radio,/\$\("track"\)\.textContent=current\.key/);
 });

@@ -1,4 +1,4 @@
-import {compose,TRACKS,STYLES} from "./composer.js?v=0.5.3";
+import {TRACKS} from "./composer.js?v=0.5.3";
 import {composeWithEngine} from "./music-engines.js";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
@@ -7,7 +7,6 @@ import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
 
 const $=id=>document.getElementById(id);
-const pitchNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const roles=["bass","chords","arp","lead","counter","pad"];
 const drums=TRACKS.filter(x=>x.type==="drum").map(x=>x.id);
 const sampleCache=new Map();
@@ -96,7 +95,8 @@ function planNext(expand=true){
  const keep=old?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
  ]):[];
- if(old&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
+ if(old&&profile.engine!=="ambient"&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
+ if(profile.engine==="ambient")keep.length=0;
  for(const id of keep)drumSounds[id]=old.drumSounds[id];
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
    .concat(oldPercussion.filter(e=>keep.includes(e.track)));
@@ -293,7 +293,7 @@ function switchPiece(at){
       if(displayedSection!==loops){
         displayedSection=loops;
         const part=current.sections[loops];
-        $("phase").textContent=current.sceneName+" · "+part.name+" ("+(loops+1)+"/"+targetLoops+")";
+        $("phase").textContent=current.sceneName+" · "+current.engine+" · "+part.name+" ("+(loops+1)+"/"+targetLoops+")";
         if(loops>0)pruneSampleCache();
         void warmNextSection(current);
       }

@@ -98,9 +98,10 @@ test("Browser interfaces connect audio-safe engines, sharing and downloaded outp
  const app=readFileSync(new URL("../app.js",import.meta.url),"utf8");
  const page=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const radio=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
- assert.match(page,/id="engine"/);
- for(const id of ENGINE_IDS)assert.match(page,new RegExp('value="'+id+'"'));
- assert.match(app,/composition=composeWithEngine\(/);
+ assert.match(page,/id="genre"/);
+ assert.match(page,/id="subgenre"/);
+ assert.doesNotMatch(page,/id="engine"|id="style"/);
+ assert.match(app,/composition=composeGenreSong\(/);
  assert.match(app,/ENGINE_IDS\.includes\(p\.get\("engine"\)\)/);
  assert.match(app,/q\.set\(id,state\[id\]\)/);
  assert.match(radio,/const piece=composeWithEngine\(/);

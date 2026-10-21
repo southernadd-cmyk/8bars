@@ -141,6 +141,7 @@ function drumBassMusic(source,seed,role){
  const leadHook=phraseBlueprint(r,liquid?3:2,liquid?4:3,
    {sparse:source.scene==="techstep",firstOnBeat:liquid});
  const leadCentre=choose(r,[-6,-3,0,3,6]);
+ let previousVoicing=null;
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
    const bass=bassRoot(chord);
@@ -173,7 +174,8 @@ function drumBassMusic(source,seed,role){
    }
    // Chords don't fire as 16th-note EDM arpeggios: restrained stabs/long
    // liquid pads leave room for bass and the break.
-   const tones=voicedTriad(chord,liquid?70:64);
+   const tones=smoothVoicing(chord,liquid?70:64,previousVoicing);
+   previousVoicing=tones;
    if(bar%2===0||drop&&bar%2===1){
      const pos=drop&&!liquid?2:0;
      for(const tone of tones){
@@ -188,17 +190,20 @@ function drumBassMusic(source,seed,role){
    // DnB must not sound like a randomly busy lead synth over a break.
    // The drop hook is sparse; liquid builds longer, lyrical phrases.
    if((drop||liquid&&!intro)&&!breakdown){
-     const steps=drop?leadHook.rhythm:
-       bar%2===0?leadHook.rhythm.slice(0,2):leadHook.rhythm.slice(-2);
+     const phrase=developPhrase(leadHook,bar);
+     const steps=drop?phrase.rhythm:
+       bar%2===0?phrase.rhythm.slice(0,2):phrase.rhythm.slice(-2);
      for(let i=0;i<steps.length;i++){
        if(!liquid&&!drop&&i>0)continue;
-       const pos=steps[i],motion=leadHook.contour[i%leadHook.contour.length];
+       const pos=steps[i],motion=phrase.contour[i%phrase.contour.length];
        // Cello recordings have a lower melodic register than violin/keys.
        const celloLead=liquid&&source.leadVoice==="cello";
        const low=celloLead?55:66,high=celloLead?74:90;
-       const target=phrasePitch(source,chord,
+       let target=phrasePitch(source,chord,
          (celloLead?65:74)+leadCentre+leadHook.centre+motion*3,
          pos,r,low,high);
+       if(phrase.cadence&&i===steps.length-1)
+         target=chordToneNear((celloLead?65:74)+leadCentre,chord,low,high);
        out.push(event("lead",bar,pos,target,Math.min(liquid?7:4,16-pos),
          liquid?.31:.39));
      }

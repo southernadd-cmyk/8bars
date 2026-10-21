@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=1">
 <meta name="description" content="8bars — deterministic rule-based music composition with a sample library and multitrack mixer.">
 <title>8bars — music composer</title>
-<link rel="stylesheet" href="./style.css?v=0.4.5">
+<link rel="stylesheet" href="./style.css?v=0.4.6">
 </head>
 <body>
 <div class="shell">
@@ -42,7 +42,10 @@
  <div class="scoreViewport"><div id="barLabels" class="barLabels"></div><div id="grid" class="grid"></div></div>
  <p class="under-score">The highlighted sixth bar marks the golden-section change. Scroll sideways to see later bars on smaller screens.</p>
 </section>
-<section class="harmony-section"><div class="section-head"><h2>Harmony</h2></div><div id="harmony" class="harmony"></div></section>
+<section class="harmony-section" aria-label="Chord progression">
+ <div class="section-head"><div><h2>Harmony</h2><p>Change any chord to rebuild the pitched parts around it. Changing key or mode starts a new progression.</p></div><button type="button" class="harmony-reset" id="resetHarmony" disabled>Reset chords</button></div>
+ <div id="harmony" class="harmony"></div>
+</section>
 <details class="rules"><summary>How the composition is generated</summary><div id="explanation"></div></details>
 </main>
 <footer>
@@ -76,5 +79,5 @@
   <div class="library-title"><h3>Imported audio</h3><button type="button" id="exportSampleCredits">Download credits</button></div><div id="libraryItems" class="library-items"><p>No samples imported yet.</p></div>
  </div>
 </dialog>
-<script type="module" src="./app.js?v=0.7.6"></script>
+<script type="module" src="./app.js?v=0.7.7"></script>
 </body></html>

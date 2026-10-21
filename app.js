@@ -1,6 +1,7 @@
 import {sampleGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
-import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.3";
+import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.4";
+import {ALL_CHORDS,chordsInKey,chordSymbol,readHarmonyParam,normalizeHarmonyOverrides} from "./harmony.js";
 import {restoreVolumes} from "./settings.js";
 import {searchCommonsAudio} from "./commons-audio.js";
 import {createTransport} from "./transport.js";
@@ -18,6 +19,7 @@ const MAX_LIBRARY_IMPORT=25*1024*1024;
 const state={
   seed:"618033",bpm:96,density:65,swing:12,key:"A",mode:"minor",style:"downtempo",
   variations:Object.fromEntries(TRACKS.map(t=>[t.id,0])),
+  harmonyOverrides:normalizeHarmonyOverrides(null),
   voices:{...DEFAULT_VOICES},drumSounds:Object.fromEntries(TRACKS.filter(t=>t.type==="drum").map(t=>[t.id,0])),
   volumes:Object.fromEntries(TRACKS.map(t=>[t.id,t.id==="pad"?.5:t.id==="counter"?.65:.85])),
   muted:new Set(),solo:new Set()
@@ -39,6 +41,7 @@ function loadLink(){
  if(["major","minor"].includes(p.get("mode")))state.mode=p.get("mode");
  if(STYLES.includes(p.get("style")))state.style=p.get("style");
  if(["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].includes(p.get("key")))state.key=p.get("key");
+ state.harmonyOverrides=readHarmonyParam(p.get("harmony"));
  const v=(p.get("variations")||"").split(",");
  TRACKS.forEach((t,i)=>state.variations[t.id]=savedNum(v[i],0,0,99999));
  const inst=(p.get("voices")||"").split(",");
@@ -53,6 +56,7 @@ function permalink(){
  const u=new URL(location.href),q=new URLSearchParams();
  for(const id of ["seed","bpm","density","swing","key","mode","style"])q.set(id,state[id]);
  q.set("variations",TRACKS.map(t=>state.variations[t.id]).join(","));
+ if(state.harmonyOverrides.some(Boolean))q.set("harmony",state.harmonyOverrides.map(chord=>chord||"").join(","));
  q.set("voices",tones.map(id=>state.voices[id]).join(","));
  q.set("drums",TRACKS.filter(t=>t.type==="drum").map(t=>state.drumSounds[t.id]).join(","));
  q.set("volumes",TRACKS.map(t=>state.volumes[t.id].toFixed(2)).join(","));
@@ -188,17 +192,37 @@ function paint(){
  for(const item of composition.explanation)ol.append(el("li",null,item));
  description.append(ol);
  const harmony=$("harmony");harmony.replaceChildren();
+ const recommended=chordsInKey(state.key,state.mode);
+ const inKey=new Set(recommended);
  for(const chord of composition.progression){
-   const cell=el("div","chord");
-   cell.append(el("span",null,String(chord.bar)),el("strong",null,chordName(chord)));
+   const index=chord.bar-1;
+   const edited=state.harmonyOverrides[index];
+   const cell=el("div","chord"+(edited?" chord-edited":""));
+   cell.append(el("span","chord-bar","Bar "+chord.bar),el("strong","chord-name",chordSymbol(chord)));
+   const picker=el("select","chord-picker");
+   picker.setAttribute("aria-label","Chord for bar "+chord.bar);
+   picker.title="Change the chord in bar "+chord.bar;
+   picker.append(new Option("As generated",""));
+   const suggested=el("optgroup");suggested.label="In "+state.key+" "+state.mode;
+   for(const name of recommended)suggested.append(new Option(name,name));
+   picker.append(suggested);
+   const other=el("optgroup");other.label="Other chords";
+   for(const name of ALL_CHORDS)if(!inKey.has(name))other.append(new Option(name,name));
+   picker.append(other);
+   picker.value=edited||"";
+   picker.addEventListener("change",()=>{
+     state.harmonyOverrides[index]=picker.value||null;
+     const name=picker.value;
+     rerender();
+     if(audio)void loadSamples().catch(error=>say("Recording loading failed: "+error.message));
+     say(name?"Bar "+chord.bar+" changed to "+name+". Pitched parts rebuilt.":"Bar "+chord.bar+" restored to generated harmony.");
+   });
+   cell.append(picker);
    harmony.append(cell);
  }
+ $("resetHarmony").disabled=!state.harmonyOverrides.some(Boolean);
 }
-function chordName(chord){
- const root=chord.notes[0]%12;
- const names=["C","C♯","D","E♭","E","F","F♯","G","A♭","A","B♭","B"];
- return names[root]+(chord.notes[1]-chord.notes[0]===3?"m":"");
-}
+
 async function audioStart(){
  if(!audio){
    audio=new (window.AudioContext||window.webkitAudioContext)();
@@ -680,7 +704,10 @@ function wireLibrary(){
 function wire(){
  for(const id of ["seed","bpm","density","swing","key","mode","style"]){
    $(id).addEventListener(id==="seed"?"change":"input",()=>{
-     state[id]=["bpm","density","swing"].includes(id)?+$(id).value:$(id).value;rerender();
+     state[id]=["bpm","density","swing"].includes(id)?+$(id).value:$(id).value;
+     // A new key/mode starts a fresh diatonic plan; other settings keep chosen chords.
+     if(id==="key"||id==="mode")state.harmonyOverrides=normalizeHarmonyOverrides(null);
+     rerender();
    });
  }
  $("play").addEventListener("click",toggle);
@@ -702,14 +729,21 @@ function wire(){
      state.seed=String(value[0]);
    }while(state.seed===previousSeed);
    state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));
+   state.harmonyOverrides=normalizeHarmonyOverrides(null);
    const wasPlaying=playing;
    rerender();
    say("New composition and sounds ready.");
    if(wasPlaying)void toggle();
    else if(audio)void loadSamples().catch(err=>say("Sound loading failed: "+err.message));
  });
+ $("resetHarmony").addEventListener("click",()=>{
+   state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   rerender();
+   if(audio)void loadSamples().catch(error=>say("Recording loading failed: "+error.message));
+   say("Generated chords restored. Pitched parts rebuilt.");
+ });
  $("copy").addEventListener("click",async()=>{
-   try{await navigator.clipboard.writeText(permalink());say("Link copied — includes every instrument, level and channel variation.")}
+   try{await navigator.clipboard.writeText(permalink());say("Link copied — includes chosen chords, instruments and channel settings.")}
    catch{say("Copy unavailable; use the URL in your browser.")}
  });
  $("download").addEventListener("click",downloadJson);

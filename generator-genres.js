@@ -1,7 +1,7 @@
 // Genre-first interface for the eight-bar editor. Underlying composition
 // algorithms remain implementation details rather than visible musical genres.
 import {RADIO_CHANNELS,applyChannelGroove} from "./radio-channels.js";
-import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
+import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=2";
 import {composeWithEngine} from "./music-engines.js";
 import {hiphopDrumSample} from "./hiphop-drum-kit.js";
 import {dnbDrumSample} from "./dnb-break-kit.js";
@@ -95,7 +95,11 @@ export function composeGenreSong(settings){
  const base=composeWithEngine({...settings,style:settings.style||preset.style,
   engine:settings.engine||preset.engine,harmonyOverrides});
  if(channel==="mixed")return {...base,genre,subgenre};
- const role="lift"; // A complete, hook-forward eight-bar arrangement.
+ // An editor piece need not always be a full chorus/drop. Give each
+ // seed its own density/phrasing role while keeping DnB's driving foundation.
+ const formRoll=rng(settings.seed+"|"+genre+"|"+subgenre+"|form")();
+ const role=genre==="dnb"?"lift":
+   formRoll<.34?"statement":formRoll<.48?"answer":"lift";
  const source={...base,scene:subgenre,leadVoice:settings.voices?.lead};
  const variation=settings.variations||{};
  const pitchedTracks=["bass","chords","arp","lead","counter","pad"];

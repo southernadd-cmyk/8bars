@@ -8,7 +8,7 @@ import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,
 import {planEcology} from "./music-ecology.js";
 import {parseRadioDictionary,radioTitleForSeed} from "./radio-names.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=4";
-import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
+import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=2";
 import {dnbDrumSample} from "./dnb-break-kit.js?v=3";
 import {hiphopDrumSample} from "./hiphop-drum-kit.js?v=1";
 import {createRadioVisual} from "./radio-visual.js?v=3";

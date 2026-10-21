@@ -1,7 +1,7 @@
 import {sampleGain,samplePeakGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.4";
-import {GENERATOR_GENRES,validGeneratorGenre,validSubgenre,defaultSubgenre,genrePreset,composeGenreSong,genreDrumSample} from "./generator-genres.js?v=1";
+import {GENERATOR_GENRES,validGeneratorGenre,validSubgenre,defaultSubgenre,genrePreset,composeGenreSong,genreDrumSample} from "./generator-genres.js?v=2";
 import {composeWithEngine,ENGINE_IDS} from "./music-engines.js?v=0.7.10";
 import {ALL_CHORDS,chordsInKey,chordSymbol,readHarmonyParam,normalizeHarmonyOverrides} from "./harmony.js";
 import {restoreVolumes} from "./settings.js";
@@ -13,6 +13,7 @@ const $=id=>document.getElementById(id);
 const isDrum=id=>TRACKS.find(t=>t.id===id)?.type==="drum";
 const tones=TRACKS.filter(t=>t.type==="pitched").map(t=>t.id);
 let userLibrary=[];
+let keyPinned=false,modePinned=false; // Explicitly selected tonal settings remain user-owned.
 let commonsContinuation=null,commonsResults=[],commonsController=null;
 const commonsPreview=new Audio();
 const userAssignments=new Map();
@@ -36,6 +37,7 @@ function say(message){$("status").textContent=message}
 const savedNum=(v,defaultVal,min,max)=>v!==null && v!==undefined && String(v).trim()!=="" && Number.isFinite(Number(v))?Math.max(min,Math.min(max,Number(v))):defaultVal;
 function loadLink(){
  const p=new URLSearchParams(location.search);
+ keyPinned=p.has("key");modePinned=p.has("mode");
  state.seed=(p.get("seed")||state.seed).slice(0,64);
  const hasGenre=p.has("genre");
  state.genre=validGeneratorGenre(p.get("genre"));
@@ -730,6 +732,8 @@ function wire(){
      state[id]=["bpm","density","swing"].includes(id)?+$(id).value:$(id).value;
      // A new key/mode starts a fresh diatonic plan; other settings keep chosen chords.
      if(id==="key"||id==="mode")state.harmonyOverrides=normalizeHarmonyOverrides(null);
+     if(id==="key")keyPinned=true;
+     if(id==="mode")modePinned=true;
      rerender();
    });
  }
@@ -764,6 +768,20 @@ function wire(){
      const value=new Uint32Array(1);crypto.getRandomValues(value);
      state.seed=String(value[0]);
    }while(state.seed===previousSeed);
+   // A genuinely new song changes tonal centre by default. Explicit Key and
+   // Mode choices remain fixed until the user changes them again.
+   if(!keyPinned){
+     const keys=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
+       .filter(key=>key!==state.key);
+     state.key=keys[randomIndex(keys.length)];
+   }
+   if(!modePinned){
+     const bright=state.genre==="pop"&&state.subgenre==="bright"||
+       state.genre==="hiphop"&&state.subgenre==="west-coast";
+     const dark=state.genre==="hiphop"&&state.subgenre==="trap"||
+       state.genre==="dnb"&&state.subgenre==="techstep";
+     state.mode=randomIndex(10)<(bright?7:dark?2:5)?"major":"minor";
+   }
    state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));
    state.harmonyOverrides=normalizeHarmonyOverrides(null);
    applyGenreDefaults();

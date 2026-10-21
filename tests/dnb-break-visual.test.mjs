@@ -6,6 +6,7 @@ import {ELECTRONIC_BASS_VOICES} from "../electronic-bass.js";
 import {createRadioVisual} from "../radio-visual.js";
 import {planGenreHarmony,arrangeGenreMusic} from "../genre-arrangement.js";
 import {composeWithEngine} from "../music-engines.js";
+import {genreRolePools,planInstrumentPalette} from "../instrument-palettes.js";
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const page=read("humanradio.html"),radio=read("humanradio.js");
 const workflow=read(".github/workflows/pages.yml"),mirror=read("scripts/mirror-samples.mjs");
@@ -153,7 +154,9 @@ test("Cello's liquid lead melody is voiced near its C5 sample ceiling",()=>{
 
 test("808 stays available but cannot be main DnB bass; octave-aligned sub floor",()=>{
  assert.equal(ELECTRONIC_BASS_VOICES.dnb808[0].root,24);
- assert.match(radio,/voices\.bass=choice\(\["dnbReese","dnbReese","dnbWobble","dnbFm"\]\)/);
+ const bass=genreRolePools("dnb","roller").bass;
+  assert.ok(["dnbReese","dnbWobble","dnbFm","dnbSub"].every(id=>bass.includes(id)));
+  assert.ok(!bass.includes("dnb808"),"808 is for trap, not the main DnB bass");
  const settings={seed:"range-probe",engine:"pattern",key:"A",mode:"minor",
    bpm:174,style:"breakbeat",density:.64,swing:0,channel:"dnb",scene:"roller"};
  const harmonyOverrides=planGenreHarmony(settings);
@@ -172,10 +175,14 @@ test("808 stays available but cannot be main DnB bass; octave-aligned sub floor"
  }
 });
 
-test("Liquid DnB honours the strings-inclusive channel palette",()=>{
- assert.match(radio,/paletteFor\(profile\.engine,"lead",/);
- assert.match(radio,/\["violin","cello","concertPiano","electricGuitar"\]/);
- assert.match(radio,/profile\.scene==="liquid"/);
+test("Liquid DnB permits a wide family of genuine string and keyboard leads",()=>{
+ const leads=genreRolePools("dnb","liquid").lead;
+ assert.ok(leads.includes("violin")&&leads.includes("cello"));
+ assert.ok(leads.includes("concertPiano"));
+ const a=planInstrumentPalette("dnb","liquid","one");
+ const b=planInstrumentPalette("dnb","liquid","two",a);
+ assert.notEqual(a.lead,b.lead);
+ assert.match(radio,/planInstrumentPalette\(profile\.channel,profile\.scene,seed/);
  assert.match(radio,/dnbDrumSample\(e\.track,e\.velocity,e\.step,piece\.seed\)/);
 });
 

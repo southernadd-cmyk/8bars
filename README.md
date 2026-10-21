@@ -27,6 +27,8 @@ The fast break retains the established kick/snare step pattern but **DNB kick, s
 
 The old **Rick and Morty GIF** and its external fallback are not used. `radio-visual.js` instead renders an original full-screen dimensional landscape: an oversized, layered, liquid-light vortex, translucent nebula, stars, moving filaments, deep foreground silhouettes and musical glimmers. The music analyser and scheduled notes gently shape the atmosphere rather than producing a conventional ring equaliser. Pausing or hiding the tab stops animation; reduced-motion preferences freeze the scene's spatial movement and suppress moving glimmers. There is no external imagery, copyrighted footage, CDN dependency or extra sound synthesis.
 
+**Dynamics and performance refinement:** Acoustic DnB kit takes now retain their own recorded relative loudness (with peak-only attenuation for excessive sample peaks), rather than receiving RMS makeup gain. If a velocity zone is missing, the nearest labelled take is used; if an entire role has no samples, Human Radio falls back to the ordinary recorded kit instead of throwing. DnB hi-hats gain occasional stronger offbeat accents that select the MIDI 64–95 source tier; other hats and breakdowns remain restrained. On narrow screens the original animated visual uses fewer stars, contour points, arms and folds while preserving the same scene and a capped device pixel ratio.
+
 ## Pop and Drum & Bass genre-specific composition
 
 Hip-hop remains unchanged. Pop and Drum & Bass no longer merely overlay genre drums onto arbitrary generic eight-bar music.

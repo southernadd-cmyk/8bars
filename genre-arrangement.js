@@ -115,7 +115,7 @@ function popMusic(source,seed,role){
  const roots=source.progression;
  // Song-level hook identity: 3–7 notes, chosen rhythmic subdivisions,
  // independently shaped pitch motion and register. Reprises use this same hook.
- const hook=phraseBlueprint(r,3,7,{firstOnBeat:source.scene!=="indie"});
+ const hook=phraseBlueprint(r,4,7,{firstOnBeat:source.scene!=="indie"});
  const shift=choose(r,[-5,-3,-1,0,2,4,6]);
  const chordBeats=choose(r,[[0,8],[0,4,8,12],[0,8,12],[2,10],[0,6,12],[0,12],[0,4,10]]);
  const verseBass=choose(r,[[0,7,10],[0,8,13],[0,6,10,14],[0,9,12]]);

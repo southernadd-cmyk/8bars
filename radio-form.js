@@ -20,8 +20,12 @@ const SECTION_VARIATIONS={
 };
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(n,hi));
 
-function harmonyVariation(base,role){
+function harmonyVariation(base,role,channel){
  const chords=base.progression;
+ // A genre-specific song keeps its recognizable cycle across verse, chorus
+ // and drop, rather than receiving unrelated substitutions every section.
+ if(["pop","dnb"].includes(channel))
+   return chords.map(chord=>chordSymbol({...chord,notes:chord.notes.slice(0,3)}));
  const overrides=base.ecologyGenome?base.ecologyGenome.harmonyOverrides.slice():Array(8).fill(null);
  const triad=index=>chordSymbol({...chords[index],notes:chords[index].notes.slice(0,3)});
  // Phrase-level chord substitutions come from the original eight-bar
@@ -45,7 +49,7 @@ export function buildRadioForm(config,first,composeFn){
      seed:config.seed,key:config.key,mode:config.mode,style:config.style,engine:config.engine,
      bpm:config.bpm,density:config.density,swing:config.swing,
      variations:SECTION_VARIATIONS[role],
-     harmonyOverrides:harmonyVariation(first,role),
+     harmonyOverrides:harmonyVariation(first,role,config.channel),
      ecologyGenome:config.ecologyGenome
    });
    const events=composition.events;

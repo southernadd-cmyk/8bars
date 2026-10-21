@@ -1,4 +1,5 @@
 import {compose,TRACKS,STYLES} from "./composer.js?v=0.5.3";
+import {composeWithEngine} from "./music-engines.js";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
@@ -60,7 +61,7 @@ function indexEvents(piece){
 }
 function finishRadioForm(candidate){
  const {baseComposition,keep,oldPercussion,...profile}=candidate;
- const sections=buildRadioForm(candidate,baseComposition,compose);
+ const sections=buildRadioForm(candidate,baseComposition,composeWithEngine);
  for(const section of sections){
    const percussion=section.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
@@ -89,7 +90,7 @@ function planNext(expand=true){
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
  const seed=rngToken();
- const piece=compose({seed,key:profile.key,mode:profile.mode,style:profile.style,
+ const piece=composeWithEngine({seed,key:profile.key,mode:profile.mode,style:profile.style,engine:profile.engine,
    bpm:profile.bpm,density:profile.density,swing:profile.swing});
  const oldPercussion=old?.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[];
  const keep=old?choice([
@@ -258,7 +259,7 @@ function switchPiece(at){
  for(const note of sharedToneBridge(prev,current))playNote(prev,note,at);
  retiringBuses.push({bus:prev.bus,until:at+blend+.5});
  pruneSampleCache();
- $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM";
+ $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM · "+current.engine;
  $("phase").textContent=current.sceneName+" · Opening";
  status("New musical chapter · linked through the harmony");
  void warmNextSection(current);

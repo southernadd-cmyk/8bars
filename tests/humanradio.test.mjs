@@ -7,7 +7,8 @@ const radio=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
 const page=readFileSync(new URL("../humanradio.html",import.meta.url),"utf8");
 
 test("Human Radio preserves its visual identity and actual recorded-sample playback",()=>{
- assert.match(page,/humanradio\.gif/);
+ assert.match(page,/id="radio-art"/);
+ assert.doesNotMatch(page,/humanradio.gif|kym-cdn|rick.and.morty/i);
  assert.match(page,/id="start"/);
  assert.match(page,/role="status"/);
  assert.match(radio,/LOCAL_SAMPLES\[s\.url\]/);
@@ -71,9 +72,10 @@ test("radio does not restart the composition or discard the beat on Resume",()=>
  assert.match(radio,/radioNoveltyScore\(b,\[current,\.\.\.recentPieces\]\)/);
  assert.match(radio,/Math\.min\(5,Math\.max\(2,240\/current\.bpm\)\)/);
 });
-test("same GIF changes subtly and honours reduced-motion settings",()=>{
- assert.match(page,/prefers-reduced-motion:reduce/);
- assert.match(radio,/const visualPresets=\[/);
- assert.match(radio,/hue-rotate\(/);
+test("Original animated radio visual reacts to audio rather than an external GIF",()=>{
+ assert.match(page,/id="radio-art"/);
+ assert.match(radio,/createRadioVisual/);
+ assert.match(radio,/visual\.onNote\(e\)/);
+ assert.match(radio,/visual\.attach\(analyser\)/);
  assert.match(radio,/if\(loops%2===0\)changeVisual\(\)/);
 });

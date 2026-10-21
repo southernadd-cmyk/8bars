@@ -94,7 +94,8 @@ test("Long-form sample preloading and boundaries preserve seamless continuous pl
  assert.match(app,/if\(skipRequested\)\{\s*targetLoops=loops\+1/);
  assert.match(app,/function pruneSampleCache\(/);
  assert.doesNotMatch(app,/createOscillator/);
- assert.match(page,/humanradio\.gif/);
+ assert.match(page,/id="radio-art"/);
+ assert.doesNotMatch(page,/humanradio\.gif|kym-cdn/);
 });
 test("Random scene targets at least five distinct long-form sections",()=>{
  let profile=chooseRadioProfile(null,()=>.4);

@@ -1,6 +1,6 @@
-// Purpose-built electronic bass WAV samples, not attempts to imitate acoustic
-// instruments. Each file was rendered by the original sound designer and is
-// played back as sampled audio; Human Radio never synthesizes these waveforms.
+// Purpose-built MIT-licensed, pre-rendered synth WAV samples (Reese, sub,
+// wobble and FM). Source project synthesised these WAVs from Python DSP;
+// Human Radio simply triggers the files, never generating synth tones live.
 // Source: Martin Pfeffer, sound-effects, MIT License, pinned revision.
 // Root MIDI pitches are documented in generators/music/bass.py upstream.
 const BASE="https://raw.githubusercontent.com/pepperonas/sound-effects/3067d2d1e242e60571386cec87e0183dab6e9c9e/output/music/bass/";
@@ -18,7 +18,7 @@ export const ELECTRONIC_BASS_VOICES={
 };
 export const ELECTRONIC_BASS_NAMES={
  dnbReese:"Reese bass · detuned saws",
- dnbWobble:"Wobble bass · recorded modulation",
+ dnbWobble:"Wobble bass · pre-rendered modulation",
  dnbFm:"FM growl bass",
  dnbSub:"Clean sub bass",
  dnb808:"808 sub bass"

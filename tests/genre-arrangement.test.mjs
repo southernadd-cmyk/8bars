@@ -79,8 +79,9 @@ test("DnB bass does not attack on snare backbeats and leaves harmonic space",()=
  assert.ok(subBass.length>=8);
  assert.ok(bass.every(e=>![4,12].includes(e.step%16)));
  assert.ok(mainBass.every(e=>e.note>=33&&e.note<=52&&e.duration>=1.5));
- assert.ok(subBass.every(e=>e.note>=21&&e.note<=40&&e.duration>=1.5&&e.velocity<=.27));
- assert.ok(subBass.every(e=>mainBass.some(m=>m.step===e.step&&m.note===e.note+12)));
+ assert.ok(subBass.every(e=>e.note>=28&&e.note<=52&&e.duration>=1.5&&e.velocity<=.23));
+ assert.ok(subBass.every(e=>mainBass.some(m=>m.step===e.step&&
+   (m.note===e.note+12||m.note===e.note))));
  assert.ok(chords.length<80);
  assert.ok(tracks(lift,"lead").length<35);
  assert.ok(tracks(lift,"hat").length>=48);

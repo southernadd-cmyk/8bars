@@ -7,6 +7,7 @@ import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
 import {planEcology} from "./music-ecology.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js";
+import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
@@ -74,9 +75,11 @@ function finishRadioForm(candidate){
  for(const section of sections){
    const percussion=section.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
-   section.events=applyChannelGroove(
-     [...percussion,...section.events.filter(e=>!drums.includes(e.track))]
-       .sort((a,b)=>a.step-b.step),
+   const combined=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
+     .sort((a,b)=>a.step-b.step);
+   const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene},
+     candidate.channel,candidate.seed,section.role);
+   section.events=applyChannelGroove(genreEvents,
      candidate.channel,candidate.seed,section.role);
    indexEvents(section);
  }
@@ -134,17 +137,56 @@ function planNext(expand=true){
      voices[role]=choice(options.length?options:pool);
    }
  }
+ if(profile.channel==="dnb"){
+   voices.bass="electricBass";
+   voices.chords=choice(["pianoSoft","pianoBright","organ"]);
+   voices.pad=choice(["harmonium","organ","pianoSoft"]);
+   voices.lead=profile.scene==="liquid"?
+     choice(["concertPiano","pianoSoft","electricGuitar"]):
+     choice(["electricGuitar","concertPiano"]);
+   voices.counter="violin";
+   voices.arp="pianoSoft";
+ }else if(profile.channel==="pop"){
+   voices.bass=choice(["electricBass","uprightBass"]);
+   voices.chords=choice(["pianoBright","concertPiano","steelBright","electricGuitar"]);
+   voices.pad=choice(["pianoSoft","harmonium","organ"]);
+   voices.lead=choice(["electricGuitar","concertPiano","steelBright","vocalSungNotes"]);
+   voices.counter=choice(["violin","electricGuitar","concertPiano"]);
+   voices.arp=choice(["steelBright","concertPiano","electricGuitar"]);
+ }
  const oldDrums=sameChannel?old.drumSounds:null;
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
+ if(profile.channel==="dnb"){
+   const drumPreferences={
+     kick:/punchy|tight|deep|sub/i,snare:/snappy|TR-808 snare|full/i,
+     hat:/hat|crisp|tight/i,openhat:/open|hat/i,clap:/clap|wide/i
+   };
+   for(const [id,matcher] of Object.entries(drumPreferences)){
+     const choices=DRUMS[id].map((s,i)=>({i,label:s.label||""}))
+       .filter(s=>matcher.test(s.label));
+     if(choices.length)drumSounds[id]=choice(choices).i;
+   }
+ }else if(profile.channel==="pop"){
+   for(const [id,matcher] of Object.entries({
+     kick:/punchy|warm|round/i,snare:/snappy|full/i,
+     clap:/clap|wide/i,hat:/hat|crisp/i
+   })){
+     const candidates=DRUMS[id].map((s,i)=>({i,label:s.label||""}))
+       .filter(s=>matcher.test(s.label));
+     if(candidates.length)drumSounds[id]=choice(candidates).i;
+   }
+ }
  const seed=rngToken();
+ const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode});
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,
      previous:sameChannel?(old.ecologyGenome||livingGenome):null}):undefined;
  const piece=composeWithEngine({seed,key:profile.key,mode:profile.mode,style:profile.style,engine:profile.engine,
-   bpm:profile.bpm,density:profile.density,swing:profile.swing,ecologyGenome});
+   bpm:profile.bpm,density:profile.density,swing:profile.swing,ecologyGenome,
+   harmonyOverrides:genreHarmony});
  const oldPercussion=sameChannel?old.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[]:[];
- const keep=sameChannel?choice([
+ const keep=sameChannel&&profile.channel==="mixed"?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
  ]):[];
  if(sameChannel&&profile.engine!=="ambient"&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
@@ -152,7 +194,7 @@ function planNext(expand=true){
  for(const id of keep)drumSounds[id]=old.drumSounds[id];
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
    .concat(oldPercussion.filter(e=>keep.includes(e.track)));
- const candidate={...profile,seed,voices,drumSounds,ecologyGenome:piece.ecologyGenome,baseComposition:piece,
+ const candidate={...profile,seed,voices,drumSounds,genreHarmony,ecologyGenome:piece.ecologyGenome,baseComposition:piece,
    keep,oldPercussion,events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
    progression:piece.progression,ready:false,missing:0};
  // Five candidates are compared by their first phrase. The remaining four to

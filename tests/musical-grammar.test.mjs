@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {phraseBlueprint,developPhrase,smoothVoicing,harmonicDegrees} from "../musical-grammar.js";
 import {composeGenreSong,genrePreset,GENERATOR_GENRES} from "../generator-genres.js";
-import {chordsInKey} from "../harmony.js";
+import {chordsInKey,chordFromSymbol} from "../harmony.js";
 
 function rand(seed){
  let x=seed*1664525+1013904223;
@@ -34,7 +34,8 @@ test("Motifs develop through echo, answer and cadence rather than looping the sa
 test("Chord inversions minimise travel and remain in a playable keyboard range",()=>{
  const chords=chordsInKey("A","minor");
  let previous=null;
- for(const chord of [chords[0],chords[3],chords[4],chords[0],chords[5]]){
+ for(const [i,symbol] of [chords[0],chords[3],chords[4],chords[0],chords[5]].entries()){
+  const chord=chordFromSymbol(symbol,i+1);
   const notes=smoothVoicing(chord,68,previous);
   assert.equal(notes.length,3);
   assert.ok(notes.every(n=>n>=53&&n<=92));

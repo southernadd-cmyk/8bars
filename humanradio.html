@@ -3,22 +3,17 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111614">
-<meta name="description" content="Human Radio: an endless, evolving stream of original 8bars compositions.">
+<meta name="description" content="Human Radio: generative music with an original sound-reactive visual.">
 <title>Human Radio · 8bars</title>
 <link rel="icon" href="./favicon.ico?v=1" sizes="any">
 <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=1">
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#f3f6ee;background:#0e1312;color-scheme:dark}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
-.scene,.scene img,.shade{position:fixed;inset:0;width:100%;height:100%}
+.scene,.scene canvas,.shade{position:fixed;inset:0;width:100%;height:100%}
 .scene{overflow:hidden;background:#0e1312}
-.scene img{object-fit:cover;object-position:center;image-rendering:auto;
-  transform:scale(1.04);transform-origin:center;
-  filter:saturate(1) hue-rotate(0deg) brightness(1) contrast(1);
-  transition:transform 22s ease-in-out,filter 12s ease-in-out;
-  will-change:transform,filter}
-@media(prefers-reduced-motion:reduce){.scene img{transition:none;will-change:auto}}
-.shade{background:linear-gradient(180deg,rgba(5,12,10,.55),transparent 28%,transparent 60%,rgba(4,11,9,.77))}
+.scene canvas{display:block}
+.shade{pointer-events:none;background:linear-gradient(180deg,rgba(5,12,10,.4),transparent 29%,transparent 57%,rgba(4,11,9,.75))}
 .top,.bottom{position:fixed;left:clamp(16px,4vw,64px);right:clamp(16px,4vw,64px);display:flex;align-items:center;justify-content:space-between;gap:20px}
 .top{top:clamp(16px,3.5vh,36px)}.bottom{bottom:clamp(18px,4vh,44px);align-items:flex-end}
 .brand{color:#fff;font-weight:700;letter-spacing:-.06em;font-size:clamp(21px,3.5vw,34px);text-decoration:none}.brand span{color:#b7e4c7}
@@ -46,7 +41,7 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 </style>
 </head>
 <body>
-<div class="scene"><img src="./humanradio.gif" alt="Jerry driving while listening to Human Music" onerror="this.onerror=null;this.src='https://i.kym-cdn.com/photos/images/newsfeed/001/225/551/385.gif'"></div>
+<div class="scene"><canvas id="radio-art" aria-hidden="true"></canvas></div>
 <div class="shade"></div>
 <header class="top"><a class="brand" href="./index.html" title="Return to the 8bars composer">8<span>bars</span> / human radio</a><div class="channel-select"><label for="channel">Channel</label><select id="channel" aria-label="Choose Human Radio channel"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div></header>
 <div class="bottom">
@@ -54,5 +49,5 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 <div class="controls"><button id="play" type="button" aria-label="Start or pause radio">▶ Start radio</button><button id="skip" type="button" disabled>Next piece ↗</button></div>
 </div>
 <div id="intro"><article><p class="eyebrow">8bars presents</p><h2>Human Radio.</h2><p>An endless stream of original rule-composed music. Each station has its own tempo, groove, instrument palette and developing musical form.</p><div class="channel-select intro-channel"><label for="introChannel">Channel</label><select id="introChannel" aria-label="Choose radio channel before listening"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div><p id="channelDescription">All musical scenes and composition systems.</p><button id="start" type="button">▶ Start listening</button><small>Your browser requires one click to enable audio. Headphones recommended.</small></article></div>
-<script type="module" src="./humanradio.js?v=10"></script>
+<script type="module" src="./humanradio.js?v=11"></script>
 </body></html>

@@ -6,6 +6,7 @@ import {ELECTRONIC_BASS_NAMES,ELECTRONIC_BASS_VOICES} from "../electronic-bass.j
 import {VOICES,VOICE_NAMES} from "../sounds.js";
 import {composeWithEngine} from "../music-engines.js";
 import {planGenreHarmony,arrangeGenreMusic} from "../genre-arrangement.js";
+import {genreRolePools} from "../instrument-palettes.js";
 
 const dictionary=readFileSync(new URL("../radio-words.txt",import.meta.url),"utf8");
 const page=readFileSync(new URL("../humanradio.html",import.meta.url),"utf8");
@@ -71,7 +72,7 @@ test("Five genuine labelled, licensed synth-bass recordings have pinned pitch ro
  assert.match(license,/MIT License/);
  assert.match(mirror,/Object\.values\(VOICES\)/);
 });
-test("DnB generates real sub-layer events in the same root pitch class as Reese and 808",()=>{
+test("DnB generates genuine sub-layer events in the same pitch class as the lead bass",()=>{
  const settings={seed:"bass-layer",key:"A",mode:"minor",style:"breakbeat",
     bpm:172,engine:"pattern",density:.68,swing:0,scene:"roller"};
  const harmonyOverrides=planGenreHarmony({...settings,channel:"dnb"});
@@ -85,5 +86,6 @@ test("DnB generates real sub-layer events in the same root pitch class as Reese 
    (main.note-e.note===12||main.note===e.note))));
  assert.ok(subs.every(e=>e.velocity<=.23&&e.note>=28));
  assert.match(radio,/e\.track==="bass"&&e\.sampleVoice\?e\.sampleVoice:piece\.voices\[e\.track\]/);
- assert.match(radio,/voices\.bass=choice\(\["dnbReese"/);
+ assert.ok(genreRolePools("dnb","roller").bass.includes("dnbReese"));
+  assert.ok(!genreRolePools("dnb","roller").bass.includes("dnb808"));
 });

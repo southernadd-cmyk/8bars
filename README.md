@@ -13,6 +13,17 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
+## Human Radio channels and genuine compositional variety
+
+Choose **Mixed**, **Hip-hop**, **Drum & Bass** or **Pop** from the Human Radio channel dropdown (also available before the first play). The channel can be bookmarked via `?channel=hiphop`, `?channel=dnb` or `?channel=pop`. Switching while listening preloads the new station and transitions at an eight-bar boundary; it does not splice tracks midway through a bar.
+
+- **Hip-hop:** 78–98 BPM, syncopated kick/snare patterns, swung hats, bass and melodic-led composition methods.
+- **Drum & Bass:** 168–176 BPM, rolling breakbeats, fast hats, snare backbeats, and pattern/process/ecology or melodic systems.
+- **Pop:** 94–125 BPM, clear backbeats, variable four-on-the-floor motifs, hook-led composition and section development.
+- **Mixed:** retains the existing evolving radio with all musical scenes. All stations use genuine recorded samples only.
+
+**Variation fix:** the Melodic composition engine previously reused a single hard-coded outline and four-note rhythmic pattern. It now generates a seeded musical phrase (4–7 degrees and variable attack placements), develops answers and variations, and shapes cadence over eight bars. Pattern hooks are seeded rather than picked from just four fixed options. All non-classic engines now generate seed-dependent chord attack rhythms and independently voiced accompaniment. Chord-only variation and lead-only variation remain separate. The multi-seed tests check both melodic and harmonic diversity across every independent engine; passing these tests does not alone establish whether the results sound musical.
+
 ## Human Radio
 
 Human Radio now evolves through four musical scenes covering ambient, downtempo, breakbeat and house. It varies tempo, density and swing in coherent ranges and compares five prospective arrangements against the preceding eight pieces before preloading the best candidate. A song develops over its repeated loops through instrument entrances, fullness and short breakdowns. Musical transitions use bar-length crossfades and carry a brief pad bridge; some drum motifs and instruments are retained across related-key changes.

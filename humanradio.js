@@ -1,13 +1,21 @@
-import {TRACKS} from "./composer.js?v=0.5.3";
-import {composeWithEngine} from "./music-engines.js";
+import {TRACKS} from "./composer.js?v=0.5.5";
+import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
 import {planEcology} from "./music-ecology.js";
+import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js";
 
 const $=id=>document.getElementById(id);
+let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
+let channelVersion=0;
+function updateStationDisplay(){
+ $("channel").value=selectedChannel;
+ $("introChannel").value=selectedChannel;
+ $("channelDescription").textContent=RADIO_CHANNELS[selectedChannel].description;
+}
 const roles=["bass","chords","arp","lead","counter","pad"];
 const drums=TRACKS.filter(x=>x.type==="drum").map(x=>x.id);
 const sampleCache=new Map();
@@ -66,8 +74,10 @@ function finishRadioForm(candidate){
  for(const section of sections){
    const percussion=section.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
-   section.events=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
-     .sort((a,b)=>a.step-b.step);
+   section.events=applyChannelGroove(
+     [...percussion,...section.events.filter(e=>!drums.includes(e.track))]
+       .sort((a,b)=>a.step-b.step),
+     candidate.channel,candidate.seed,section.role);
    indexEvents(section);
  }
  return {...profile,sections,events:sections[0].events,
@@ -96,41 +106,48 @@ const ENGINE_TIMBRES={
    arp:["Mallets","Mallets & bells","Plucked strings"],
    lead:["Strings","Bowed strings","Guitars","Winds","Mallets & bells"],
    counter:["Strings","Bowed strings","Winds"],pad:["Keys & organs","Strings"]}};
-function paletteFor(engine,role,voices){
+function paletteFor(engine,role,voices,channel="mixed"){
  const categories=ENGINE_TIMBRES[engine]?.[role]||[];
  const preferred=new Set(categories.flatMap(name=>VOICE_FAMILIES[name]||[]));
- const filtered=voices.filter(voice=>preferred.has(voice));
- return filtered.length>=2?filtered:voices;
+ const enginePool=voices.filter(voice=>preferred.has(voice));
+ const stationCategories=CHANNEL_TIMBRES[channel]?.[role];
+ if(!stationCategories)return enginePool.length>=2?enginePool:voices;
+ const stationAllowed=new Set(stationCategories.flatMap(name=>VOICE_FAMILIES[name]||[]));
+ const both=enginePool.filter(voice=>stationAllowed.has(voice));
+ const stationPool=voices.filter(voice=>stationAllowed.has(voice));
+ return both.length>=2?both:stationPool.length>=2?stationPool:
+   enginePool.length>=2?enginePool:voices;
 }
 function planNext(expand=true){
  const old=current;
- const profile=chooseRadioProfile(old);
+ const profile=chooseRadioProfile(old,Math.random,selectedChannel);
+ const sameChannel=old?.channel===profile.channel;
  const voices={...DEFAULT_VOICES};
  for(const role of roles){
    const suitable=REGEN_VOICE_POOLS[role].filter(v=>VOICES[v]?.length &&
      (!v.startsWith("vocalSung")||v==="vocalSungNotes"));
-   const pool=paletteFor(profile.engine,role,suitable);
-   const previous=old?.voices[role];
+   const pool=paletteFor(profile.engine,role,suitable,profile.channel);
+   const previous=sameChannel?old.voices[role]:undefined;
    if(previous&&Math.random()<.43&&pool.includes(previous))voices[role]=previous;
    else{
      const options=pool.filter(id=>id!==previous);
      voices[role]=choice(options.length?options:pool);
    }
  }
- const oldDrums=old?.drumSounds;
+ const oldDrums=sameChannel?old.drumSounds:null;
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
  const seed=rngToken();
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,
-     previous:old?.ecologyGenome||livingGenome}):undefined;
+     previous:sameChannel?(old.ecologyGenome||livingGenome):null}):undefined;
  const piece=composeWithEngine({seed,key:profile.key,mode:profile.mode,style:profile.style,engine:profile.engine,
    bpm:profile.bpm,density:profile.density,swing:profile.swing,ecologyGenome});
- const oldPercussion=old?.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[];
- const keep=old?choice([
+ const oldPercussion=sameChannel?old.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[]:[];
+ const keep=sameChannel?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
  ]):[];
- if(old&&profile.engine!=="ambient"&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
+ if(sameChannel&&profile.engine!=="ambient"&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");
  if(profile.engine==="ambient")keep.length=0;
  for(const id of keep)drumSounds[id]=old.drumSounds[id];
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
@@ -205,6 +222,7 @@ async function warmNextSection(piece){
 async function queueNext(){
  if(loadingNext||next||!current||!playing||Date.now()<nextRetryTime)return;
  loadingNext=true;
+ const forVersion=channelVersion;
  try{
    // Several *symbolic* arrangements are cheap to score. Only download the
    // winning recorded-sample set, avoiding needless network requests.
@@ -213,11 +231,11 @@ async function queueNext(){
        radioNoveltyScore(b,[current,...recentPieces])+transitionHarmonyScore(current,b)-
        radioNoveltyScore(a,[current,...recentPieces])-transitionHarmonyScore(current,a));
    for(const lightweight of alternatives){
-     if(!playing||next)break;
+     if(!playing||next||forVersion!==channelVersion)break;
      try{
        const candidate=finishRadioForm(lightweight);
        await prepare(candidate);
-       if(playing){
+       if(playing&&forVersion===channelVersion&&candidate.channel===selectedChannel){
          next=candidate;
          if(skipRequested){
            targetLoops=loops+1;
@@ -228,11 +246,14 @@ async function queueNext(){
        break;
      }catch(e){console.warn("Human Radio: next piece skipped",e)}
    }
-   if(!next&&playing){
+   if(!next&&playing&&forVersion===channelVersion){
      nextRetryTime=Date.now()+8000;
      status("Keeping the current groove while the next piece loads…");
    }
- }finally{loadingNext=false}
+ }finally{
+   loadingNext=false;
+   if(playing&&!next&&forVersion!==channelVersion)void queueNext();
+ }
 }
 function pruneSampleCache(){
  const keep=[
@@ -336,9 +357,11 @@ function switchPiece(at){
       }
     }
     const scheduled=current,localStep=step,section=scheduled.sections[Math.min(loops,targetLoops-1)];
+    const eighth=60/scheduled.bpm/4;
+    const swingDelay=localStep%2?eighth*scheduled.swing*.5:0;
     for(const e of section.eventsByStep[localStep])
       if(sectionAllowsNote(e,section.role))
-        playNote(scheduled,e,stepTime,sectionVelocity(section.role,e.track));
+        playNote(scheduled,e,stepTime+swingDelay,sectionVelocity(section.role,e.track));
     step++;
     stepTime+=60/scheduled.bpm/4;
     if(step===128){step=0;loops++;if(loops%2===0)changeVisual()}
@@ -365,6 +388,12 @@ async function start(){
       status("Preparing the first eight bars and decoding the recorded instruments…");
       if(!current)current=planNext();
       await prepare(current);
+      // The pre-start selector can change while recordings download.
+      // Never start an already superseded station's music.
+      if(current.channel!==selectedChannel){
+        current=planNext();
+        await prepare(current);
+      }
       gainFor(current);
       changeVisual();
       current.bus.gain.value=.82;
@@ -390,6 +419,39 @@ async function pause(){
   $("skip").disabled=true;
   status("Paused · press Resume to continue");
 }
+function changeStation(value){
+ const channel=validRadioChannel(value);
+ if(channel===selectedChannel){updateStationDisplay();return}
+ selectedChannel=channel;
+ channelVersion++;
+ next=null;nextRetryTime=0;
+ skipRequested=false;
+ livingGenome=null;
+ recentPieces.length=0;
+ const url=new URL(location.href);
+ if(channel==="mixed")url.searchParams.delete("channel");
+ else url.searchParams.set("channel",channel);
+ history.replaceState(null,"",url.pathname+url.search+url.hash);
+ updateStationDisplay();
+ if(playing){
+   skipRequested=true;
+   status("Tuning to "+RADIO_CHANNELS[channel].name+" · preparing recordings for the next bar boundary");
+   if(!loadingNext)void queueNext();
+ }else if(!paused){
+   current=null;
+   status("Selected "+RADIO_CHANNELS[channel].name+" · press Start listening");
+ }else{
+   // Clear any already-scheduled notes from the paused station's bus
+   // before the audio context resumes with the new channel.
+   if(current?.bus){try{current.bus.disconnect()}catch{}}
+   current=null;
+   paused=false;
+   status("Selected "+RADIO_CHANNELS[channel].name+" · press Play");
+ }
+}
+$("channel").addEventListener("change",()=>changeStation($("channel").value));
+$("introChannel").addEventListener("change",()=>changeStation($("introChannel").value));
+updateStationDisplay();
 $("start").addEventListener("click",start);
 $("play").addEventListener("click",()=>playing?pause():start());
 $("skip").addEventListener("click",()=>{

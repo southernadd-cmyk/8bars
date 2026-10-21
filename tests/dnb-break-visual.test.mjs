@@ -33,14 +33,14 @@ test("Acoustic break uses identifiable real-recorded CC0 drumkit strikes",()=>{
  assert.ok(DNB_BREAK_KIT.hat.includes(dnbDrumSample("hat",.24,2)));
  assert.equal(dnbDrumSample("clap",.6,12),null);
  assert.match(mirror,/DNB_BREAK_KIT/);
- assert.match(mirror,/Object\\.values\\(DNB_BREAK_KIT\\)/);
- assert.match(workflow,/dnb-break-kit\\.js/);
+ assert.match(mirror,/Object\.values\(DNB_BREAK_KIT\)/);
+ assert.match(workflow,/dnb-break-kit\.js/);
  assert.match(mirror,/"-codec:a","libmp3lame"/);
- assert.match(mirror,/"format:"mp3"/);
+ assert.match(mirror,/format:"mp3"/);
  for(const options of Object.values(DNB_BREAK_KIT))
    for(const sample of options){
      assert.equal(sample.originalRelease,"https://versilian-studios.com/virtuosity-drums/");
-     assert.match(sample.originalLicense,/sfzinstruments\\/virtuosity_drums.*LICENSE$/);
+     assert.match(sample.originalLicense,/sfzinstruments\/virtuosity_drums.*LICENSE$/);
    }
 });
 

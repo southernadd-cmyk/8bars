@@ -218,6 +218,11 @@ function hiphopMusic(source,seed,role){
    lofi?[[0,9],[2,10,14],[0,7]]:
    [[0,6,10],[2,8,14],[0,7,12],[3,10]];
  const figure=choose(r,leadFigures);
+ // Seed independent rhythm displacement, motif register and bass pickups;
+ // a new chapter must not merely replay one of three canned phrases.
+ const motifOffset=choose(r,[-2,-1,0,1,2]);
+ const centreOffset=choose(r,[-7,-4,0,4,7]);
+ const bassPickup=choose(r,[-1,0,1]);
  const motion=choose(r,[[0,2,1,-1],[0,-2,1,2],[1,0,-1,2],[0,1,3,1]]);
  const bassSteps=trap?[0,7,11]:west?[0,3,7,11]:
    lofi?[0,10]:headnod?[0,9,13]:[0,7,10,14];
@@ -227,8 +232,9 @@ function hiphopMusic(source,seed,role){
    const root=bassRoot(chord),tones=voicedTriad(chord,lofi?66:west?72:68);
    const bassPositions=quiet?bassSteps.slice(0,1):bassSteps;
    for(let i=0;i<bassPositions.length;i++){
-     const pos=bassPositions[i];
-     const nextPos=bassPositions[i+1]??16;
+     const pos=i===0?0:clamp(bassPositions[i]+bassPickup,1,15);
+     const nextPos=bassPositions[i+1]===undefined?16:
+       Math.max(pos+1,clamp(bassPositions[i+1]+bassPickup,1,16));
      const walk=i===bassPositions.length-1&&bar%4===3;
      const pitch=walk?bassRoot(next):root+(west&&i%2===1?7:0);
      out.push(event("bass",bar,pos,clamp(pitch,33,52),
@@ -253,9 +259,11 @@ function hiphopMusic(source,seed,role){
          if(quiet&&i>0)continue;
          if(!lift&&trap&&i>1)continue;
          if(!lift&&lofi&&i>1)continue;
-         const pos=figure[i],last=figure[i+1]??16;
+         const pos=clamp(figure[i]+motifOffset,0,15);
+         const last=figure[i+1]===undefined?16:
+           Math.max(pos+1,clamp(figure[i+1]+motifOffset,0,16));
          const shift=motion[(i+phraseBar)%motion.length]*(answering?-1:1);
-         const pitch=chordToneNear((west?73:lofi?68:71)+shift*2,chord,60,84);
+         const pitch=chordToneNear((west?73:lofi?68:71)+centreOffset+shift*2,chord,60,84);
          out.push(event("lead",bar,pos,pitch,
            Math.min(trap?3.5:lofi?6:4.5,Math.max(1,last-pos-.35)),
            lift?.47:trap?.24:lofi?.25:.34));

@@ -14,7 +14,7 @@ const failures=new Map();
 const choice=a=>a[Math.floor(Math.random()*a.length)];
 let ctx,master,buses=[],current=null,next=null,loadingNext=false;
 let playing=false,paused=false,timer=null,step=0,stepTime=0,loops=0,targetLoops=6,segments=0;
-let displayedSection=-1;
+let displayedSection=-1,skipRequested=false;
 const pendingSamples=new Map();
 const recentPieces=[]; // Previous musical identities, oldest discarded after eight pieces.
 let lastText="";
@@ -183,7 +183,11 @@ async function queueNext(){
        await prepare(candidate);
        if(playing){
          next=candidate;
-         status("Next piece ready · "+candidate.sceneName+" · transitions on the beat");
+         if(skipRequested){
+           targetLoops=loops+1;
+           skipRequested=false;
+           status("Next chapter ready · switching at the next eight-bar boundary");
+         }else status("Next piece ready · "+candidate.sceneName+" · transitions on the beat");
        }
        break;
      }catch(e){console.warn("Human Radio: next piece skipped",e)}
@@ -239,6 +243,7 @@ function switchPiece(at){
  recentPieces.unshift(prev);
  if(recentPieces.length>8)recentPieces.length=8;
  current=next;next=null;loops=0;targetLoops=current.sections.length;
+ skipRequested=false;
  displayedSection=-1;segments++;
  changeVisual();
  gainFor(current);
@@ -352,6 +357,6 @@ $("play").addEventListener("click",()=>playing?pause():start());
 $("skip").addEventListener("click",()=>{
   if(!playing)return;
   if(next?.ready){targetLoops=loops+1;status("Switching at the next eight-bar boundary")}
-  else{status("Preparing the next piece · current loop will continue");void queueNext()}
+  else{skipRequested=true;status("Preparing the next piece · current loop will continue");void queueNext()}
 });
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&playing)pump()});

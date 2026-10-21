@@ -4,6 +4,7 @@
 // Built-in sources are pinned to upstream commits; this script caches exact bytes.
 import {DRUMS,VOICES,DEFAULT_VOICES} from "../sounds.js";
 import {DNB_BREAK_KIT} from "../dnb-break-kit.js";
+import {HIPHOP_KITS} from "../hiphop-drum-kit.js";
 import {createHash} from "node:crypto";
 import {mkdir,writeFile,copyFile,stat,unlink,rm} from "node:fs/promises";
 import {execFile} from "node:child_process";
@@ -40,6 +41,9 @@ for(const options of Object.values(VOICES)){
 for(const options of Object.values(DRUMS))for(const s of options.slice(10,22))add(s);
 // Always include the small acoustic DnB kit, including the soft ghost layers.
 for(const options of Object.values(DNB_BREAK_KIT))for(const s of options)add(s);
+// Include the complete small, licence-verified hip-hop specialty kits.
+for(const kit of Object.values(HIPHOP_KITS))for(const options of Object.values(kit))
+ for(const s of options)add(s);
 // Broaden root coverage as storage permits. Large source banks need not be bundled in full.
 for(const options of Object.values(VOICES))for(const s of options)add(s);
 for(const options of Object.values(DRUMS))for(const s of options)add(s);

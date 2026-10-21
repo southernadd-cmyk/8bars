@@ -13,6 +13,15 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
+## Pop and Drum & Bass genre-specific composition
+
+Hip-hop remains unchanged. Pop and Drum & Bass no longer merely overlay genre drums onto arbitrary generic eight-bar music.
+
+- **Pop:** a four-chord diatonic progression repeats across all eight bars and recurs through the song's verses and choruses. The same seeded hook (melody and attack rhythm) returns in the lift, reprise, and final section; verse answers transform it. Bass follows the progression, with fewer attacks in the verse and a fuller groove, chord accompaniment, and backing parts in the chorus.
+- **Drum & Bass:** two-step foundation at 168–176 BPM (main kick on steps 0 and 10, snare on 4 and 12), quieter ghost snares and a second-bar variation. A slower, root-led bass phrase avoids snare attacks; two-bar chords, restrained stabs and liquid pads leave space for the break. Sections shape intros, breakdowns and drops. As of this release it uses recorded electric-bass and keyboard/guitar material, **not a purpose-recorded Reese/sub bass sample**, so a modern electronic DnB timbre is still a limitation.
+- Existing real recorded samples are the only audio sources; no oscillator substitutions are introduced. The same genre harmonic cycle persists across a full multi-section chapter.
+- The regression suite checks Pop's recurring melody, harmony, verse/chorus contrast, DnB's exact kick/snare placement, sparse halftime bass and each genre's deterministic event safety. Listening assessment is still required.
+
 ## Human Radio channels and genuine compositional variety
 
 Choose **Mixed**, **Hip-hop**, **Drum & Bass** or **Pop** from the Human Radio channel dropdown (also available before the first play). The channel can be bookmarked via `?channel=hiphop`, `?channel=dnb` or `?channel=pop`. Switching while listening preloads the new station and transitions at an eight-bar boundary; it does not splice tracks midway through a bar.

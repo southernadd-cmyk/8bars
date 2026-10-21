@@ -31,6 +31,26 @@ Preload the *next* section's actual recordings while the current one plays; if t
 
 The regular editor exposes the Composition selector; the choice survives share URLs and JSON/MIDI/WAV outputs. Human Radio selects among the four new systems according to scene, retains a composition method across linked sections, scores novelty, and avoids imposing a carried drum groove when a new ambient passage begins. All methods play exclusively with the existing genuine recorded instrument samples.
 
+## Experimental engine: Musical ecology
+
+**Ecology** is a sixth composition choice in the editor and a possible Human Radio scene engine. This experiment is distinct from the existing pattern, melodic, ambient and phase-process systems. It does **not** claim the underlying mathematics is new or that musical quality has been established by testing.
+
+- **Harmonic network:** Every major/minor triad is one of 24 vertices in a Tonnetz-derived graph. Parallel (P), leading-tone (L), and relative (R) moves usually keep two chord tones. An eight-bar walk is pulled away from and back towards its home triad, with resolution at the final bar. The approach is inspired by mathematical chord geometry and neo-Riemannian transformations.
+- **Predictive tension:** The relative frequency of each transformation is remembered and gives it an information-content estimate `-log2((count+1)/(total+3))`. Harmonic choice balances a time-varying surprise target, distance from home, and smooth movement. This is a tiny hand-built expectancy heuristic, **not** a reimplementation of IDyOM or a learned model of human preferences.
+- **Inherited motif:** A six-degree melodic contour, attack pattern and coupled Euclidean pulse phases are retained as a musical 'genome'. New chapters change one contour step, optionally nudge the rhythm phase, and adapt pitches to each newly reached chord. Other composition engines can play between Ecology chapters without erasing the inherited material.
+- **Linked layers:** Melody, countermelody, bass, arpeggio and parts of the percussion all derive their rhythms or notes from that common motif and Tonnetz path. Eight-bar sections retain chapter identity, can develop and then reprise it, and keep the same real-sample-only audio playback.
+- **Verification:** `tests/music-ecology.test.mjs` checks all 24 triads, reversibility and shared-tone transforms, graph reachability, modulation-safe motifs, deterministic songs, rhythmic bounds and section return. These objective checks do **not** substitute for listening evaluation.
+
+Research grounding:
+
+1. Dmitri Tymoczko, *The geometry of musical chords*, *Science* (2006), https://doi.org/10.1126/science.1126287
+2. Neo-Riemannian P/L/R transformations, [Open Music Theory](https://pressbooks.nebraska.edu/openmusictheory/chapter/neo-riemannian-triadic-progressions/)
+3. Marcus T. Pearce and Geraint A. Wiggins, *Auditory Expectation: The Information Dynamics of Music Perception and Cognition*, *Topics in Cognitive Science* (2012), https://doi.org/10.1111/j.1756-8765.2012.01214.x
+4. Darrell Conklin and Ian H. Witten, *Multiple viewpoint systems for music prediction*, *Journal of New Music Research* (1995), https://doi.org/10.1080/09298219508570672
+5. Benjamin P. Gold et al., *Predictability and Uncertainty in the Pleasure of Music*, *J. Neuroscience* (2019), https://doi.org/10.1523/JNEUROSCI.0428-19.2019
+
+**Next research question:** Does inherited harmonic/rhythmic identity, guided by a surprise budget, create more compelling long-form music than independent composition? The experiment is answerable with blinded listening comparisons and repeated sessions; no empirical preference result is asserted yet.
+
 ## Sample bank and playback
 
 Current built-in samples are **all mirrored at build time** into the site's own compressed MP3 assets, using pinned upstream recordings. The Pages build creates sample-map.js and sample-mirror-report.json, and fails if any declared recording cannot be mirrored. The last verified deployment before this engine update contained 2,605 distinct recorded samples; use the latest build report for the current count. Browsers download only the selected song's required sounds, not the full library.

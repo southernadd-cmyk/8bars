@@ -22,7 +22,7 @@ const clamp=(n,lo,hi)=>Math.max(lo,Math.min(n,hi));
 
 function harmonyVariation(base,role){
  const chords=base.progression;
- const overrides=Array(8).fill(null);
+ const overrides=base.ecologyGenome?base.ecologyGenome.harmonyOverrides.slice():Array(8).fill(null);
  const triad=index=>chordSymbol({...chords[index],notes:chords[index].notes.slice(0,3)});
  // Phrase-level chord substitutions come from the original eight-bar
  // progression, keeping each chapter's tonal identity recognisable.
@@ -45,7 +45,8 @@ export function buildRadioForm(config,first,composeFn){
      seed:config.seed,key:config.key,mode:config.mode,style:config.style,engine:config.engine,
      bpm:config.bpm,density:config.density,swing:config.swing,
      variations:SECTION_VARIATIONS[role],
-     harmonyOverrides:harmonyVariation(first,role)
+     harmonyOverrides:harmonyVariation(first,role),
+     ecologyGenome:config.ecologyGenome
    });
    const events=composition.events;
    const eventsByStep=Array.from({length:128},()=>[]);

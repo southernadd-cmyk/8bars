@@ -5,6 +5,7 @@ import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js";
+import {planEcology} from "./music-ecology.js";
 
 const $=id=>document.getElementById(id);
 const roles=["bass","chords","arp","lead","counter","pad"];
@@ -17,6 +18,7 @@ let playing=false,paused=false,timer=null,step=0,stepTime=0,loops=0,targetLoops=
 let displayedSection=-1,skipRequested=false;
 const pendingSamples=new Map();
 const recentPieces=[]; // Previous musical identities, oldest discarded after eight pieces.
+let livingGenome=null; // Musical memory survives non-Ecology chapters.
 let lastText="";
 let epoch=0,nextRetryTime=0;
 const retiringBuses=[];
@@ -89,7 +91,11 @@ const ENGINE_TIMBRES={
  process:{bass:["Bass","Keys & organs"],chords:["Keys & organs","Mallets & bells"],
    arp:["Mallets","Mallets & bells","Plucked strings"],
    lead:["Mallets","Mallets & bells","Plucked strings","Vocal melodies"],
-   counter:["Strings","Bowed strings","Winds"],pad:["Keys & organs","Bowed strings"]}};
+   counter:["Strings","Bowed strings","Winds"],pad:["Keys & organs","Bowed strings"]},
+ ecology:{bass:["Bass","Plucked strings"],chords:["Keys & organs","Guitars"],
+   arp:["Mallets","Mallets & bells","Plucked strings"],
+   lead:["Strings","Bowed strings","Guitars","Winds","Mallets & bells"],
+   counter:["Strings","Bowed strings","Winds"],pad:["Keys & organs","Strings"]}};
 function paletteFor(engine,role,voices){
  const categories=ENGINE_TIMBRES[engine]?.[role]||[];
  const preferred=new Set(categories.flatMap(name=>VOICE_FAMILIES[name]||[]));
@@ -115,8 +121,11 @@ function planNext(expand=true){
  const drumSounds=Object.fromEntries(drums.map(id=>
    [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
  const seed=rngToken();
+ const ecologyGenome=profile.engine==="ecology"?
+   planEcology({seed,key:profile.key,mode:profile.mode,
+     previous:old?.ecologyGenome||livingGenome}):undefined;
  const piece=composeWithEngine({seed,key:profile.key,mode:profile.mode,style:profile.style,engine:profile.engine,
-   bpm:profile.bpm,density:profile.density,swing:profile.swing});
+   bpm:profile.bpm,density:profile.density,swing:profile.swing,ecologyGenome});
  const oldPercussion=old?.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[];
  const keep=old?choice([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
@@ -126,7 +135,7 @@ function planNext(expand=true){
  for(const id of keep)drumSounds[id]=old.drumSounds[id];
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
    .concat(oldPercussion.filter(e=>keep.includes(e.track)));
- const candidate={...profile,seed,voices,drumSounds,baseComposition:piece,
+ const candidate={...profile,seed,voices,drumSounds,ecologyGenome:piece.ecologyGenome,baseComposition:piece,
    keep,oldPercussion,events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
    progression:piece.progression,ready:false,missing:0};
  // Five candidates are compared by their first phrase. The remaining four to
@@ -267,9 +276,11 @@ function playNote(piece,e,when,sectionLevel=1){
 function switchPiece(at){
  if(!next?.ready){loops=current.sections.length-1;targetLoops=current.sections.length;void queueNext();return}
  const prev=current;
+ if(prev.ecologyGenome)livingGenome=prev.ecologyGenome;
  recentPieces.unshift(prev);
  if(recentPieces.length>8)recentPieces.length=8;
  current=next;next=null;loops=0;targetLoops=current.sections.length;
+ if(current.ecologyGenome)livingGenome=current.ecologyGenome;
  skipRequested=false;
  displayedSection=-1;segments++;
  changeVisual();

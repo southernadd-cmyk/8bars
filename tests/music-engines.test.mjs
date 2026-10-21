@@ -10,9 +10,9 @@ const pitched=new Set(TRACKS.filter(t=>t.type==="pitched").map(t=>t.id));
 const drums=new Set(TRACKS.filter(t=>t.type==="drum").map(t=>t.id));
 const music=id=>composeWithEngine({...config,engine:id});
 
-test("Five selectable modes include original plus four independent composers",()=>{
- assert.deepEqual(ENGINE_IDS,["classic","pattern","melodic","ambient","process"]);
- assert.equal(COMPOSITION_ENGINES.length,5);
+test("Six selectable modes include original plus five independent composers",()=>{
+ assert.deepEqual(ENGINE_IDS,["classic","pattern","melodic","ambient","process","ecology"]);
+ assert.equal(COMPOSITION_ENGINES.length,6);
  assert.deepEqual(music("classic").events,compose(config).events);
  assert.equal(music("does-not-exist").engine,"classic");
 });

@@ -3,13 +3,15 @@
 // instruments at playback; there is no oscillator, synthesized fallback,
 // audio dependency or DOM dependency in these composition engines.
 import {compose,rng,euclidean,TRACKS} from "./composer.js";
+import {planEcology,euclideanPositions,livingMelody,nearestChordTone} from "./music-ecology.js";
 
 export const COMPOSITION_ENGINES=[
  {id:"classic",name:"Original",description:"The original eight-bar composer"},
  {id:"pattern",name:"Pattern",description:"Bass hooks, repeated grooves and rhythmic transformations"},
  {id:"melodic",name:"Melodic",description:"Call-and-response phrases with voice leading"},
  {id:"ambient",name:"Ambient",description:"Long tones, silence and slow harmonic drift"},
- {id:"process",name:"Process",description:"Gradual probability and phase-driven change"}
+ {id:"process",name:"Process",description:"Gradual probability and phase-driven change"},
+ {id:"ecology",name:"Ecology",description:"Tonnetz harmony, inherited motifs and an evolving surprise budget"}
 ];
 export const ENGINE_IDS=COMPOSITION_ENGINES.map(x=>x.id);
 const DRUMS=new Set(TRACKS.filter(t=>t.type==="drum").map(t=>t.id));
@@ -236,16 +238,90 @@ function process(c){
  }
  percussion(c,"process");
 }
-const SYSTEMS={pattern,melodic,ambient,process};
+
+// Ecology is a fifth, genuinely distinct symbolic composer. Unlike the four
+// earlier modes it inherits a motif across chapters and plans harmony through
+// a major/minor triad graph. Both rhythm and melody express the same genome.
+function ecology(c,input){
+ const {add,triad,root,bassNote,r,density}=c;
+ const prior=input.ecologyGenome;
+ const planned=prior||planEcology({seed:c.base.seed,key:c.base.key,mode:c.base.mode});
+ const path=c.base.progression.map(chord=>{
+   const [a,b]=chord.notes;
+   return {root:((a%12)+12)%12,quality:((b-a+12)%12)===3?"minor":"major"};
+ });
+ const genome={...planned,path};
+ const phase=genome.motif.phase;
+ const variant=(input.variations?.lead||0)%4;
+ const kind=["statement","answer","lift","return"][variant];
+ let leadPrev=null;
+ for(let bar=0;bar<8;bar++){
+   const chord=path[bar],harmonic=triad(bar);
+   const lead=livingMelody(genome,bar,kind);
+   for(const e of lead){
+     const note=leadPrev===null?e.note:
+       Math.abs(e.note-leadPrev)>9?
+         nearestChordTone(leadPrev+Math.sign(e.note-leadPrev)*5,chord,63,93):e.note;
+     add("lead",e.step,e.duration,e.velocity+(kind==="lift"?.07:0),note);
+     leadPrev=note;
+   }
+   const bassRhythm=euclideanPositions(genome.motif.bassPulses,phase+bar*2);
+   for(let index=0;index<bassRhythm.length;index++){
+     const step=bassRhythm[index];
+     add("bass",bar*16+step,Math.min(6,16-step),index===0?.68:.51,
+       bassNote(bar,index===bassRhythm.length-1&&bar%2===1?7:0));
+   }
+   // Smooth-register chord voicings stay anchored to the Tonnetz plan.
+   const rhythm=bar%2===0?[0,8]:[0,10];
+   for(const step of rhythm)if(step===0||r("chords")<.63)
+     for(const note of harmonic)add("chords",bar*16+step,Math.min(8,16-step),.2,note+12);
+   const arpRhythm=euclideanPositions(5+Math.round(density*3),phase+bar*5);
+   for(let i=0;i<arpRhythm.length;i++){
+     const step=arpRhythm[i];
+     if(r("arp")>.59+density*.22)continue;
+     add("arp",bar*16+step,Math.min(2,16-step),.22,
+       harmonic[(i+bar)%3]+12);
+   }
+   if(bar%2===0)for(const note of harmonic)
+     add("pad",bar*16,Math.min(25,128-bar*16),.12,note+12);
+   if(bar%2===1){
+     for(const step of [5,13]){
+       if(r("counter")>.59)continue;
+       // A response drawn from the *same* melodic genome rather than an
+       // unrelated random melody, offset against the principal phrase.
+       const answer=genome.motif.degrees[(bar+step)%genome.motif.degrees.length];
+       const guess=77-answer*2;
+       const note=nearestChordTone(guess,chord,64,91);
+       add("counter",bar*16+step,Math.min(3.5,16-step),.24,note);
+     }
+   }
+   const drums=euclideanPositions(6,phase+bar*3);
+   for(const step of [0,8])if(r("kick")<.94)add("kick",bar*16+step,1,.72);
+   for(const step of [4,12])if(r("snare")<.93)add("snare",bar*16+step,1,.65);
+   for(const step of drums)if(r("hat")<.84)
+     add("hat",bar*16+step,.5,.26);
+   if(bar%2===1&&r("clap")<.5)add("clap",bar*16+12,.6,.31);
+   if(bar%3===2)add("openhat",bar*16+14,1.5,.28);
+   const leadBeats=new Set(lead.map(e=>e.step%16));
+   for(const step of euclideanPositions(3,phase+bar*7))
+     if(!leadBeats.has(step)&&r("perc")<.36)
+       add("perc",bar*16+step,.5,.27);
+ }
+}
+const SYSTEMS={pattern,melodic,ambient,process,ecology};
 export function composeWithEngine(input={}){
  const engine=ENGINE_IDS.includes(input.engine)?input.engine:"classic";
- const base=compose(input);
+ const ecologyGenome=engine==="ecology"?(input.ecologyGenome||
+   planEcology({seed:input.seed,key:input.key,mode:input.mode})):null;
+ const source=ecologyGenome?
+   {...input,harmonyOverrides:input.harmonyOverrides||ecologyGenome.harmonyOverrides}:input;
+ const base=compose(source);
  if(engine==="classic")return {...base,engine};
- const c=createContext(input,base,engine);
- SYSTEMS[engine](c);
+ const c=createContext(source,base,engine);
+ SYSTEMS[engine](c,{...source,ecologyGenome});
  const events=c.events.sort((a,b)=>a.step-b.step||
    TRACKS.findIndex(t=>t.id===a.track)-TRACKS.findIndex(t=>t.id===b.track));
- return {...base,engine,events,identity:{...base.identity,system:engine},
+ return {...base,engine,events,ecologyGenome,identity:{...base.identity,system:engine},
    explanation:[
      COMPOSITION_ENGINES.find(x=>x.id===engine).description+".",
      "The harmony and key guide independently generated parts; sound comes exclusively from recorded samples.",

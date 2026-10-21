@@ -64,31 +64,44 @@ export function applyChannelGroove(events,channel,seed,section="statement"){
        add("perc",bar,step,.27,.5);
      if(main&&r()<.65)add("clap",bar,12,.38);
    }else if(channel==="dnb"){
-     const kicks=bar%2===0?[0,7,10]:[0,9,14];
-     for(const step of kicks)if(step===0||r()<(quiet?.55:.86))
-       add("kick",bar,step,step===0?.92:.6+(r()-.5)*.13);
-     for(const step of [4,12])add("snare",bar,step,.78+(r()-.5)*.13);
-     if((fill||main)&&r()<.75)for(const step of [11,15])
-       if(r()<.65)add("snare",bar,step,.22+(r()*.15),.5);
+     // A stable 2-step skeleton: kick at 0 / 10, backbeat at 4 / 12.
+     // Two-bar break variation is *quiet* ghost detail, not extra main kicks
+     // on the snare or 4-on-the-floor.
+     const drop=["lift","reprise","return"].includes(section);
+     for(const step of [0,10])if(step===0||!quiet||r()<.55)
+       add("kick",bar,step,step===0?.93:.78);
+     if(!quiet&&bar%2===1&&r()<.64)add("kick",bar,r()<.5?6:14,.33,.5);
+     for(const step of [4,12])add("snare",bar,step,.85+r()*.09);
+     if(!quiet){
+       for(const step of (bar%2===0?[7,15]:[3,11,15]))
+         if(r()<(drop?.78:.56))add("snare",bar,step,.13+r()*.12,.35);
+     }
      for(let step=0;step<16;step+=2)
-       if(r()<(quiet?.55:.94))add("hat",bar,step,.26+(step%4===0?.1:0)+r()*.15,.45);
-     if(!quiet&&r()<.68)for(const step of [13,15])add("hat",bar,step,.19+r()*.1,.35);
-     if(main||fill){
-       add("openhat",bar,14,.28,1);
-       for(const step of [3,11])if(r()<.54)add("perc",bar,step,.24,.5);
+       if(r()<(quiet?.59:.97))add("hat",bar,step,
+         step%4===2?.34+r()*.1:.19+r()*.08,.42);
+     if(drop||fill){
+       for(const step of [11,13,15])
+         if(r()<(drop?.62:.42))add("hat",bar,step,.15+r()*.11,.28);
+       if(drop&&r()<.63)add("openhat",bar,14,.31,1);
+       if(fill)for(const step of [3,11])if(r()<.48)
+         add("perc",bar,step,.19,.45);
      }
    }else if(channel==="pop"){
-     const fourFloor=(bar%4>=2||section==="lift")&&r()<.73;
-     const kicks=fourFloor?[0,4,8,12]:[0,8,10];
-     for(const step of kicks)if(step===0||r()<(quiet?.6:.88))
-       add("kick",bar,step,step===0?.85:.65);
-     for(const step of [4,12])add("snare",bar,step,.72);
-     if(main||fill)add("clap",bar,12,.38);
+     const chorus=["lift","reprise","return"].includes(section);
+     // Pop verse is uncluttered; fuller choruses get a stable four-on-floor
+     // or backbeat-with-syncopation kick pattern.
+     const fourFloor=chorus&&r()<.63;
+     const kicks=fourFloor?[0,4,8,12]:chorus?[0,8,10]:[0,8];
+     for(const step of kicks)if(step===0||r()<(quiet?.64:.94))
+       add("kick",bar,step,step===0?.88:.69);
+     for(const step of [4,12])add("snare",bar,step,.72+r()*.08);
+     if(chorus)add("clap",bar,12,.42);
      for(let step=0;step<16;step+=2)
-       if(r()<(quiet?.58:.81))add("hat",bar,step,.27+(step%4===0?.09:0),.5);
-     if(main&&r()<.63)add("openhat",bar,14,.29,1);
-     if(fill)for(const step of [13,15])if(r()<.64)
-       add("perc",bar,step,.28,.5);
+       if(r()<(quiet?.5:chorus?.91:.7))
+         add("hat",bar,step,.22+(step%4===2?.12:.04),.5);
+     if(chorus&&r()<.64)add("openhat",bar,14,.3,1);
+     if(fill)for(const step of [13,15])if(r()<.48)
+       add("perc",bar,step,.23,.5);
    }
  }
  const pitched=events.filter(event=>!DRUM_TRACKS.has(event.track));

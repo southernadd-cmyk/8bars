@@ -437,7 +437,7 @@ function stem(){return "8bars-"+state.seed.replace(/[^a-z0-9-_]/gi,"-").slice(0,
 function downloadJson(){
  save(new Blob([JSON.stringify({...composition,mixer:{
  genre:state.genre,subgenre:state.subgenre,voices:state.voices,drumSounds:state.drumSounds,volumes:state.volumes,muted:[...state.muted],solo:[...state.solo]
- },sampleSources:inventory().map(s=>({url:s.url,license:s.license})),importedSources:userLibrary.filter(s=>[...userAssignments.values()].includes(s.id)).map(s=>({name:s.name,license:s.license,author:s.author,source:s.source,sourceUrl:s.sourceUrl}))},null,2)],{type:"application/json"}),stem()+".json");
+ },sampleSources:neededSamples().map(s=>({url:s.url,license:s.license,source:s.source,label:s.label})),importedSources:userLibrary.filter(s=>[...userAssignments.values()].includes(s.id)).map(s=>({name:s.name,license:s.license,author:s.author,source:s.source,sourceUrl:s.sourceUrl}))},null,2)],{type:"application/json"}),stem()+".json");
 }
 function vlen(num){
  let value=Math.max(0,Math.floor(num)),bytes=[value&127];value>>>=7;
@@ -677,11 +677,10 @@ function downloadSampleCredits(){
    const local=selectedLocal(track.id);
    let sources;
    if(local)sources=[local];
-   else if(track.type==="drum")sources=[...new Map(
-      composition.events.filter(e=>e.track===track.id)
-        .map(e=>{const item=sampleFor(e);return [item.url,item]})
-    ).values()];
-   else sources=VOICES[state.voices[track.id]]||VOICES.piano;
+   else sources=[...new Map(
+     composition.events.filter(e=>e.track===track.id)
+       .map(e=>{const item=sampleFor(e);return [item.url,item]})
+   ).values()];
    lines.push(track.name+":");
    const unique=new Map(sources.map(s=>[s.url,s]));
    for(const entry of unique.values()){

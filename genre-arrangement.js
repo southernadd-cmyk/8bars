@@ -21,7 +21,20 @@ export function planGenreHarmony({channel,seed,key,mode,scene=""}){
   [[0,5,3,4],[0,3,5,4],[0,6,5,3],[0,3,0,5],[0,5,0,3]]:
   [[5,3,0,4],[0,5,3,4],[0,3,5,4]];
  const hiphop=mode==="minor"?[[0,5,3,4],[0,3,0,5],[0,6,5,3],[0,3,5,3]]:[[0,5,3,4],[0,3,4,3],[0,4,5,3],[0,5,0,3]];
- const degrees=choose(r,channel==="pop"?pop:channel==="hiphop"?hiphop:dnb);
+ const degrees=[...choose(r,channel==="pop"?pop:channel==="hiphop"?hiphop:dnb)];
+ // Controlled harmonic grammar: the genre decides what is plausible,
+ // but each seed independently chooses substitutions inside that grammar.
+ // Repetition happens WITHIN a song, not across every newly generated song.
+ const middle=channel==="dnb"?[0,3,5,6]:channel==="hiphop"?[0,2,3,5,6]:[0,3,4,5,6];
+ for(const index of [1,2,3]){
+   const chance=index===3?.38:.61;
+   if(r()<chance){
+     const pool=middle.filter(n=>n!==degrees[index]&&
+       (index===1||n!==degrees[index-1]));
+     degrees[index]=choose(r,pool);
+   }
+ }
+ if(channel==="pop"&&degrees[0]!==0&&r()<.25)degrees[0]=0;
  // Pop: a familiar four-bar cycle returning twice.
  // DnB: each harmony lasts two bars; bass can breathe at 170-176 BPM.
  return channel==="pop"||channel==="hiphop"?
@@ -55,6 +68,45 @@ function bassRoot(chord){
 function event(track,bar,step,note,duration,velocity){
  return {track,step:bar*16+step,note,duration:Math.min(duration,16-step),
    velocity:Math.round(clamp(velocity,.06,.95)*100)/100};
+}
+// Build an actual seed-specific phrase rather than choosing a canned melody.
+// Rhythmic placements, note count, contour and register are independent
+// dimensions. The same seed recreates the same hook in each reprise.
+function phraseBlueprint(r,minNotes,maxNotes,options={}){
+ const count=minNotes+Math.floor(r()*(maxNotes-minNotes+1));
+ const {sparse=false,firstOnBeat=false}=options;
+ const pool=sparse?[0,2,4,6,8,10,12,14]:[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+ const steps=new Set([firstOnBeat?0:(r()<.68?0:pool[Math.floor(r()*4)])]);
+ while(steps.size<count)steps.add(choose(r,pool));
+ const rhythm=[...steps].sort((a,b)=>a-b);
+ const contour=[];
+ let height=Math.floor(r()*5)-2;
+ const direction=r()<.5?-1:1;
+ const leaps=[-3,-2,-1,-1,0,1,1,2,3];
+ for(let i=0;i<rhythm.length;i++){
+   if(i>0)height=clamp(height+choose(r,leaps)+(r()<.16?direction:0),-5,5);
+   contour.push(height);
+ }
+ return {rhythm,contour,centre:choose(r,[-8,-5,-2,0,3,5,8]),
+   articulation:choose(r,[.68,.82,.95]),shape:choose(r,[0,1,2])};
+}
+const KEY_PCS=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+function nearestDiatonic(source,target,low,high){
+ const tonic=KEY_PCS.indexOf(source.key);
+ if(tonic<0)return target;
+ const scale=source.mode==="minor"?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];
+ const pitchClasses=new Set(scale.map(n=>(tonic+n)%12));
+ const candidates=[];
+ for(let n=low;n<=high;n++)if(pitchClasses.has(PC(n)))candidates.push(n);
+ return candidates.reduce((best,n)=>Math.abs(n-target)<Math.abs(best-target)?n:best,candidates[0]??target);
+}
+function phrasePitch(source,chord,target,step,r,low=60,high=89){
+ // Phrase anchors stay in the harmony. Short weak notes may become diatonic
+ // passing tones, giving the tune melodic motion without random chromatics.
+ const chordPitch=chordToneNear(target,chord,low,high);
+ if(step%4===0||r()>.27)return chordPitch;
+ const passing=nearestDiatonic(source,target+(r()<.5?-2:2),low,high);
+ return Math.abs(passing-chordPitch)<=5?passing:chordPitch;
 }
 function popMusic(source,seed,role){
  const r=random(seed+"|pop-music"),out=[];

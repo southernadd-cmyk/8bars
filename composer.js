@@ -30,7 +30,7 @@ export function compose(input={}){
  const key=ROOTS[input.key]===undefined?"A":input.key,mode=input.mode==="major"?"major":"minor";
  const style=STYLES.includes(input.style)?input.style:"downtempo";
  const density=clamp(Number(input.density??.65)||.65,.15,1);
- const bpm=clamp(Number(input.bpm)||96,60,170);
+ const bpm=clamp(Number(input.bpm)||96,60,185);
  const swing=clamp(Number(input.swing??0)||0,0,.65);
  const variants=input.variations||{};
  const harmonyOverrides=normalizeHarmonyOverrides(input.harmonyOverrides);

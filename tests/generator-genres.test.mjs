@@ -84,3 +84,22 @@ test("Genre metadata, manual drum overrides, links and real samples survive the 
  const workflow=readFileSync(new URL("../.github/workflows/pages.yml",import.meta.url),"utf8");
  assert.match(workflow,/generator-genres\.js/);
 });
+
+test("Regenerating one genre track changes only that track",()=>{
+ for(const [genre,scene,track] of [
+  ["dnb","jungle","kick"],["hiphop","trap","hat"],
+  ["pop","indie","lead"],["hiphop","boom-bap","bass"]]){
+  const seed="variation-independent-"+genre+"-"+track;
+  const p=genrePreset(genre,scene,seed);
+  const settings={...p,seed,key:"A",mode:"minor",bpm:p.bpm,
+   density:p.density/100,swing:p.swing/100,harmonyOverrides:Array(8).fill(null)};
+  const original=composeGenreSong(settings);
+  const revised=composeGenreSong({...settings,variations:{[track]:3}});
+  const untouched=events=>events.filter(e=>e.track!==track);
+  const changed=events=>events.filter(e=>e.track===track);
+  assert.deepEqual(untouched(original.events),untouched(revised.events),
+    genre+" "+track+" must not affect other tracks");
+  assert.notDeepEqual(changed(original.events),changed(revised.events),
+    genre+" "+track+" should change");
+ }
+});

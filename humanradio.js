@@ -1,6 +1,6 @@
 import {TRACKS} from "./composer.js?v=0.5.3";
 import {composeWithEngine} from "./music-engines.js";
-import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,nearestSample} from "./sounds.js";
+import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
 import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
@@ -71,15 +71,41 @@ function finishRadioForm(candidate){
  return {...profile,sections,events:sections[0].events,
    eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
 }
+// Each compositional system also gets a coherent *recorded instrument* palette.
+// Filter through the existing role-safe bank; never substitute artificial sound.
+const ENGINE_TIMBRES={
+ pattern:{bass:["Bass","Plucked strings"],chords:["Keys & organs","Guitars"],
+   arp:["Guitars","Mallets","Mallets & bells","Plucked strings"],
+   lead:["Guitars","Plucked strings","Mallets","Mallets & bells"],
+   counter:["Strings","Bowed strings"],pad:["Keys & organs"]},
+ melodic:{bass:["Bass","Strings"],chords:["Keys & organs","Guitars"],
+   arp:["Plucked strings","Guitars"],lead:["Strings","Bowed strings","Winds","Vocal melodies"],
+   counter:["Strings","Bowed strings","Winds","Vocal melodies"],
+   pad:["Keys & organs","Strings","Bowed strings"]},
+ ambient:{bass:["Bass","Keys & organs"],chords:["Keys & organs","Bowed strings"],
+   arp:["Mallets","Mallets & bells","Plucked strings"],
+   lead:["Mallets","Mallets & bells","Plucked strings","Strings"],
+   counter:["Bowed strings","Winds"],pad:["Keys & organs","Bowed strings","Winds"]},
+ process:{bass:["Bass","Keys & organs"],chords:["Keys & organs","Mallets & bells"],
+   arp:["Mallets","Mallets & bells","Plucked strings"],
+   lead:["Mallets","Mallets & bells","Plucked strings","Vocal melodies"],
+   counter:["Strings","Bowed strings","Winds"],pad:["Keys & organs","Bowed strings"]}};
+function paletteFor(engine,role,voices){
+ const categories=ENGINE_TIMBRES[engine]?.[role]||[];
+ const preferred=new Set(categories.flatMap(name=>VOICE_FAMILIES[name]||[]));
+ const filtered=voices.filter(voice=>preferred.has(voice));
+ return filtered.length>=2?filtered:voices;
+}
 function planNext(expand=true){
  const old=current;
  const profile=chooseRadioProfile(old);
  const voices={...DEFAULT_VOICES};
  for(const role of roles){
-   const pool=REGEN_VOICE_POOLS[role].filter(v=>VOICES[v]?.length &&
+   const suitable=REGEN_VOICE_POOLS[role].filter(v=>VOICES[v]?.length &&
      (!v.startsWith("vocalSung")||v==="vocalSungNotes"));
+   const pool=paletteFor(profile.engine,role,suitable);
    const previous=old?.voices[role];
-   if(previous&&Math.random()<.43&&VOICES[previous])voices[role]=previous;
+   if(previous&&Math.random()<.43&&pool.includes(previous))voices[role]=previous;
    else{
      const options=pool.filter(id=>id!==previous);
      voices[role]=choice(options.length?options:pool);

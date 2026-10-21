@@ -129,7 +129,7 @@ export function nearestChordTone(target,chord,lower=63,upper=93){
 export function livingMelody(genome,bar,variant=0){
  const {motif,path}=genome,chord=path[bar];
  const degrees=motif.degrees;
- const rotation=variant==="answer"?1:variant==="return"?0:variant==="lift"?2:0;
+ const rotation=variant==="answer"?1:variant==="lift"?2:variant==="reprise"?3:0;
  const rhythmicGuide=euclideanPositions(motif.leadPulses,motif.phase+bar*2+rotation);
  // Inherited six-note attack pattern is the recognizable rhythmic signature.
  // Euclidean phase rotation supplies a second, slowly drifting pulse layer.

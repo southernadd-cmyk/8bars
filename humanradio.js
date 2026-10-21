@@ -388,6 +388,12 @@ async function start(){
       status("Preparing the first eight bars and decoding the recorded instruments…");
       if(!current)current=planNext();
       await prepare(current);
+      // The pre-start selector can change while recordings download.
+      // Never start an already superseded station's music.
+      if(current.channel!==selectedChannel){
+        current=planNext();
+        await prepare(current);
+      }
       gainFor(current);
       changeVisual();
       current.bus.gain.value=.82;
@@ -435,8 +441,9 @@ function changeStation(value){
    current=null;
    status("Selected "+RADIO_CHANNELS[channel].name+" · press Start listening");
  }else{
-   // Paused channels are switched on Resume while keeping the existing
-   // audio context; do not retain a composition from the previous station.
+   // Clear any already-scheduled notes from the paused station's bus
+   // before the audio context resumes with the new channel.
+   if(current?.bus){try{current.bus.disconnect()}catch{}}
    current=null;
    paused=false;
    status("Selected "+RADIO_CHANNELS[channel].name+" · press Play");

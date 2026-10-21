@@ -152,8 +152,13 @@ function drumBassMusic(source,seed,role){
        bassRoot(next):bass+(i===1&&pos!==10&&r()<.24?12:0);
      const length=i===0?(steps[1]??16)-.6:
        (steps[i+1]??16)-pos-.7;
-     out.push(event("bass",bar,pos,clamp(note,33,52),Math.max(1.5,length),
-       drop?.86:intro?.49:.72));
+     const main=event("bass",bar,pos,clamp(note,33,52),Math.max(1.5,length),
+       drop?.86:intro?.49:.72);
+     out.push(main);
+     // A genuine recorded C1 sub, an octave below the Reese/growl,
+     // supports the first bass hit of every bar and each drop accent.
+     if(drop||i===0)out.push({...main,note:main.note-12,
+       sampleVoice:"dnbSub",velocity:drop?.27:.2});
    }
    // Chords don't fire as 16th-note EDM arpeggios: restrained stabs/long
    // liquid pads leave room for bass and the break.

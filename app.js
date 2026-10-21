@@ -1,7 +1,7 @@
 import {sampleGain,samplePeakGain} from "./sample-levels.js";
 import {LOCAL_SAMPLES} from "./sample-map.js?v=0.6.4";
 import {compose,TRACKS,STYLES,ENGINE_VERSION} from "./composer.js?v=0.5.4";
-import {GENERATOR_GENRES,validGeneratorGenre,validSubgenre,defaultSubgenre,genrePreset,composeGenreSong,genreDrumSample} from "./generator-genres.js?v=3";
+import {GENERATOR_GENRES,validGeneratorGenre,validSubgenre,defaultSubgenre,genrePreset,composeGenreSong,genreDrumSample} from "./generator-genres.js?v=4";
 import {composeWithEngine,ENGINE_IDS} from "./music-engines.js?v=0.7.10";
 import {ALL_CHORDS,chordsInKey,chordSymbol,readHarmonyParam,normalizeHarmonyOverrides} from "./harmony.js";
 import {restoreVolumes} from "./settings.js";
@@ -52,7 +52,7 @@ function loadLink(){
  state.engine=ENGINE_IDS.includes(p.get("engine"))?p.get("engine"):hasGenre?preset.engine:state.engine;
  if(["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].includes(p.get("key")))state.key=p.get("key");
  state.harmonyOverrides=readHarmonyParam(p.get("harmony"));
- state.voices={...DEFAULT_VOICES,...(hasGenre?preset.voices:null)};
+ state.voices={...DEFAULT_VOICES,...(hasGenre||!p.has("style")&&!p.has("engine")?preset.voices:null)};
  const v=(p.get("variations")||"").split(",");
  TRACKS.forEach((t,i)=>state.variations[t.id]=savedNum(v[i],0,0,99999));
  const inst=(p.get("voices")||"").split(",");
@@ -89,8 +89,8 @@ function syncControls(){
  $("densityValue").textContent=state.density+"%";
  $("swingValue").textContent=state.swing+"%";
 }
-function applyGenreDefaults(){
- const preset=genrePreset(state.genre,state.subgenre,state.seed);
+function applyGenreDefaults(previousVoices=null){
+ const preset=genrePreset(state.genre,state.subgenre,state.seed,previousVoices);
  for(const id of ["bpm","density","swing","style","engine"])state[id]=preset[id];
  if(preset.voices)state.voices={...state.voices,...preset.voices};
  if(state.genre==="hiphop"||state.genre==="dnb")
@@ -757,6 +757,7 @@ function wire(){
      const value=new Uint32Array(1);crypto.getRandomValues(value);
      return value[0]%count;
    };
+   const previousVoices={...state.voices};
    const sounds=regenerateSelections(state.voices,state.drumSounds,randomIndex);
    state.voices=sounds.voices;
    state.drumSounds=sounds.drumSounds;
@@ -784,7 +785,7 @@ function wire(){
    }
    state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));
    state.harmonyOverrides=normalizeHarmonyOverrides(null);
-   applyGenreDefaults();
+   applyGenreDefaults(previousVoices);
    const wasPlaying=playing;
    rerender();
    say("New "+GENERATOR_GENRES[state.genre].name+" · "+state.subgenre+" song and sounds ready.");

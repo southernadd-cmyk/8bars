@@ -1,3 +1,4 @@
+import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -128,8 +129,12 @@ function planNext(expand=true){
  const old=current;
  const profile=chooseRadioProfile(old,Math.random,selectedChannel);
  const sameChannel=old?.channel===profile.channel;
- const voices={...DEFAULT_VOICES};
- for(const role of roles){
+ const seed=rngToken();
+ // Genre programmes share the editor's broad recorded-voice palettes.
+ // Mixed still follows engine-specific timbres and station-independent logic.
+ const voices=profile.channel==="mixed"?{...DEFAULT_VOICES}:
+   planInstrumentPalette(profile.channel,profile.scene,seed,sameChannel?old.voices:null);
+ if(profile.channel==="mixed")for(const role of roles){
    const suitable=REGEN_VOICE_POOLS[role].filter(v=>VOICES[v]?.length &&
      (!v.startsWith("vocalSung")||v==="vocalSungNotes"));
    const pool=paletteFor(profile.engine,role,suitable,profile.channel);
@@ -139,42 +144,6 @@ function planNext(expand=true){
      const options=pool.filter(id=>id!==previous);
      voices[role]=choice(options.length?options:pool);
    }
- }
- if(profile.channel==="dnb"){
-   voices.bass=choice(["dnbReese","dnbReese","dnbWobble","dnbFm"]);
-   voices.chords=choice(["pianoSoft","pianoBright","organ"]);
-   voices.pad=choice(["harmonium","organ","pianoSoft"]);
-   // The DnB channel timbre filter remains authoritative; let liquid include
-   // genuine strings rather than hard-overriding every lead to a keyboard.
-   const candidates=paletteFor(profile.engine,"lead",
-     REGEN_VOICE_POOLS.lead.filter(id=>VOICES[id]?.length),"dnb");
-   const sceneLeads=profile.scene==="liquid"?
-     ["violin","cello","concertPiano","electricGuitar"]:
-     ["electricGuitar","concertPiano"];
-   const suitable=sceneLeads.filter(id=>candidates.includes(id));
-   voices.lead=choice(suitable.length?suitable:candidates);
-   voices.counter="violin";
-   voices.arp="pianoSoft";
- }else if(profile.channel==="hiphop"){
-    const trap=profile.scene==="trap",west=profile.scene==="west-coast";
-    const lofi=profile.scene==="lofi";
-    voices.bass=trap?"dnb808":choice(["electricBass","uprightBass","dnbSub"]);
-    voices.chords=choice(lofi?["pianoSoft","pianoSoft","organ"]:
-      west?["organ","pianoBright","steelBright"]:
-      ["pianoSoft","concertPiano","organ"]);
-    voices.pad=lofi?"pianoSoft":choice(["organ","harmonium","pianoSoft"]);
-    voices.lead=choice(trap?["pianoSoft","organ","steelBright"]:
-      west?["organ","steelBright","electricGuitar"]:
-      ["pianoSoft","concertPiano","steelBright"]);
-    voices.arp=west?"steelBright":"pianoSoft";
-    voices.counter=choice(["organ","concertPiano","electricGuitar"]);
-  }else if(profile.channel==="pop"){
-   voices.bass=choice(["electricBass","uprightBass"]);
-   voices.chords=choice(["pianoBright","concertPiano","steelBright","electricGuitar"]);
-   voices.pad=choice(["pianoSoft","harmonium","organ"]);
-   voices.lead=choice(["electricGuitar","concertPiano","steelBright","vocalSungNotes"]);
-   voices.counter=choice(["violin","electricGuitar","concertPiano"]);
-   voices.arp=choice(["steelBright","concertPiano","electricGuitar"]);
  }
  const oldDrums=sameChannel?old.drumSounds:null;
  const drumSounds=Object.fromEntries(drums.map(id=>
@@ -192,7 +161,6 @@ function planNext(expand=true){
      if(candidates.length)drumSounds[id]=choice(candidates).i;
    }
  }
- const seed=rngToken();
  const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode,scene:profile.scene});
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,

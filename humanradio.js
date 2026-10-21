@@ -10,7 +10,7 @@ import {parseRadioDictionary,radioTitleForSeed} from "./radio-names.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
 import {dnbDrumSample} from "./dnb-break-kit.js?v=2";
-import {createRadioVisual} from "./radio-visual.js";
+import {createRadioVisual} from "./radio-visual.js?v=2";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));

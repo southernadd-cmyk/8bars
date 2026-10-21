@@ -436,7 +436,7 @@ function save(blob,filename){
 function stem(){return "8bars-"+state.seed.replace(/[^a-z0-9-_]/gi,"-").slice(0,40)}
 function downloadJson(){
  save(new Blob([JSON.stringify({...composition,mixer:{
- voices:state.voices,drumSounds:state.drumSounds,volumes:state.volumes,muted:[...state.muted],solo:[...state.solo]
+ genre:state.genre,subgenre:state.subgenre,voices:state.voices,drumSounds:state.drumSounds,volumes:state.volumes,muted:[...state.muted],solo:[...state.solo]
  },sampleSources:inventory().map(s=>({url:s.url,license:s.license})),importedSources:userLibrary.filter(s=>[...userAssignments.values()].includes(s.id)).map(s=>({name:s.name,license:s.license,author:s.author,source:s.source,sourceUrl:s.sourceUrl}))},null,2)],{type:"application/json"}),stem()+".json");
 }
 function vlen(num){
@@ -726,7 +726,7 @@ function wireLibrary(){
  void refreshLibrary().then(()=>paint()).catch(e=>console.error("Local library unavailable",e));
 }
 function wire(){
- for(const id of ["seed","bpm","density","swing","key","mode","style","engine"]){
+ for(const id of ["seed","bpm","density","swing","key","mode"]){
    $(id).addEventListener(id==="seed"?"change":"input",()=>{
      state[id]=["bpm","density","swing"].includes(id)?+$(id).value:$(id).value;
      // A new key/mode starts a fresh diatonic plan; other settings keep chosen chords.
@@ -734,6 +734,19 @@ function wire(){
      rerender();
    });
  }
+ $("genre").addEventListener("change",()=>{
+   state.genre=validGeneratorGenre($("genre").value);
+   state.subgenre=defaultSubgenre(state.genre);
+   state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   applyGenreDefaults();rerender();
+   if(audio)void loadSamples().catch(error=>say("Sound loading failed: "+error.message));
+ });
+ $("subgenre").addEventListener("change",()=>{
+   state.subgenre=validSubgenre(state.genre,$("subgenre").value);
+   state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   applyGenreDefaults();rerender();
+   if(audio)void loadSamples().catch(error=>say("Sound loading failed: "+error.message));
+ });
  $("play").addEventListener("click",toggle);
  $("another").addEventListener("click",()=>{
    // Change both the composition and the selected instruments on all 12 tracks.
@@ -754,9 +767,10 @@ function wire(){
    }while(state.seed===previousSeed);
    state.variations=Object.fromEntries(TRACKS.map(t=>[t.id,0]));
    state.harmonyOverrides=normalizeHarmonyOverrides(null);
+   applyGenreDefaults();
    const wasPlaying=playing;
    rerender();
-   say("New composition and sounds ready.");
+   say("New "+GENERATOR_GENRES[state.genre].name+" · "+state.subgenre+" song and sounds ready.");
    if(wasPlaying)void toggle();
    else if(audio)void loadSamples().catch(err=>say("Sound loading failed: "+err.message));
  });

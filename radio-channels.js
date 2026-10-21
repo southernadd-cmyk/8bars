@@ -48,7 +48,7 @@ function randomFrom(seed){
 // sounds.js; these patterns always use the established real recordings.
 export function applyChannelGroove(events,channel,seed,section="statement",scene=""){
  if(validRadioChannel(channel)==="mixed")return events;
- const r=randomFrom(seed+"|"+channel+"|"+section+"|"+scene);
+ const r=randomFrom(seed+"|"+channel+"|"+section+(channel==="pop"?"":"|"+scene));
  const created=[];
  const add=(track,bar,step,velocity,duration=1)=>{
    if(step<0||step>15)return;

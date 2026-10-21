@@ -237,9 +237,11 @@ function hiphopMusic(source,seed,role){
    west?[[0,8],[0,6,12],[2,10]]:
    lofi?[[0],[0,10]]:
    [[0,8],[0,7,12],[0,4,10]]);
+ let previousVoicing=null;
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
-   const root=bassRoot(chord),tones=voicedTriad(chord,lofi?66:west?72:68);
+   const root=bassRoot(chord),tones=smoothVoicing(chord,lofi?66:west?72:68,previousVoicing);
+   previousVoicing=tones;
    const bassPositions=quiet?bassSteps.slice(0,1):bassSteps;
    for(let i=0;i<bassPositions.length;i++){
      const pos=i===0?0:clamp(bassPositions[i]+bassPickup,1,15);
@@ -266,18 +268,21 @@ function hiphopMusic(source,seed,role){
    // Recognisable two-bar phrase with contrast between sparse verses and hooks.
    if(!quiet||(!trap&&!lofi&&bar>=4)){
      const phraseBar=bar%2,active=lift||!trap||bar%2===0;
+     const phrase=developPhrase(hook,bar,{answer:answering});
      if(active){
-       for(let i=0;i<hook.rhythm.length;i++){
+       for(let i=0;i<phrase.rhythm.length;i++){
          if(quiet&&i>0)continue;
          if(!lift&&trap&&i>1)continue;
          if(!lift&&lofi&&i>1)continue;
-         const pos=clamp(hook.rhythm[i]+motifOffset,0,15);
-         const last=hook.rhythm[i+1]===undefined?16:
-           Math.max(pos+1,clamp(hook.rhythm[i+1]+motifOffset,0,16));
-         const shift=hook.contour[(i+phraseBar)%hook.contour.length]*(answering?-1:1);
-         const pitch=phrasePitch(source,chord,
+         const pos=clamp(phrase.rhythm[i]+motifOffset,0,15);
+         const last=phrase.rhythm[i+1]===undefined?16:
+           Math.max(pos+1,clamp(phrase.rhythm[i+1]+motifOffset,0,16));
+         const shift=phrase.contour[(i+phraseBar)%phrase.contour.length];
+         let pitch=phrasePitch(source,chord,
            (west?73:lofi?68:71)+centreOffset+hook.centre+shift*3,
            pos,r,60,84);
+         if(phrase.cadence&&i===phrase.rhythm.length-1)
+           pitch=chordToneNear((west?73:lofi?68:71)+centreOffset,chord,60,84);
          out.push(event("lead",bar,pos,pitch,
            Math.min(trap?3.5:lofi?6:4.5,Math.max(.75,(last-pos-.3)*hook.articulation)),
            lift?.47:trap?.24:lofi?.25:.34));

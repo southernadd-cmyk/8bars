@@ -111,7 +111,9 @@ function percussion(c,engine){
 }
 function pattern(c){
  const {add,r,triad,root,bassNote,density}=c;
- const hook=pick(()=>r("lead"),[[0,2,4,7],[0,3,5,7],[0,4,7,4],[0,2,5,3]]);
+ const pr=()=>r("lead"),phrase=phraseBlueprint(pr);
+ const hook=phrase.contour.slice(0,Math.min(phrase.contour.length,6));
+ const hookBeats=phrase.rhythm.slice(0,hook.length);
  const hits=pick(()=>r("bass"),[[0,7,10],[0,4,8,12],[0,6,10,14]]);
  for(let b=0;b<8;b++){
    const chord=triad(b),change=b>=4;
@@ -127,10 +129,11 @@ function pattern(c){
      if(r("arp")<.55+density*.2)
        add("arp",b*16+pos,1.5,.26,chord[(i+(change?1:0))%3]+12);
    }
-   for(let i=0;i<hook.length;i++){
-     const beat=[0,3,7,11][i]+(b%2===1?1:0);
-     const note=chord[hook[i]%3]+24+(hook[i]>=5?12:0);
-     add("lead",b*16+beat,2.5,.52,note);
+   for(let i=0;i<hookBeats.length;i++){
+     const beat=clamp(hookBeats[i]+(b%2===1?1:0),0,15);
+     const degree=hook[(i+(b>=4?1:0))%hook.length];
+     const note=chord[((degree%3)+3)%3]+24+(degree>=5?12:0);
+     add("lead",b*16+beat,Math.min(3,16-beat),.48+pr()*.12,note);
    }
    if(b%2===1)for(const i of [4,12])
      add("counter",b*16+i,3,.28,chord[(i/4+1)%3]+12);
@@ -139,35 +142,76 @@ function pattern(c){
  }
  percussion(c,"pattern");
 }
+// Seeded phrase grammar: each song creates its own contour and attack pattern.
+// Question -> answer -> variation -> cadence, not one fixed outline for all seeds.
+// Only the lead RNG is consumed: a lead regeneration cannot affect other parts.
+export function phraseBlueprint(random){
+ const r=random, contourLength=4+Math.floor(r()*4);
+ const contour=[Math.floor(r()*4)+1];
+ for(let i=1;i<contourLength;i++){
+   const jumps=[-3,-2,-1,0,1,1,2,3];
+   const interval=jumps[Math.floor(r()*jumps.length)];
+   contour.push(clamp(contour.at(-1)+interval,0,8));
+ }
+ // Force a meaningful contour range; not every tune collapses to repeated notes.
+ if(Math.max(...contour)-Math.min(...contour)<2)
+   contour[Math.floor(r()*(contourLength-1))+1]=clamp(contour[0]+(r()<.5?3:-3),0,8);
+ const choices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+ const number=4+Math.floor(r()*3);
+ const starts=new Set([r()<.82?0:2]);
+ while(starts.size<number)starts.add(choices[Math.floor(r()*choices.length)]);
+ const rhythm=[...starts].sort((a,b)=>a-b);
+ return {
+   contour,rhythm,
+   response:Math.floor(r()*4), // answer, invert, retrograde, sequence
+   direction:r()<.5?-1:1,
+   register:Math.floor(r()*3)-1,
+   pivot:1+Math.floor(r()*4),
+   answerShift:1+Math.floor(r()*2)
+ };
+}
 function melodic(c){
  const {add,r,triad,melodyDegree,closestChord,bassNote}=c;
- // In this system the phrase is primary. Four two-bar questions are answered
- // by related two-bar phrases with controlled interval movement and rests.
- const outline=[0,1,2,4,3,2,1,0];
- const motion=[0,2,4,7,9,12,14];
- const phase=round(r("lead")*3);
+ const leadRandom=()=>r("lead");
+ const phrase=phraseBlueprint(leadRandom);
+ let last=null;
  for(let b=0;b<8;b++){
-   const response=b%2===1,starts=response?[2,6,10,14]:[0,4,7,12];
-   let last=null;
-   starts.forEach((step,i)=>{
-     const source=outline[(b*2+i+phase)%outline.length];
-     let target=melodyDegree(source+(response?2:0),1)+(b>=4?12:0);
-     if(i===0||i===3)target=closestChord(target,b,62,96);
-     if(last!==null&&Math.abs(target-last)>12)
-       target+=target>last?-12:12;
-     target=clamp(target,55,100);
-     add("lead",b*16+step,response?3.2:2.7,.56+(response?.04:0),target);
+   const response=b%2===1;
+   const turn=b>=4,closing=b===7;
+   let shape=phrase.contour.slice();
+   if(response){
+     if(phrase.response===0)shape=shape.map(degree=>clamp(degree+phrase.answerShift,0,8));
+     else if(phrase.response===1)shape=shape.map(degree=>clamp(2*phrase.pivot-degree,0,8));
+     else if(phrase.response===2)shape.reverse();
+     else shape=shape.map((degree,i)=>clamp(degree+(i%2?1:-1)*phrase.direction,0,8));
+   }
+   if(turn&&b<7)shape=shape.map((degree,i)=>
+     clamp(degree+(i%3===0?phrase.direction:0),0,8));
+   let starts=phrase.rhythm.map(step=>clamp(step+(response?1:0),0,15));
+   if(b===3||b===5)starts=starts.map((step,i)=>clamp(step+(i%2?1:0),0,15));
+   starts=[...new Set(starts)].sort((a,b)=>a-b);
+   for(let i=0;i<starts.length;i++){
+     const step=starts[i],degree=shape[(i+(b>=4?1:0))%shape.length];
+     let target=melodyDegree(degree,1)+phrase.register*12;
+     if(last!==null)while(target-last>10)target-=12;
+     if(last!==null)while(last-target>10)target+=12;
+     target=clamp(target,62,94);
+     if(step%4===0||i===0||closing&&i===starts.length-1)
+       target=closestChord(target,b,62,94);
+     if(closing&&i===starts.length-1){
+       target=closestChord(target,b,62,94);
+     }
+     const next=starts[i+1]??16;
+     add("lead",b*16+step,Math.min(5,Math.max(.75,next-step-.3)),
+       .49+(response?.06:0)+(turn?.04:0)+leadRandom()*.11,target);
      last=target;
-   });
+   }
    const chord=triad(b);
    add("bass",b*16,11,.59,bassNote(b));
    if(b%2===1)add("bass",b*16+12,3,.36,bassNote(b,7));
-   for(const n of chord)add("chords",b*16,11,.23,n+12);
    if(b%2===1)for(const n of chord)add("pad",b*16,14,.12,n+12);
-   for(const i of [3,9]){
-     if(r("counter")<.57)
-       add("counter",b*16+i,4,.26,chord[(i+b)%3]+12);
-   }
+   for(const i of [3,9])if(r("counter")<.57)
+     add("counter",b*16+i,4,.26,chord[(i+b)%3]+12);
    if(b%2===1)for(const i of [5,11])if(r("arp")<.63)
      add("arp",b*16+i,3,.22,chord[(b+i)%3]+12);
  }
@@ -311,6 +355,50 @@ function ecology(c,input){
        add("perc",bar*16+step,.5,.27);
  }
 }
+// A seeded accompaniment grammar, independent of the lead regeneration.
+// Preserve each engine's character but vary voicing, attack placement and
+// density. The existing engine-specific chord loops are replaced by this.
+function articulateChords(c,engine){
+ c.events.splice(0,c.events.length,...c.events.filter(e=>e.track!=="chords"));
+ const {r,triad,add}=c;
+ const options={
+   pattern:[[0,8],[2,6,10,14],[0,7,11],[4,12],[0,4,10,14]],
+   melodic:[[0],[0,8],[2,10],[0,6,12],[4,12]],
+   ambient:[[0],[0,8],[2],[4],[0,10]],
+   process:[[0,5,10],[0,7,13],[3,11],[0,4,8,12],[2,9,14]],
+   ecology:[[0,8],[0,10],[3,11],[0,6,12],[2,6,10,14]]
+ };
+ const length=engine==="ambient"?24:engine==="melodic"?10:engine==="process"?8:6;
+ const rhythmA=pick(()=>r("chords"),options[engine]);
+ const rhythmB=pick(()=>r("chords"),options[engine]);
+ const register=pick(()=>r("chords"),[0,0,12]);
+ let previous=null;
+ for(let bar=0;bar<8;bar++){
+   const triadNotes=triad(bar);
+   const candidates=[];
+   for(let inversion=0;inversion<3;inversion++){
+     const rotated=triadNotes.slice(inversion).concat(triadNotes.slice(0,inversion).map(n=>n+12));
+     for(const shift of [0,12]){
+       const notes=rotated.map(n=>n+shift);
+       if(notes[0]<52||notes.at(-1)>94)continue;
+       const movement=previous?notes.reduce((sum,n,i)=>sum+Math.abs(n-previous[i]),0):
+         Math.abs(notes[0]-(65+register));
+       candidates.push({notes,cost:movement+(r("chords")-.5)*7});
+     }
+   }
+   const picked=candidates.sort((a,b)=>a.cost-b.cost)[0]?.notes||triadNotes.map(n=>n+12);
+   previous=picked;
+   const pattern=bar===5?rhythmB:bar>=4&&bar!==7?rhythmB:rhythmA;
+   for(const beat of pattern){
+     if(engine==="ambient"&&beat>0&&r("chords")<.45)continue;
+     if(engine!=="ambient"&&beat>0&&r("chords")<.12)continue;
+     const duration=Math.min(16-beat,engine==="ambient"?length:
+       engine==="melodic"?length:length+(r("chords")<.3?2:0));
+     for(const pitch of picked)
+       add("chords",bar*16+beat,duration,.17+r("chords")*.13,pitch);
+   }
+ }
+}
 const SYSTEMS={pattern,melodic,ambient,process,ecology};
 export function composeWithEngine(input={}){
  const engine=ENGINE_IDS.includes(input.engine)?input.engine:"classic";
@@ -325,6 +413,7 @@ export function composeWithEngine(input={}){
  if(engine==="classic")return {...base,engine};
  const c=createContext(source,base,engine);
  SYSTEMS[engine](c,{...source,ecologyGenome});
+ articulateChords(c,engine);
  const events=c.events.sort((a,b)=>a.step-b.step||
    TRACKS.findIndex(t=>t.id===a.track)-TRACKS.findIndex(t=>t.id===b.track));
  return {...base,engine,events,ecologyGenome,identity:{...base.identity,system:engine},

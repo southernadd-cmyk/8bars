@@ -68,6 +68,7 @@ function popMusic(source,seed,role){
  const verseBass=choose(r,[[0,7,10],[0,8,13],[0,6,10,14],[0,9,12]]);
  const chorusBass=choose(r,[[0,4,8,10,12],[0,3,7,10,13],[0,4,7,11,14],[0,5,8,11,14],[0,4,8,12,15]]);
  const bassAccent=choose(r,[0,5,7,12]);
+ let previousVoicing=null;
  for(let bar=0;bar<8;bar++){
    const chord=roots[bar],next=roots[Math.min(7,bar+1)];
    // Pop bass changes with the chords, retaining a singable, bouncy motif.
@@ -82,7 +83,8 @@ function popMusic(source,seed,role){
        chorus?Math.min(3.5,16-step):Math.min(6,16-step),
        chorus?.71:.62));
    }
-   const notes=voicedTriad(chord,chorus?72:66);
+   const notes=smoothVoicing(chord,chorus?72:66,previousVoicing);
+   previousVoicing=notes;
    const chordTimes=chorus?chordBeats:bridge?[0]:[0,8];
    for(const pos of chordTimes){
      const level=chorus?.27:bridge?.12:.19;
@@ -101,18 +103,19 @@ function popMusic(source,seed,role){
    // during verses. Contour is rooted on the current chord, not rolled per note.
    if(!intro||bar>=2){
      const phraseAnswer=!chorus&&(bar%4>=2||answer);
-     const beats=hook.rhythm;
+     const developed=developPhrase(hook,bar,{answer:phraseAnswer});
+     const beats=developed.rhythm;
      const centre=71+shift+hook.centre;
      for(let i=0;i<beats.length;i++){
        if(bridge&&i%2===1)continue;
        const pos=beats[i];
-       const contour=hook.contour[i];
-       const motion=phraseAnswer?-contour:contour;
+       const motion=developed.contour[i];
        let pitch=phrasePitch(source,chord,centre+motion*3,pos,r,62,89);
-       if(bar===7&&i===beats.length-1)pitch=chordToneNear(centre,chord,62,89);
+       if(developed.cadence&&i===beats.length-1)
+         pitch=chordToneNear(centre-(developed.finalCadence?3:0),chord,62,89);
        const nextPos=beats[i+1]??16;
        out.push(event("lead",bar,pos,pitch,
-         Math.min(6,Math.max(.75,(nextPos-pos-.2)*hook.articulation)),
+         Math.min(6,Math.max(.75,(nextPos-pos-.2)*developed.articulation)),
          chorus?.76:bridge?.38:.59));
      }
    }

@@ -97,8 +97,8 @@ export function createRadioVisual(canvas){
  function render(time){
    if(!active)return;
    raf=requestAnimationFrame(render);
-   if(time-lastFrame<33)return;
-   lastFrame=time;frame++;
+   if(time-lastFrame<(reduced.matches?160:33))return;
+   lastFrame=time;if(!reduced.matches)frame++;
    if(canvas.clientWidth!==width||canvas.clientHeight!==height)resize();
    spectrum();
    kick*=.88;snare*=.85;

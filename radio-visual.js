@@ -29,7 +29,7 @@ export function createRadioVisual(canvas){
   function resize(){
     const rect=canvas.getBoundingClientRect();
     const w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));
-    const dpr=Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.4:1.7);
+    const dpr=Math.min(window.devicePixelRatio||1,w<700?1.4:1.7);
     const cw=Math.round(w*dpr),ch=Math.round(h*dpr);
     width=w;height=h;
     if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch}

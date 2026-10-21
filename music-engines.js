@@ -316,8 +316,11 @@ export function composeWithEngine(input={}){
  const engine=ENGINE_IDS.includes(input.engine)?input.engine:"classic";
  const ecologyGenome=engine==="ecology"?(input.ecologyGenome||
    planEcology({seed:input.seed,key:input.key,mode:input.mode})):null;
- const source=ecologyGenome?
-   {...input,harmonyOverrides:input.harmonyOverrides||ecologyGenome.harmonyOverrides}:input;
+ // The editor always supplies eight null override slots. Merge only actual
+ // user edits over the Tonnetz walk; an empty slot means "generated chord".
+ const source=ecologyGenome?{...input,
+   harmonyOverrides:ecologyGenome.harmonyOverrides.map((generated,i)=>
+     input.harmonyOverrides?.[i]||generated)}:input;
  const base=compose(source);
  if(engine==="classic")return {...base,engine};
  const c=createContext(source,base,engine);

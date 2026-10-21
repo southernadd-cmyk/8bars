@@ -90,6 +90,8 @@ test("Long-form sample preloading and boundaries preserve seamless continuous pl
  assert.match(app,/sharedToneBridge\(prev,current\)/);
  assert.match(app,/transitionHarmonyScore\(current,b\)/);
  assert.match(app,/pendingSamples\.has\(s\.url\)/);
+ assert.match(app,/skipRequested=true/);
+ assert.match(app,/if\(skipRequested\)\{\s*targetLoops=loops\+1/);
  assert.match(app,/function pruneSampleCache\(/);
  assert.doesNotMatch(app,/createOscillator/);
  assert.match(page,/humanradio\.gif/);

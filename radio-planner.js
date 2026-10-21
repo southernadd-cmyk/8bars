@@ -32,8 +32,10 @@ export function chooseRadioProfile(previous=null,random=Math.random,selectedChan
  const scene=choose(choices,random);
  const sceneRemaining=newScene?choose([2,3,4,5],random):(prior.sceneRemaining-1);
  const targetBpm=quant(scene.bpm[0]+random()*(scene.bpm[1]-scene.bpm[0]),1);
- const bpm=prior?clamp(targetBpm,Math.max(scene.bpm[0],prior.bpm-12),
-   Math.min(scene.bpm[1],prior.bpm+12)):targetBpm;
+ const bpm=prior?(channel==="mixed"?
+   clamp(targetBpm,prior.bpm-12,prior.bpm+12):
+   clamp(targetBpm,Math.max(scene.bpm[0],prior.bpm-12),
+     Math.min(scene.bpm[1],prior.bpm+12))):targetBpm;
  const targetDensity=scene.density[0]+random()*(scene.density[1]-scene.density[0]);
  const density=prior&&!newScene?clamp(targetDensity,prior.density-.13,prior.density+.13):targetDensity;
  const targetSwing=scene.swing[0]+random()*(scene.swing[1]-scene.swing[0]);

@@ -139,7 +139,7 @@ test("New song varies tonal centre unless the listener intentionally chose key o
    script.indexOf(' $("resetHarmony").addEventListener'));
  assert.match(handler,/if\(!keyPinned\)/);
  assert.match(handler,/if\(!modePinned\)/);
- assert.match(handler,/keys\.filter\(key=>key!==state\.key\)/);
+ assert.match(handler,/\.filter\(key=>key!==state\.key\)/);
  assert.match(handler,/state\.key=keys\[randomIndex\(keys\.length\)\]/);
  assert.match(script,/if\(id==="key"\)keyPinned=true/);
  assert.match(script,/if\(id==="mode"\)modePinned=true/);

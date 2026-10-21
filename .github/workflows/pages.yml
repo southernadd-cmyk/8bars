@@ -38,13 +38,14 @@ jobs:
           node --check audio-files.js
           node --check composer.js
           node --check music-engines.js
+          node --check music-ecology.js
           node --check harmony.js
           node --check theory.js
           node --check commons-audio.js
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html humanradio.html humanradio.js radio-planner.js radio-form.js favicon.svg style.css app.js composer.js music-engines.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html humanradio.html humanradio.js radio-planner.js radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           python3 -m pip install --break-system-packages --quiet pillow cairosvg
           python3 scripts/build-favicons.py dist
           test -s dist/favicon.ico
@@ -62,6 +63,7 @@ jobs:
           fi
           test -s dist/composer.js
           test -s dist/music-engines.js
+          test -s dist/music-ecology.js
           test -s dist/harmony.js
           test -s dist/theory.js
           test -s dist/sounds.js

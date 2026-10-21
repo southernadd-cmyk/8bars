@@ -132,3 +132,20 @@ test("Songs within EACH subgenre have different musical identities, not just dif
   }
  }
 });
+
+test("New song varies tonal centre unless the listener intentionally chose key or mode",()=>{
+ const script=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+ const handler=script.slice(script.indexOf(' $("another").addEventListener'),
+   script.indexOf(' $("resetHarmony").addEventListener'));
+ assert.match(handler,/if\(!keyPinned\)/);
+ assert.match(handler,/if\(!modePinned\)/);
+ assert.match(handler,/keys\.filter\(key=>key!==state\.key\)/);
+ assert.match(handler,/state\.key=keys\[randomIndex\(keys\.length\)\]/);
+ assert.match(script,/if\(id==="key"\)keyPinned=true/);
+ assert.match(script,/if\(id==="mode"\)modePinned=true/);
+});
+test("Subgenres may choose a musical form rather than always using the same full chorus",()=>{
+ const source=readFileSync(new URL("../generator-genres.js",import.meta.url),"utf8");
+ assert.match(source,/formRoll=rng\(/);
+ assert.match(source,/formRoll<\.34\?"statement"/);
+});

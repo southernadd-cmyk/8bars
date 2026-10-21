@@ -29,7 +29,7 @@ test("scene selection is bounded, develops, and does not jump more than 12 BPM",
    const prev=profile;
    profile=chooseRadioProfile(prev,()=>((i*17)%101)/101);
    assert.ok(Math.abs(profile.bpm-prev.bpm)<=12);
-   assert.ok(profile.targetLoops>=2&&profile.targetLoops<=4);
+   assert.ok(profile.targetLoops>=5&&profile.targetLoops<=7);
    assert.ok(profile.density>=.15&&profile.density<=1);
    assert.ok(profile.swing>=0&&profile.swing<=.65);
    assert.ok(["major","minor"].includes(profile.mode));
@@ -67,7 +67,7 @@ test("radio does not restart the composition or discard the beat on Resume",()=>
  assert.match(radio,/if\(paused&&current\?\.ready&&ctx\)/);
  assert.match(radio,/status\("Resumed · continuing the same piece and position"\)/);
  assert.match(radio,/recommendedCacheEvictions/);
- assert.match(radio,/scheduled\.eventsByStep\[localStep\]/);
+ assert.match(radio,/section\.eventsByStep\[localStep\]/);
  assert.match(radio,/radioNoveltyScore\(b,\[current,\.\.\.recentPieces\]\)/);
  assert.match(radio,/Math\.min\(5,Math\.max\(2,240\/current\.bpm\)\)/);
 });

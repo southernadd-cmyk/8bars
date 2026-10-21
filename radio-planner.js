@@ -1,10 +1,10 @@
 // Human Radio's musical memory and scene planning. Pure functions, no Web Audio
 // or DOM dependencies. The music itself is composed in composer.js from real recordings.
 export const RADIO_SCENES=[
- {id:"drift",name:"Drift",styles:["ambient","downtempo"],bpm:[68,94],density:[.29,.53],swing:[.02,.13],loops:[2,3,4]},
- {id:"headnod",name:"Head-nod",styles:["downtempo","breakbeat"],bpm:[82,112],density:[.47,.74],swing:[.07,.26],loops:[2,3,3]},
- {id:"motion",name:"Motion",styles:["house","breakbeat"],bpm:[104,132],density:[.56,.87],swing:[0,.16],loops:[2,2,3]},
- {id:"afterhours",name:"After hours",styles:["ambient","house","downtempo"],bpm:[78,115],density:[.34,.7],swing:[.02,.2],loops:[2,3,4]}
+ {id:"drift",name:"Drift",styles:["ambient","downtempo"],bpm:[68,94],density:[.29,.53],swing:[.02,.13],loops:[5,6,7]},
+ {id:"headnod",name:"Head-nod",styles:["downtempo","breakbeat"],bpm:[82,112],density:[.47,.74],swing:[.07,.26],loops:[5,6,6]},
+ {id:"motion",name:"Motion",styles:["house","breakbeat"],bpm:[104,132],density:[.56,.87],swing:[0,.16],loops:[5,5,6]},
+ {id:"afterhours",name:"After hours",styles:["ambient","house","downtempo"],bpm:[78,115],density:[.34,.7],swing:[.02,.2],loops:[5,6,7]}
 ];
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const choose=(values,random)=>values[Math.min(values.length-1,Math.floor(random()*values.length))];

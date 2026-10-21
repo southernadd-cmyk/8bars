@@ -19,6 +19,12 @@ Human Radio now evolves through four musical scenes covering ambient, downtempo,
 
 Playback resumes at the actual paused musical position. Scheduler events are indexed by step and decoded recordings are pruned from the cache as the session progresses. No generated-oscillator audio is used.
 
+### Human Radio: connected forms (Release 2)
+
+Each station chapter is now **five to seven related eight-bar sections** (40–56 bars) with an opening, statement, melodic answer, lift, optional breakdown and reprise, and final return. The composer varies lead/countermelody/arp and selected percussion between sections while retaining the chapter’s tonal centre, instrument palette and recurring phrase. A few middle-section chord substitutions use triads taken from the chapter’s existing harmony; the last section returns to its original chord sequence.
+
+Preload the *next* section's actual recordings while the current one plays; if they are not ready, keep playing the current section instead of starting silent notes. Chord-aware candidate ranking balances novelty with smooth harmonic movement. At a chapter boundary, a gentle crossfade sustains only shared pitches drawn from real, already loaded recordings; no synthesized bridge or incompatible chord is inserted. The status shows the current musical section.
+
 ## Sample bank and playback
 
 Current built-in samples are **all mirrored at build time** into the site's own compressed MP3 assets, using pinned upstream recordings. The Pages build creates sample-map.js and sample-mirror-report.json, and fails if any declared recording cannot be mirrored. The last verified deployment before this engine update contained 2,605 distinct recorded samples; use the latest build report for the current count. Browsers download only the selected song's required sounds, not the full library.

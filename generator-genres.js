@@ -96,9 +96,27 @@ export function composeGenreSong(settings){
   engine:settings.engine||preset.engine,harmonyOverrides});
  if(channel==="mixed")return {...base,genre,subgenre};
  const role="lift"; // A complete, hook-forward eight-bar arrangement.
- const pitched=arrangeGenreMusic({...base,scene:subgenre,leadVoice:settings.voices?.lead},
-   channel,settings.seed,role);
- const events=applyChannelGroove(pitched,channel,settings.seed,role,subgenre);
+ const source={...base,scene:subgenre,leadVoice:settings.voices?.lead};
+ const variation=settings.variations||{};
+ const pitchedTracks=["bass","chords","arp","lead","counter","pad"];
+ let pitched=arrangeGenreMusic(source,channel,settings.seed,role);
+ // Each ↻ regeneration must change only its own channel, even after the
+ // genre arranger replaces generic composer events.
+ for(const track of pitchedTracks){
+  if(!variation[track])continue;
+  const alternative=arrangeGenreMusic(source,channel,
+    settings.seed+"|"+track+"|"+variation[track],role).filter(e=>e.track===track);
+  pitched=pitched.filter(e=>e.track!==track).concat(alternative);
+ }
+ let events=applyChannelGroove(pitched,channel,settings.seed,role,subgenre);
+ for(const track of ["kick","snare","clap","hat","openhat","perc"]){
+  if(!variation[track])continue;
+  const alternative=applyChannelGroove([],channel,
+    settings.seed+"|"+track+"|"+variation[track],role,subgenre)
+    .filter(e=>e.track===track);
+  events=events.filter(e=>e.track!==track).concat(alternative);
+ }
+ events.sort((a,b)=>a.step-b.step);
  return {...base,genre,subgenre,events};
 }
 export function genreDrumSample(genre,subgenre,event,seed){

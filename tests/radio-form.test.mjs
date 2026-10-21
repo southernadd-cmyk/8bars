@@ -37,7 +37,7 @@ test("Human Radio now develops songs through five to seven eight-bar sections",(
 test("Musical development changes actual notes and harmony but returns to the theme",()=>{
  const p=chapter(7),ss=p.sections;
  const notes=section=>section.events.filter(e=>e.track==="lead").map(e=>[e.step,e.note]);
- const percussion=section=>section.events.filter(e=>e.track==="kick").map(e=>[e.step,e.velocity]);
+ const percussion=section=>section.events.filter(e=>e.track==="hat").map(e=>[e.step,e.velocity]);
  assert.deepEqual(ss[0].progression,ss.at(-1).progression,"Return to source harmonic cadence");
  assert.deepEqual(notes(ss[0]),notes(ss.at(-1)),"Return to recognizable lead melody");
  assert.notDeepEqual(notes(ss[1]),notes(ss[2]),"Answer must change lead motif");

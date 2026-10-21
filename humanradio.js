@@ -2,15 +2,15 @@ import {TRACKS} from "./composer.js?v=0.5.5";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
-import {sampleGain} from "./sample-levels.js";
+import {sampleGain,samplePeakGain} from "./sample-levels.js?v=2";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js?v=2";
 import {planEcology} from "./music-ecology.js";
 import {parseRadioDictionary,radioTitleForSeed} from "./radio-names.js";
-import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
+import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=3";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
-import {dnbDrumSample} from "./dnb-break-kit.js?v=2";
-import {createRadioVisual} from "./radio-visual.js?v=2";
+import {dnbDrumSample} from "./dnb-break-kit.js?v=3";
+import {createRadioVisual} from "./radio-visual.js?v=3";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
@@ -328,7 +328,11 @@ function playNote(piece,e,when,sectionLevel=1){
   const noteLength=Math.min(buffer.duration/rate,Math.max(.04,e.duration*stepSeconds));
   const fade=Math.min(.075,noteLength*.35);
   const role=drums.includes(e.track)?.62:e.track==="bass"?.75:e.track==="pad"?.24:.42;
-  const amp=Math.max(.0001,e.velocity*role*sampleGain(buffer)*sectionLevel);
+  // Keep the original loud/quiet contrast in source-recorded DnB velocity layers.
+  const acousticDnb=piece.channel==="dnb"&&
+    ["kick","snare","hat","openhat"].includes(e.track);
+  const level=acousticDnb?samplePeakGain(buffer):sampleGain(buffer);
+  const amp=Math.max(.0001,e.velocity*role*level*sectionLevel);
   envelope.gain.setValueAtTime(amp,when);
   envelope.gain.setValueAtTime(amp,when+Math.max(.001,noteLength-fade));
   envelope.gain.linearRampToValueAtTime(.0001,when+noteLength);

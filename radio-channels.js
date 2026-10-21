@@ -76,9 +76,16 @@ export function applyChannelGroove(events,channel,seed,section="statement"){
        for(const step of (bar%2===0?[7,15]:[3,11,15]))
          if(r()<(drop?.78:.56))add("snare",bar,step,.13+r()*.12,.35);
      }
-     for(let step=0;step<16;step+=2)
-       if(r()<(quiet?.59:.97))add("hat",bar,step,
-         step%4===2?.34+r()*.1:.19+r()*.08,.42);
+     for(let step=0;step<16;step+=2){
+       if(r()<(quiet?.59:.97)){
+         // A few offbeat accents trigger actual MIDI 64-95 recorded strikes.
+         // Most hats and all sparse breakdown hats remain subdued.
+         const accented=!quiet&&(step===2||step===10)&&r()<(drop?.75:.42);
+         const velocity=accented?.56+r()*.15:
+           step%4===2?.34+r()*.1:.19+r()*.08;
+         add("hat",bar,step,velocity,.42);
+       }
+     }
      if(drop||fill){
        for(const step of [11,13,15])
          if(r()<(drop?.62:.42))add("hat",bar,step,.15+r()*.11,.28);

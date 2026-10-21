@@ -29,7 +29,7 @@ export function createRadioVisual(canvas){
   function resize(){
     const rect=canvas.getBoundingClientRect();
     const w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));
-    const dpr=Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.4:1.7);
+    const dpr=Math.min(window.devicePixelRatio||1,w<700?1.4:1.7);
     const cw=Math.round(w*dpr),ch=Math.round(h*dpr);
     width=w;height=h;
     if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch}
@@ -80,7 +80,9 @@ export function createRadioVisual(canvas){
       ctx.fillRect(0,0,w,h);
     }
     ctx.globalCompositeOperation="source-over";
-    for(const star of STARS){
+    const starCount=width<700?95:STARS.length;
+    for(let index=0;index<starCount;index++){
+      const star=STARS[index];
       const drift=reduced.matches?0:t*.003*star.depth;
       const x=((star.x+drift)%1)*w,y=(star.y+Math.sin(t*.13+star.phase)*.0018*star.depth)*h;
       const shimmer=reduced.matches?.68:.58+.28*Math.sin(t*(.6+star.depth)+star.phase);
@@ -91,8 +93,9 @@ export function createRadioVisual(canvas){
   }
   function contour(r,t,seed=0){
     ctx.beginPath();
-    for(let n=0;n<=140;n++){
-      const a=n/140*TAU;
+    const points=width<700?64:140;
+    for(let n=0;n<=points;n++){
+      const a=n/points*TAU;
       const distortion=1+
         .06*Math.sin(a*5-t*.23+seed)+
         .037*Math.sin(a*9+t*.17-seed*1.6)+
@@ -134,13 +137,14 @@ export function createRadioVisual(canvas){
 
     // Twisting ribbons make the image feel like a living, animated location.
     // Both colour and shape evolve slowly; actual notes steer the motion.
-    for(let arm=0;arm<32;arm++){
-      const start=arm/32*TAU+chapter*.19;
+    const armCount=width<700?18:32,armPoints=width<700?42:80;
+    for(let arm=0;arm<armCount;arm++){
+      const start=arm/armCount*TAU+chapter*.19;
       const outward=arm%2===0;
       const hue=arm%5===0?theme.flare:arm%3===0?theme.second:theme.hue;
       ctx.beginPath();
-      for(let i=0;i<=80;i++){
-        const u=i/80;
+      for(let i=0;i<=armPoints;i++){
+        const u=i/armPoints;
         const p=outward?u:1-u;
         const a=start+u*(3.3+arm%5*.18)+t*(.10+(arm%4)*.015);
         const r=R*(.12+p*.94+.034*Math.sin(u*19+arm*1.9+t*.25))
@@ -157,11 +161,12 @@ export function createRadioVisual(canvas){
       ctx.stroke();
     }
     // Folds of luminous organic tissue shift independently from the spiral arms.
-    for(let fold=0;fold<15;fold++){
+    const foldCount=width<700?9:15,foldPoints=width<700?54:100;
+    for(let fold=0;fold<foldCount;fold++){
       const radius=R*(.29+fold*.051);
       ctx.beginPath();
-      for(let n=0;n<=100;n++){
-        const a=n/100*TAU;
+      for(let n=0;n<=foldPoints;n++){
+        const a=n/foldPoints*TAU;
         const curl=.068*Math.sin(6*a+t*.25+fold*.66)+.043*Math.cos(11*a-t*.19+fold*.3);
         const rr=radius*(1+curl);
         const x=Math.cos(a)*rr,y=Math.sin(a)*rr;
@@ -187,11 +192,12 @@ export function createRadioVisual(canvas){
 
     // Internal ribbons continue into the centre rather than leaving a flat disk.
     ctx.globalCompositeOperation="screen";
-    for(let strand=0;strand<12;strand++){
+    const strandCount=width<700?8:12,strandPoints=width<700?38:65;
+    for(let strand=0;strand<strandCount;strand++){
       ctx.beginPath();
-      for(let n=0;n<=65;n++){
-        const u=n/65;
-        const a=strand/12*TAU+u*5.8-t*.2;
+      for(let n=0;n<=strandPoints;n++){
+        const u=n/strandPoints;
+        const a=strand/strandCount*TAU+u*5.8-t*.2;
         const rr=R*(.045+.37*u);
         if(!n)ctx.moveTo(rr*Math.cos(a),rr*Math.sin(a));
         else ctx.lineTo(rr*Math.cos(a),rr*Math.sin(a));

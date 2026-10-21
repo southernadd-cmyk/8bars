@@ -32,17 +32,26 @@ function seedOffset(seed,role,zone){
  hash^=hash>>>16;hash=Math.imul(hash,0x7feb352d)>>>0;hash^=hash>>>15;
  return hash>>>0;
 }
+// A source kit may omit a velocity zone. Choose the closest existing take
+// rather than interrupting a complete composition.
+export function dnbVelocityChoices(options,midiVelocity){
+ if(!options?.length)return [];
+ const distance=s=>midiVelocity<s.velocityMin?s.velocityMin-midiVelocity:
+   midiVelocity>s.velocityMax?midiVelocity-s.velocityMax:0;
+ const closest=Math.min(...options.map(distance));
+ return options.filter(s=>distance(s)===closest);
+}
 export function dnbDrumSample(track,velocity,step,seed=0){
  const role=track==="snare"&&velocity<.34?"ghost":track;
  const options=DNB_BREAK_KIT[role];
  if(!options)return null;
  // Select an actual performance layer. "Ghost" always uses the quietest
  // snare recordings; main snare/hats/kicks map 0..1 to MIDI 0..127.
- const midiVelocity=Math.max(0,Math.min(127,Math.round(velocity*127)));
- const choices=options.filter(s=>role==="ghost"||
-   s.velocityMin<=midiVelocity&&midiVelocity<=s.velocityMax);
- // Every defined role covers its full playable MIDI range.
- if(!choices.length)throw Error("No acoustic velocity layer for "+role+": "+midiVelocity);
+ const midiVelocity=Math.max(0,Math.min(127,Math.round(
+   (Number.isFinite(velocity)?velocity:.5)*127)));
+ const choices=role==="ghost"?options:dnbVelocityChoices(options,midiVelocity);
+ // If an entire kit is unavailable, soundFor() uses the ordinary drum bank.
+ if(!choices.length)return null;
  const zone=choices[0].velocityMin;
  // Alternate distinct *performances*, not merely gain, at every kick/snare
  // quarter-note and each hi-hat eighth-note. Same-bar ghost pairs 3/7,

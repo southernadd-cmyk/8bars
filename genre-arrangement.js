@@ -155,10 +155,15 @@ function drumBassMusic(source,seed,role){
      const main=event("bass",bar,pos,clamp(note,33,52),Math.max(1.5,length),
        drop?.86:intro?.49:.72);
      out.push(main);
-     // A genuine recorded C1 sub, an octave below the Reese/growl,
-     // supports the first bass hit of every bar and each drop accent.
-     if(drop||i===0)out.push({...main,note:main.note-12,
-       sampleVoice:"dnbSub",velocity:drop?.27:.2});
+     // Use the rendered C1 sub as a low-frequency foundation. Drop an
+     // octave where playable; on low notes stay on the same pitch class rather
+     // than generating inaudible A0/D1 fundamentals below MIDI 28.
+     if(drop||i===0){
+       const octaveBelow=main.note-12;
+       const subNote=octaveBelow>=28?octaveBelow:main.note;
+       out.push({...main,note:subNote,sampleVoice:"dnbSub",
+         velocity:drop?.23:.17});
+     }
    }
    // Chords don't fire as 16th-note EDM arpeggios: restrained stabs/long
    // liquid pads leave room for bass and the break.

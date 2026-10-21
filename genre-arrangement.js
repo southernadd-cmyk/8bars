@@ -265,20 +265,23 @@ function hiphopMusic(source,seed,role){
  const lift=["lift","reprise","return"].includes(role);
  const quiet=["opening","breakdown"].includes(role);
  const answering=role==="answer";
- const leadFigures=trap?[[2,10],[0,11],[6,14]]:
-   west?[[2,6,10,14],[0,7,11],[3,8,13]]:
-   lofi?[[0,9],[2,10,14],[0,7]]:
-   [[0,6,10],[2,8,14],[0,7,12],[3,10]];
- const figure=choose(r,leadFigures);
- // Seed independent rhythm displacement, motif register and bass pickups;
- // a new chapter must not merely replay one of three canned phrases.
+ // Independent song identities: motif note count, attacks, register, pitch
+ // contour, bass syncopation and accompaniment attacks are all seed-derived.
+ const hook=phraseBlueprint(r,trap||lofi?2:3,trap||lofi?3:4,
+   {sparse:lofi,firstOnBeat:west});
  const motifOffset=choose(r,[-2,-1,0,1,2]);
- const centreOffset=choose(r,[-7,-4,0,4,7]);
+ const centreOffset=choose(r,[-7,-4,-2,0,3,5,7]);
  const bassPickup=choose(r,[-1,0,1]);
- const motion=choose(r,[[0,2,1,-1],[0,-2,1,2],[1,0,-1,2],[0,1,3,1]]);
- const bassSteps=trap?[0,7,11]:west?[0,3,7,11]:
-   lofi?[0,10]:headnod?[0,9,13]:[0,7,10,14];
- const chordSteps=trap?[0]:west?[0,8]:lofi?[0]:[0,8];
+ const bassSteps=choose(r,trap?[[0,7,11],[0,6,10],[0,9,14],[0,5,11]]:
+   west?[[0,3,7,11],[0,6,10],[0,4,9,13]]:
+   lofi?[[0,10],[0,7],[0,9,14]]:
+   headnod?[[0,9,13],[0,7,10],[0,10,14]]:
+   [[0,7,10,14],[0,6,11],[0,9,13],[0,5,10,14]]);
+ const bassMotion=choose(r,[[0,0,7,0],[0,7,0,0],[0,0,0,-5],[0,12,7,0],[0,-5,0,7]]);
+ const chordSteps=choose(r,trap?[[0],[0,8]]:
+   west?[[0,8],[0,6,12],[2,10]]:
+   lofi?[[0],[0,10]]:
+   [[0,8],[0,7,12],[0,4,10]]);
  for(let bar=0;bar<8;bar++){
    const chord=source.progression[bar],next=source.progression[Math.min(7,bar+1)];
    const root=bassRoot(chord),tones=voicedTriad(chord,lofi?66:west?72:68);
@@ -288,8 +291,10 @@ function hiphopMusic(source,seed,role){
      const nextPos=bassPositions[i+1]===undefined?16:
        Math.max(pos+1,clamp(bassPositions[i+1]+bassPickup,1,16));
      const walk=i===bassPositions.length-1&&bar%4===3;
-     const pitch=walk?bassRoot(next):root+(west&&i%2===1?7:0);
-     out.push(event("bass",bar,pos,clamp(pitch,33,52),
+     let pitch=walk?bassRoot(next):root+bassMotion[i%bassMotion.length];
+     while(pitch>52)pitch-=12;
+     while(pitch<33)pitch+=12;
+     out.push(event("bass",bar,pos,pitch,
        Math.max(1.5,Math.min(trap?7:lofi?8:5,nextPos-pos-.3)),
        quiet?.45:trap?.8:west?.76:.64));
    }
@@ -307,17 +312,19 @@ function hiphopMusic(source,seed,role){
    if(!quiet||(!trap&&!lofi&&bar>=4)){
      const phraseBar=bar%2,active=lift||!trap||bar%2===0;
      if(active){
-       for(let i=0;i<figure.length;i++){
+       for(let i=0;i<hook.rhythm.length;i++){
          if(quiet&&i>0)continue;
          if(!lift&&trap&&i>1)continue;
          if(!lift&&lofi&&i>1)continue;
-         const pos=clamp(figure[i]+motifOffset,0,15);
-         const last=figure[i+1]===undefined?16:
-           Math.max(pos+1,clamp(figure[i+1]+motifOffset,0,16));
-         const shift=motion[(i+phraseBar)%motion.length]*(answering?-1:1);
-         const pitch=chordToneNear((west?73:lofi?68:71)+centreOffset+shift*2,chord,60,84);
+         const pos=clamp(hook.rhythm[i]+motifOffset,0,15);
+         const last=hook.rhythm[i+1]===undefined?16:
+           Math.max(pos+1,clamp(hook.rhythm[i+1]+motifOffset,0,16));
+         const shift=hook.contour[(i+phraseBar)%hook.contour.length]*(answering?-1:1);
+         const pitch=phrasePitch(source,chord,
+           (west?73:lofi?68:71)+centreOffset+hook.centre+shift*3,
+           pos,r,60,84);
          out.push(event("lead",bar,pos,pitch,
-           Math.min(trap?3.5:lofi?6:4.5,Math.max(1,last-pos-.35)),
+           Math.min(trap?3.5:lofi?6:4.5,Math.max(.75,(last-pos-.3)*hook.articulation)),
            lift?.47:trap?.24:lofi?.25:.34));
        }
      }

@@ -13,6 +13,14 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
+## Human Radio: song identities and electronic DnB samples
+
+Human Radio displays a **generated artist and song title** for each new composition, each made from **1–3 title-cased English words**. The 800+ word local dictionary is `radio-words.txt`, a filtered/curated subset of the [1000 common English words list](https://github.com/powerlanguage/word-lists/blob/master/1000-most-common-words.txt), supplemented with creative nouns. The title generator in `radio-names.js` is deterministic for the song seed, excludes duplicate words within a track credit, and changes only when the composition changes. The technical key/BPM/engine and current song section line have been removed from Human Radio's visual display.
+
+The Drum & Bass station now uses **five purpose-built electronic bass audio recordings** (rather than acoustic/electric bass only), registered as sampled instruments in `electronic-bass.js`: Reese, wobble, FM growl, clean sub and 808 bass. The Reese/wobble/FM recordings are rooted at C2 (MIDI 36), and the sub/808 at C1 (MIDI 24), matching their upstream pitch metadata. DnB drop bass notes are accompanied by a quieter, genuine sampled sub an octave lower. These WAV files are mirrored to the Pages build as MP3 files with the other pinned recordings. Human Radio uses ordinary audio-buffer playback and Web Audio filtering, **not live oscillator synthesis**.
+
+**Source and redistribution:** [Martin Pfeffer — sound-effects](https://github.com/pepperonas/sound-effects/tree/3067d2d1e242e60571386cec87e0183dab6e9c9e/output/music/bass), released under the MIT License; copyright (c) 2026 Martin Pfeffer. Full licence is retained in `ELECTRONIC-BASS-LICENSE.txt` and distributed with the site. These are professionally useful *pre-rendered synthesizer samples*, not acoustic field recordings. The source project produced them using synthesis, which is appropriate to Reese/sub-bass timbres. Source files and their recorded MIDI root pitches are pinned and attributed in the catalogue.
+
 ## Pop and Drum & Bass genre-specific composition
 
 Hip-hop remains unchanged. Pop and Drum & Bass no longer merely overlay genre drums onto arbitrary generic eight-bar music.

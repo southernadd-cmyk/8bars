@@ -173,6 +173,9 @@ export function createRadioVisual(canvas){
         .13+.06*Math.sin(t*.37+fold)+.08*treble);
       ctx.stroke();
     }
+    // Opaque alpha compositing is essential here: screen blending would
+    // make the dark tunnel core disappear against the bright membranes.
+    ctx.globalCompositeOperation="source-over";
     // Dark heart adds strong depth and a focal point for the swirling tunnel.
     ctx.fillStyle=radial(0,0,R*.5,[
       [0,ink(theme.second,53,3,.94)],
@@ -183,6 +186,7 @@ export function createRadioVisual(canvas){
     ctx.beginPath();ctx.arc(0,0,R*.5,0,TAU);ctx.fill();
 
     // Internal ribbons continue into the centre rather than leaving a flat disk.
+    ctx.globalCompositeOperation="screen";
     for(let strand=0;strand<12;strand++){
       ctx.beginPath();
       for(let n=0;n<=65;n++){

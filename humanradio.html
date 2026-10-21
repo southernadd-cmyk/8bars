@@ -22,8 +22,6 @@
 .top,.bottom{position:fixed;left:clamp(16px,4vw,64px);right:clamp(16px,4vw,64px);display:flex;align-items:center;justify-content:space-between;gap:20px}
 .top{top:clamp(16px,3.5vh,36px)}.bottom{bottom:clamp(18px,4vh,44px);align-items:flex-end}
 .brand{color:#fff;font-weight:700;letter-spacing:-.06em;font-size:clamp(21px,3.5vw,34px);text-decoration:none}.brand span{color:#b7e4c7}
-.meta{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:#eff8ef;letter-spacing:.025em;text-shadow:0 1px 8px #000}
-.pill{background:rgba(9,22,18,.55);border:1px solid #ffffff36;border-radius:18px;padding:8px 13px;backdrop-filter:blur(8px)}
 button{appearance:none;border:1px solid #e0f6dc6e;background:#12241cd9;color:#fff;border-radius:999px;padding:13px 24px;font:inherit;font-weight:600;cursor:pointer}
 button:hover{background:#23553b}button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #b7fcb0;outline-offset:3px}
 .channel-select{display:flex;align-items:center;gap:9px;font-size:13px;color:#e0eee1;font-weight:600}
@@ -31,7 +29,11 @@ button:hover{background:#23553b}button:focus-visible,a:focus-visible,select:focu
 .intro-channel{justify-content:center;margin:22px auto 2px}
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #play{background:#c6efbb;color:#102216;border-color:#c6efbb}#play:hover{background:#e2ffdb}
-.details{max-width:45rem}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#ddfbdc;margin:0 0 6px}
+.details{max-width:50rem;min-width:0}
+.artist{font-size:clamp(17px,2.5vw,26px);font-weight:600;letter-spacing:-.025em;
+ color:#e9f7e8;margin:0 0 8px;text-shadow:0 2px 10px #000}
+#track{font-size:clamp(32px,6.6vw,76px);overflow-wrap:break-word;text-wrap:balance}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#ddfbdc;margin:0 0 6px}
 h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 0 9px;text-shadow:0 3px 22px #000a}
 #message{font-size:clamp(12px,1.6vw,16px);color:#f3f8ee;line-height:1.5;text-shadow:0 1px 9px #000}
 #intro{position:fixed;inset:0;display:grid;place-items:center;background:#06100cca;backdrop-filter:blur(12px);z-index:3;text-align:center;padding:24px}
@@ -39,7 +41,7 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 #intro h2{font-size:clamp(46px,9vw,96px);letter-spacing:-.065em;margin:0 0 10px}
 #intro p{line-height:1.55;color:#d4e7d5}#intro button{margin:17px 0;font-size:18px}
 #intro small{display:block;font-size:12px;color:#b3c7b6}
-@media(max-width:660px){.bottom{display:block}.details{margin-bottom:18px}.top .meta{display:none}.top{align-items:flex-start;gap:12px}.top .brand{font-size:clamp(19px,5vw,26px)}.channel-select{gap:5px}.channel-select select{min-width:0;max-width:150px;padding:9px 7px}.controls button{padding:10px 17px}}
+@media(max-width:660px){.bottom{display:block}.details{margin-bottom:18px}.top{align-items:flex-start;gap:12px}.top .brand{font-size:clamp(19px,5vw,26px)}.channel-select{gap:5px}.channel-select select{min-width:0;max-width:150px;padding:9px 7px}.controls button{padding:10px 17px}}
 @media(max-width:380px){.top{flex-wrap:wrap;gap:8px}.top .channel-select{margin-left:auto}}
 </style>
 </head>
@@ -48,9 +50,9 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 <div class="shade"></div>
 <header class="top"><a class="brand" href="./index.html" title="Return to the 8bars composer">8<span>bars</span> / human radio</a><div class="channel-select"><label for="channel">Channel</label><select id="channel" aria-label="Choose Human Radio channel"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div></header>
 <div class="bottom">
-<div class="details"><p class="eyebrow" id="phase">Human music, continuously</p><h1 id="track">Human Radio</h1><div id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</div></div>
+<div class="details"><p id="artist" class="artist" aria-label="Artist"></p><h1 id="track">Human Radio</h1><div id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</div></div>
 <div class="controls"><button id="play" type="button" aria-label="Start or pause radio">▶ Start radio</button><button id="skip" type="button" disabled>Next piece ↗</button></div>
 </div>
 <div id="intro"><article><p class="eyebrow">8bars presents</p><h2>Human Radio.</h2><p>An endless stream of original rule-composed music. Each station has its own tempo, groove, instrument palette and developing musical form.</p><div class="channel-select intro-channel"><label for="introChannel">Channel</label><select id="introChannel" aria-label="Choose radio channel before listening"><option value="mixed">Mixed</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div><p id="channelDescription">All musical scenes and composition systems.</p><button id="start" type="button">▶ Start listening</button><small>Your browser requires one click to enable audio. Headphones recommended.</small></article></div>
-<script type="module" src="./humanradio.js?v=9"></script>
+<script type="module" src="./humanradio.js?v=10"></script>
 </body></html>

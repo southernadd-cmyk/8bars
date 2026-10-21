@@ -1,4 +1,5 @@
 import {PITCHED_VOICES,PITCHED_VOCAL_REF} from "./pitched-vocals.js";
+import {ELECTRONIC_BASS_VOICES,ELECTRONIC_BASS_NAMES} from "./electronic-bass.js";
 import {EXTRA_VOICES} from "./extra-samples.js";
 import {INSTRUMENT_UPGRADES} from "./instrument-maps.js?v=0.6.1";
 import {VCSL_REF,VCSL_VOICES,VCSL_DRUMS} from "./vcsl-samples.js?v=0.6.2";
@@ -423,6 +424,12 @@ for(const [id,definition] of Object.entries(PITCHED_VOICES)){
  VOICE_NAMES[id]=definition.name;
  VOICE_FAMILIES["Vocal melodies"].push(id);
 }
+// Electronic bass patches are delivered as actual pinned WAV files, with
+// their genuine C1/C2 pitches and the upstream MIT license attached.
+Object.assign(VOICES,ELECTRONIC_BASS_VOICES);
+Object.assign(VOICE_NAMES,ELECTRONIC_BASS_NAMES);
+VOICE_FAMILIES["Electronic bass"]=Object.keys(ELECTRONIC_BASS_VOICES);
+
 export const DEFAULT_VOICES={bass:"electricBass",chords:"pianoSoft",arp:"steel",lead:"nylon",counter:"violin",pad:"harmonium"};
 export const DRUM_VARIATIONS=["Mixed"]; // legacy compatibility
 export function nearestSample(voice,note,velocity=.65){

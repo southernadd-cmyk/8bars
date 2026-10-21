@@ -27,6 +27,8 @@ jobs:
           node --check humanradio.js
           node --check radio-planner.js
           node --check radio-channels.js
+          node --check radio-names.js
+          node --check electronic-bass.js
           node --check genre-arrangement.js
           node --check radio-form.js
           node --check sounds.js
@@ -47,7 +49,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html humanradio.html humanradio.js radio-planner.js radio-channels.js genre-arrangement.js radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html humanradio.html humanradio.js radio-planner.js radio-channels.js radio-names.js radio-words.txt genre-arrangement.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           python3 -m pip install --break-system-packages --quiet pillow cairosvg
           python3 scripts/build-favicons.py dist
           test -s dist/favicon.ico
@@ -57,6 +59,10 @@ jobs:
           test -s dist/humanradio.js
           test -s dist/radio-planner.js
           test -s dist/radio-channels.js
+          test -s dist/radio-names.js
+          test -s dist/radio-words.txt
+          test -s dist/electronic-bass.js
+          test -s dist/ELECTRONIC-BASS-LICENSE.txt
           test -s dist/genre-arrangement.js
           test -s dist/radio-form.js
           if curl --fail --location --silent --show-error --retry 2 --max-time 40 "https://i.kym-cdn.com/photos/images/newsfeed/001/225/551/385.gif" -o dist/humanradio.gif && head -c 3 dist/humanradio.gif | grep -q GIF; then
@@ -84,7 +90,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .sample-cache
-          key: 8bars-mp3-v2-${{ hashFiles('sounds.js', 'instrument-maps.js', 'vcsl-samples.js', 'extra-samples.js', 'pitched-vocals.js') }}
+          key: 8bars-mp3-v2-${{ hashFiles('sounds.js', 'electronic-bass.js', 'instrument-maps.js', 'vcsl-samples.js', 'extra-samples.js', 'pitched-vocals.js') }}
           restore-keys: |
             8bars-mp3-v2-
       - name: Copy recorded samples into site artifact

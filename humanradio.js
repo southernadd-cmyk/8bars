@@ -6,11 +6,30 @@ import {sampleGain} from "./sample-levels.js";
 import {chooseRadioProfile,radioNoveltyScore,recommendedCacheEvictions} from "./radio-planner.js";
 import {buildRadioForm,sectionAllowsNote,sectionVelocity,transitionHarmonyScore,sharedToneBridge} from "./radio-form.js?v=2";
 import {planEcology} from "./music-ecology.js";
+import {parseRadioDictionary,radioNameForSeed} from "./radio-names.js";
 import {RADIO_CHANNELS,validRadioChannel,CHANNEL_TIMBRES,applyChannelGroove} from "./radio-channels.js?v=2";
 import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
+let radioWords=null,wordsPromise=null;
+function loadRadioWords(){
+ if(radioWords)return Promise.resolve(radioWords);
+ if(!wordsPromise)wordsPromise=fetch("./radio-words.txt?v=1")
+   .then(response=>{if(!response.ok)throw Error("Dictionary HTTP "+response.status);return response.text()})
+   .then(text=>{radioWords=parseRadioDictionary(text);if(radioWords.length<50)
+     throw Error("Dictionary is unexpectedly empty");return radioWords})
+   .catch(error=>{console.warn("Human Radio: using title fallback",error);
+     radioWords=parseRadioDictionary("blue\naardvark\nonly\nsuper\nachievement\nsilver\nmidnight\necho\nvelvet\norbit\ndream\nocean\nviolet\nsignal");return radioWords});
+ return wordsPromise;
+}
+function showSongIdentity(piece){
+ if(!piece)return;
+ const names=piece.names||radioNameForSeed(piece.seed,radioWords);
+ $("artist").textContent=names.artist;
+ $("track").textContent=names.title;
+ document.title=names.title+" — "+names.artist+" · Human Radio";
+}
 let channelVersion=0;
 function updateStationDisplay(){
  $("channel").value=selectedChannel;
@@ -138,7 +157,7 @@ function planNext(expand=true){
    }
  }
  if(profile.channel==="dnb"){
-   voices.bass="electricBass";
+   voices.bass=choice(["dnbReese","dnbReese","dnbWobble","dnbFm","dnb808"]);
    voices.chords=choice(["pianoSoft","pianoBright","organ"]);
    voices.pad=choice(["harmonium","organ","pianoSoft"]);
    voices.lead=profile.scene==="liquid"?
@@ -195,7 +214,7 @@ function planNext(expand=true){
  const percussion=piece.events.filter(e=>drums.includes(e.track)&&!keep.includes(e.track))
    .concat(oldPercussion.filter(e=>keep.includes(e.track)));
  const candidate={...profile,seed,voices,drumSounds,genreHarmony,ecologyGenome:piece.ecologyGenome,baseComposition:piece,
-   keep,oldPercussion,events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
+   keep,oldPercussion,names:radioNameForSeed(seed,radioWords),events:[...percussion,...piece.events.filter(e=>!drums.includes(e.track))],
    progression:piece.progression,ready:false,missing:0};
  // Five candidates are compared by their first phrase. The remaining four to
  // six sections are only composed for the winner, not on the audio hot path.
@@ -206,7 +225,7 @@ function soundFor(piece,e){
     const choices=DRUMS[e.track];
     return choices[Math.max(0,Math.min(piece.drumSounds[e.track]??0,choices.length-1))];
   }
-  return nearestSample(piece.voices[e.track],e.note,e.velocity);
+  return nearestSample(e.track==="bass"&&e.sampleVoice?e.sampleVoice:piece.voices[e.track],e.note,e.velocity);
 }
 function uniqueSamples(piece,sectionIndex=0){
  const section=piece.sections?.[sectionIndex];
@@ -255,7 +274,7 @@ async function warmNextSection(piece){
  piece.loadingSection=true;
  try{
    await prepare(piece,index);
-   if(piece===current&&playing)status(piece.sceneName+" · "+piece.sections[index].name+" ready");
+   if(piece===current&&playing)status("Next arrangement ready");
  }catch(error){
    if(piece===current&&playing)status("Continuing the current section while recordings load");
    console.warn("Human Radio: section preload failed",error);
@@ -283,7 +302,7 @@ async function queueNext(){
            targetLoops=loops+1;
            skipRequested=false;
            status("Next chapter ready · switching at the next eight-bar boundary");
-         }else status("Next piece ready · "+candidate.sceneName+" · transitions on the beat");
+         }else status("Next song ready");
        }
        break;
      }catch(e){console.warn("Human Radio: next piece skipped",e)}
@@ -330,7 +349,8 @@ function playNote(piece,e,when,sectionLevel=1){
   src.connect(envelope);
   if(e.track==="bass"||e.track==="pad"){
     const filter=ctx.createBiquadFilter();filter.type="lowpass";
-    filter.frequency.value=e.track==="bass"?950:1550;
+    filter.frequency.value=e.track==="bass"?(e.sampleVoice==="dnbSub"?160:
+       piece.channel==="dnb"?2200:950):1550;
     envelope.connect(filter);filter.connect(piece.bus);
   }else envelope.connect(piece.bus);
   src.start(when);src.stop(when+noteLength+.004);
@@ -359,9 +379,8 @@ function switchPiece(at){
  for(const note of sharedToneBridge(prev,current))playNote(prev,note,at);
  retiringBuses.push({bus:prev.bus,until:at+blend+.5});
  pruneSampleCache();
- $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM · "+current.engine;
- $("phase").textContent=current.sceneName+" · Opening";
- status("New musical chapter · linked through the harmony");
+ showSongIdentity(current);
+ status("Now playing");
  void warmNextSection(current);
 }function pump(){
   if(!playing||!ctx||!current)return;
@@ -393,7 +412,7 @@ function switchPiece(at){
       if(displayedSection!==loops){
         displayedSection=loops;
         const part=current.sections[loops];
-        $("phase").textContent=current.sceneName+" · "+current.engine+" · "+part.name+" ("+(loops+1)+"/"+targetLoops+")";
+        // Keep the artist and song title stable throughout the arrangement.
         if(loops>0)pruneSampleCache();
         void warmNextSection(current);
       }
@@ -426,6 +445,7 @@ async function start(){
     }
     if(!ctx){ctx=new AudioContext();master=ctx.createGain();master.gain.value=.83;const safety=ctx.createDynamicsCompressor();safety.threshold.value=-12;safety.knee.value=18;safety.ratio.value=3;safety.attack.value=.005;safety.release.value=.2;master.connect(safety);safety.connect(ctx.destination)}
     await ctx.resume();
+    await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
       if(!current)current=planNext();
@@ -439,14 +459,13 @@ async function start(){
       gainFor(current);
       changeVisual();
       current.bus.gain.value=.82;
-      $("track").textContent=current.key+" "+current.mode+" · "+current.bpm+" BPM";
-      $("phase").textContent=current.sceneName+" · opening scene";
+      showSongIdentity(current);
     }
     playing=true;paused=false;epoch++;
     step=0;loops=0;targetLoops=current.sections.length;displayedSection=-1;
     stepTime=ctx.currentTime+.09;
     $("intro").hidden=true;$("play").textContent="Ⅱ Pause";$("skip").disabled=false;
-    status("Live · "+current.sceneName+" · a developing long-form composition");
+    status("Now playing");
     timer=setInterval(pump,25);pump();void warmNextSection(current);
   }catch(error){
     status("Radio could not start: "+error.message);

@@ -23,6 +23,15 @@ let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("
 // A/B listening: the staged preview defaults to V2, while ?composer=v1
 // retains the exact original composer for an apples-to-apples comparison.
 const composerVersion=new URLSearchParams(location.search).get("composer")==="v1"?1:2;
+const comparisonKey=(new URLSearchParams(location.search).get("compare")||"").slice(0,72);
+let comparisonOrdinal=0;
+function comparisonRng(seed){
+ let n=2166136261;
+ for(const ch of String(seed))n=Math.imul(n^ch.charCodeAt(0),16777619)>>>0;
+ return ()=>{n=(n+0x6d2b79f5)>>>0;let t=n;
+   t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);
+   return ((t^(t>>>14))>>>0)/4294967296};
+}
 let radioWords=null,wordsPromise=null;
 function loadRadioWords(){
  if(radioWords)return Promise.resolve(radioWords);
@@ -103,12 +112,12 @@ function changeVisual(){visual.changePhase()}
 
 function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}const hint=$("startFeedback");if(hint&&!$("intro").hidden)hint.textContent=text}
 function rngToken(){const array=new Uint32Array(2);crypto.getRandomValues(array);return Array.from(array,x=>x.toString(36)).join("")}
-function selectDrum(id){
+function selectDrum(id,random=Math.random){
  const options=DRUMS[id];
  // Most percussion stays in a playable kit family; sometimes explore the
  // wider catalogue rather than choosing only the first dozen forever.
- const limit=Math.random()<.27?options.length:Math.min(options.length,28);
- return Math.floor(Math.random()*limit);
+ const limit=random()<.27?options.length:Math.min(options.length,28);
+ return Math.floor(random()*limit);
 }
 function indexEvents(piece){
  piece.eventsByStep=Array.from({length:128},()=>[]);
@@ -183,9 +192,15 @@ function paletteFor(engine,role,voices,channel="mixed"){
 }
 function planNext(expand=true){
  const old=current;
- const profile=chooseRadioProfile(old,Math.random,selectedChannel);
+ // Optional deterministic A/B comparison: V1 and V2 receive the same profile,
+ // instrument selections and seed before their composition algorithms differ.
+ const serial=comparisonKey?comparisonOrdinal++:0;
+ const random=comparisonKey?
+   comparisonRng(comparisonKey+"|"+selectedChannel+"|"+serial):Math.random;
+ const choose=a=>a[Math.floor(random()*a.length)];
+ const profile=chooseRadioProfile(old,random,selectedChannel);
  const sameChannel=old?.channel===profile.channel;
- const seed=rngToken();
+ const seed=comparisonKey?comparisonKey+"|"+selectedChannel+"|"+serial:rngToken();
  // Genre programmes share the editor's broad recorded-voice palettes.
  // Mixed still follows engine-specific timbres and station-independent logic.
  const voices=profile.channel==="mixed"?{...DEFAULT_VOICES}:
@@ -195,15 +210,15 @@ function planNext(expand=true){
      (!v.startsWith("vocalSung")||v==="vocalSungNotes"));
    const pool=paletteFor(profile.engine,role,suitable,profile.channel);
    const previous=sameChannel?old.voices[role]:undefined;
-   if(previous&&Math.random()<.43&&pool.includes(previous))voices[role]=previous;
+   if(previous&&random()<.43&&pool.includes(previous))voices[role]=previous;
    else{
      const options=pool.filter(id=>id!==previous);
-     voices[role]=choice(options.length?options:pool);
+     voices[role]=choose(options.length?options:pool);
    }
  }
  const oldDrums=sameChannel?old.drumSounds:null;
  const drumSounds=Object.fromEntries(drums.map(id=>
-   [id,oldDrums&&Math.random()<.7?oldDrums[id]:selectDrum(id)]));
+   [id,oldDrums&&random()<.7?oldDrums[id]:selectDrum(id,random)]));
  if(profile.channel==="dnb"){
    // The acoustic kit is chosen per event by soundFor(), including dynamic
    // layers and round robins for ghosts. There are no generic 808 overrides.
@@ -214,7 +229,7 @@ function planNext(expand=true){
    })){
      const candidates=DRUMS[id].map((s,i)=>({i,label:s.label||""}))
        .filter(s=>matcher.test(s.label));
-     if(candidates.length)drumSounds[id]=choice(candidates).i;
+     if(candidates.length)drumSounds[id]=choose(candidates).i;
    }
  }
  if(profile.channel==="classical"){
@@ -243,7 +258,7 @@ function planNext(expand=true){
    bpm:profile.bpm,density:profile.density,swing:profile.swing,ecologyGenome,
    harmonyOverrides:genreHarmony});
  const oldPercussion=sameChannel?old.sections?.at(-1)?.events.filter(e=>drums.includes(e.track))??[]:[];
- const keep=sameChannel&&profile.channel==="mixed"?choice([
+ const keep=sameChannel&&profile.channel==="mixed"?choose([
    ["kick","hat"],["kick","snare"],["hat","openhat"],["kick"],["snare","hat"],[]
  ]):[];
  if(sameChannel&&profile.engine!=="ambient"&&profile.change!=="new variation"&&keep.length===0)keep.push("kick");

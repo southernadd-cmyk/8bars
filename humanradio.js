@@ -60,7 +60,7 @@ const visual=createRadioVisual($("radio-art"));
 visual.setStation(selectedChannel);
 function changeVisual(){visual.changePhase()}
 
-function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}}
+function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}const hint=$("startFeedback");if(hint&&!$("intro").hidden)hint.textContent=text}
 function rngToken(){const array=new Uint32Array(2);crypto.getRandomValues(array);return Array.from(array,x=>x.toString(36)).join("")}
 function selectDrum(id){
  const options=DRUMS[id];
@@ -438,6 +438,7 @@ function switchPiece(at){
 }
 async function start(){
   $("start").disabled=true;$("play").disabled=true;
+  status("Starting audio engine…");
   try{
     if(paused&&current?.ready&&ctx){
       await ctx.resume();
@@ -460,7 +461,13 @@ async function start(){
       master.connect(safety);safety.connect(analyser);analyser.connect(ctx.destination);
       visual.attach(analyser);
     }
-    await ctx.resume();
+    // Some browsers may never settle AudioContext.resume() when audio output
+    // is blocked. Show a visible error instead of a permanently inert button.
+    await Promise.race([
+      ctx.resume(),
+      new Promise((_,reject)=>setTimeout(()=>reject(Error("Audio start timed out. Check browser sound permissions and try again.")),8000))
+    ]);
+    status("Loading song plan and recorded instruments…");
     await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
@@ -485,6 +492,7 @@ async function start(){
     status("Now playing");
     timer=setInterval(pump,25);pump();void warmNextSection(current);
   }catch(error){
+    console.error("Human Radio start failed",error);
     status("Radio could not start: "+error.message);
     $("intro").hidden=false;
   }finally{$("start").disabled=false;$("play").disabled=false}

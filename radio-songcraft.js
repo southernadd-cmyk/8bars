@@ -179,6 +179,6 @@ export function renderDevelopedPhrase(base,phrase,phraseBar,channel){
    if(lo<=hi)rhythm[i]=clamp(rhythm[i]+shift,lo,hi);
   }
  }
- return {rhythm,contour,articulation:clamp(base.articulation*
+ return {rhythm,contour:contour.map(n=>clamp(n,-5,5)),articulation:clamp(base.articulation*
    (phrase.articulation||1),.45,1.25)};
 }

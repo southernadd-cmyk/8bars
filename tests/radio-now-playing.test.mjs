@@ -81,7 +81,7 @@ test("Human Radio has accessible, responsive non-seekable progress and does not 
  assert.match(html,/phi-marker/);
  assert.match(script,/function syncNowPlaying\(force=false\)/);
  assert.match(script,/audibleSongStep\(/);
- assert.match(script,/radioNowPlaying\(current,position\)/);
+ assert.match(script,/radioNowPlaying\(current,displayedProgressStep\)/);
  assert.match(script,/syncNowPlaying\(true\)/);
  assert.match(script,/master\.gain\.value=\.83/);
  assert.match(script,/const safety=ctx\.createDynamicsCompressor/);

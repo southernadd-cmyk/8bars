@@ -158,34 +158,31 @@ function scoreEvents(plan){
   for(let i=0;i<onsets.length;i++){
    if(quiet&&i===1&&phrase.id===0)continue;
    const step=phrase.startStep+onsets[i];
+   // An ensemble role is chosen for this bar before the melody is written.
+   if(!plan.ensemble.bars[Math.floor(step/16)]?.parts.lead)continue;
    const chord=chordAt(step);
    const degree=motifDegree(motif,phrase,i);
    const note=melodicPitch(keyIndex,mode,degree,previous,chord,i===0||i===onsets.length-1);
    const toNext=i+1<onsets.length?onsets[i+1]-onsets[i]:duration-onsets[i];
    add("lead",step,clamp(toNext*.79,2,21),.35+.17*energy,note,phrase.motif);
    previous=note;leadIndex++;
-   if(phrase.phase!=="exposition"&&i%3===1){
-    const at=step+Math.max(1,Math.round(toNext*GOLDEN_SMALL));
-    if(at<totalSteps){
-     const target=clamp(note-(phrase.phase==="resolution"?5:7),55,84);
-     add("counter",at,clamp(toNext*.58,2,12),.15+.09*energy,
-       nearestChordTone(target,chord,55,84),"answer");
-    }
-   }
+   // The response line is composed later from the heard lead motif,
+   // not generated as an unrelated second melody.
   }
  }
  // Accompaniment follows the whole-song harmony, leaving room for recurring themes.
  for(let bar=0;bar<totalBars;bar++){
   const at=bar*16,chord=harmony[bar],previousChord=harmony[bar-1];
+  const parts=plan.ensemble.bars[bar].parts;
   const root=chord.notes[0],stage=bar/totalBars;
   const energy=clamp(1-Math.abs(stage-GOLDEN_LARGE)/GOLDEN_LARGE,.3,1);
   let bass=root-12;while(bass>52)bass-=12;while(bass<32)bass+=12;
   add("bass",at,Math.min(17,totalSteps-at),.29+.08*energy,bass,"foundation");
   const changed=!previousChord||previousChord.degree!==chord.degree;
-  if(changed||bar%3===0)
+  if(parts.chords&&(changed||bar%3===0))
    for(const n of chord.notes)
     add("chords",at,Math.min(16,totalSteps-at),.11+.07*energy,n+12,"harmony");
-  if(bar%3===0||bar===climaxBar||bar===turnBar)
+  if(parts.pad&&(bar%3===0||bar===climaxBar||bar===turnBar))
    for(const n of chord.notes)
     add("pad",at,Math.min(32,totalSteps-at),.08+.045*energy,n+12,"sustain");
   // φ governs instrument entrances: rotation across a chord rather than
@@ -193,7 +190,7 @@ function scoreEvents(plan){
   const angle=((bar+1)*GOLDEN_ANGLE_TURNS)%1;
   const tone=Math.floor(angle*3);
   const point=at+Math.round(16*GOLDEN_LARGE);
-  if(point<totalSteps&&stage>GOLDEN_SMALL/2&&stage<.91&&rand()<.37+energy*.24)
+  if(parts.arp&&point<totalSteps&&stage>GOLDEN_SMALL/2&&stage<.91&&rand()<.37+energy*.24)
    add("arp",point,Math.min(5,totalSteps-point),.14+.05*energy,chord.notes[tone]+12,"golden angle");
  }
  // The arrival is explicitly at the global golden cut, not each eighth bar.

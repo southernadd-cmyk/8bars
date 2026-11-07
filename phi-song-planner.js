@@ -6,6 +6,7 @@ import {CHORD_ROOTS} from "./harmony.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js?v=2";
 import {performWholeScore} from "./radio-performance.js?v=1";
 import {planComposerV2,composePhiPhraseV2} from "./radio-composer-v2.js?v=2";
+import {planComposerV3,composePhiPhraseV3} from "./radio-composer-v3.js?v=1";
 
 const MAJOR=[0,2,4,5,7,9,11],MINOR=[0,2,3,5,7,8,10];
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
@@ -160,8 +161,9 @@ function scoreEvents(plan){
   // φ still fixes the recursive onset positions; candidate *pitch phrases*
   // are scored as complete musical ideas before they become events.
   if(plan.composerV2){
-   const written=composePhiPhraseV2(plan,phrase,onsets,
-     {degreeAt:motifDegree,chordAt});
+   const written=plan.composerV2.version===3?
+     composePhiPhraseV3(plan,phrase,onsets,{degreeAt:motifDegree,chordAt}):
+     composePhiPhraseV2(plan,phrase,onsets,{degreeAt:motifDegree,chordAt});
    events.push(...written.events);
    plan.composerV2.review.push(written.review);
   }else for(let i=0;i<onsets.length;i++){
@@ -230,8 +232,9 @@ export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6,co
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),
   climaxStep:Math.round(totalSteps*GOLDEN_LARGE),phrases,harmony,motif};
  plan.composerV2=composerVersion===1?null:
-   {...planComposerV2({seed,channel:"classical",scene:"chamber",
-     engine:"melodic",loops}),review:[]};
+   {...(composerVersion===3?
+     planComposerV3({seed,channel:"classical",scene:"chamber",engine:"melodic",loops}):
+     planComposerV2({seed,channel:"classical",scene:"chamber",engine:"melodic",loops})),review:[]};
  plan.ensemble=planEnsembleParts({channel:"classical",scene:"chamber",engine:"melodic",
    seed,sections:[{role:"opening",startBar:0,endBar:8},
    ...Array.from({length:loops-2},(_,i)=>({role:i%2?"answer":"statement",startBar:(i+1)*8,endBar:(i+2)*8})),

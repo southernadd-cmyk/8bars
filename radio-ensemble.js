@@ -101,7 +101,7 @@ function lockBassToKick(events,totalBars){
  return events.map(e=>{
   if(e.track!=="bass")return e;
   const bar=Math.floor(e.step/16),pos=e.step%16,at=kicks[bar]||[];
-  if(!at.length||pos===0||e.tag==="final tonic")return e;
+  if(!at.length||pos===0||e.tag==="final tonic"||e.tag==="v3 harmonic pickup")return e;
   const closest=at.reduce((a,b)=>Math.abs(b-pos)<Math.abs(a-pos)?b:a,at[0]);
   const delta=closest-pos;
   if(Math.abs(delta)>2||closest<0||closest>=16)return e;

@@ -1,8 +1,8 @@
 import {performedTiming,setPerformedEnvelope} from "./radio-audio-expression.js?v=1";
 import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
-import {planPhiSong,slicePhiSong} from "./phi-song-planner.js?v=3";
-import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js?v=3";
+import {planPhiSong,slicePhiSong} from "./phi-song-planner.js?v=4";
+import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js?v=4";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -21,9 +21,10 @@ import {audibleSongStep,radioNowPlaying,stableSongStep} from "./radio-now-playin
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
-// A/B listening: the staged preview defaults to V2, while ?composer=v1
-// retains the exact original composer for an apples-to-apples comparison.
-const composerVersion=new URLSearchParams(location.search).get("composer")==="v1"?1:2;
+// V3 is opt-in on the isolated preview branch: ?composer=v3.
+ // ?composer=v2 (default) and ?composer=v1 preserve both baselines.
+ const composerVersion=new URLSearchParams(location.search).get("composer")==="v1"?1:
+   new URLSearchParams(location.search).get("composer")==="v3"?3:2;
 const performanceVersion=new URLSearchParams(location.search).get("feel")==="original"?1:2;
 const comparisonKey=(new URLSearchParams(location.search).get("compare")||"").slice(0,72);
 let comparisonOrdinal=0;

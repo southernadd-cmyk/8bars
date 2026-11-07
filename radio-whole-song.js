@@ -8,6 +8,7 @@ import {applyWholeSongGroove} from "./radio-channels.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js?v=2";
 import {performWholeScore} from "./radio-performance.js?v=1";
 import {planComposerV2,planV2Degrees,composeV2Lead} from "./radio-composer-v2.js?v=2";
+import {planComposerV3,planV3Degrees,composeV3Lead,developV3Ensemble} from "./radio-composer-v3.js?v=1";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
 const pitchClass=n=>((n%12)+12)%12;
@@ -91,14 +92,16 @@ function planPhrases(totalBars,turnBar,climaxBar,r){
  final.motif="A";final.transform="coda";
  return phrases;
 }
-function planHarmony(config,r,sections,totalBars,turnBar,climaxBar){
+function planHarmony(config,r,sections,totalBars,turnBar,climaxBar,phrases=[]){
  const {channel,key,mode,scene}=config;
  const choices=chordsInKey(key,mode);
  const theme=harmonicDegrees(r,channel,mode);
  const answer=theme.map((d,i)=>i===0?d:i===3?4:(d+([0,2,4,1][i]))%7);
+ const degreePlan={seed:config.seed,channel,scene,
+   strategy:config.composerV2?.strategy,totalBars,turnBar,climaxBar,sections,phrases};
  const v2Degrees=config.composerV2?
-   planV2Degrees({seed:config.seed,channel,scene,
-     strategy:config.composerV2.strategy,totalBars,turnBar,climaxBar,sections}):null;
+   config.composerV2.version===3?planV3Degrees(degreePlan):
+     planV2Degrees(degreePlan):null;
  const harmony=[];
  for(let bar=0;bar<totalBars;bar++){
   const part=sections[Math.floor(bar/8)],role=part.role;
@@ -157,7 +160,7 @@ function composeNotes(plan,r){
  // V2 writes complete, evaluated phrase candidates BEFORE accompaniments.
  // The old bar-by-bar melody remains available for baseline comparisons.
  if(plan.composerV2){
-  const written=composeV2Lead(plan);
+  const written=plan.composerV2.version===3?composeV3Lead(plan):composeV2Lead(plan);
   events.push(...written.events);
   plan.composerV2.review=written.review;
  }
@@ -307,12 +310,13 @@ export function planWholeRadioSong(input={}){
  const climaxStep=Math.round(totalSteps*GOLDEN_LARGE);
  const random=seeded(seed+"|"+channel+"|"+scene+"|whole-song");
  const composerV2=composerVersion===1?null:
-   planComposerV2({seed,channel,scene,engine,loops});
+   composerVersion===3?planComposerV3({seed,channel,scene,engine,loops}):
+     planComposerV2({seed,channel,scene,engine,loops});
  const config={seed,channel,scene,engine,key,mode,style,density,bpm,
    targetLoops:loops,composerVersion,composerV2};
  const sections=planSections(channel,loops,turnBar,climaxBar,composerV2?.formRoles);
  const phrases=planPhrases(totalBars,turnBar,climaxBar,random);
- const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar);
+ const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar,phrases);
  const themes=planThemes(config,random);
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,
@@ -322,7 +326,9 @@ export function planWholeRadioSong(input={}){
  const pitched=composeNotes(plan,random);
  const drums=channel==="mixed"?planMixedDrums(plan):
    applyWholeSongGroove([],channel,seed,sections,scene,totalBars);
- const written=coordinateEnsemble([...pitched,...drums],ensemble,harmony);
+ const scored=composerVersion===3?
+   developV3Ensemble([...pitched,...drums],plan):[...pitched,...drums];
+ const written=coordinateEnsemble(scored,ensemble,harmony);
  const performed=performWholeScore(written,
   {seed,channel,bpm,totalSteps,phrases,ensemble,climaxStep},
   {performanceVersion});

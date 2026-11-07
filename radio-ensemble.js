@@ -15,7 +15,7 @@ function chordToneNear(target,chord,lo=56,hi=84){
  }
  return best;
 }
-export function planEnsembleParts({channel,scene="",engine="",seed="",sections,phrases,totalBars,climaxBar}){
+export function planEnsembleParts({channel,scene="",engine="",seed="",sections,phrases,totalBars,climaxBar,composerV2=null}){
  if(!["classical","mixed","hiphop","dnb","pop"].includes(channel))
   throw new RangeError("Unsupported channel for ensemble: "+channel);
  if(!Number.isInteger(totalBars)||totalBars<8||
@@ -24,6 +24,7 @@ export function planEnsembleParts({channel,scene="",engine="",seed="",sections,p
     phrases[0]?.startBar!==0||phrases.at(-1)?.endBar!==totalBars)
   throw new TypeError("Ensemble needs complete musical form and phrase plan");
  const bars=[];
+ const strategy=composerV2?.strategy||null;
  for(let bar=0;bar<totalBars;bar++){
   const phrase=phraseAt(bar,phrases),role=roleAt(bar,sections);
   if(!phrase||!role)throw Error("Unplanned bar "+bar);
@@ -37,21 +38,38 @@ export function planEnsembleParts({channel,scene="",engine="",seed="",sections,p
     !arrival&&!closing&&channel!=="dnb" || (
       channel==="dnb"&&atEnd&&phrase.lengthBars>=3&&
       (role==="statement"||role==="lift"||role==="reprise")&&!arrival);
-  const foregroundRole=closing||arrival?"lead":answer?"counter":
+  let foregroundRole=closing||arrival?"lead":answer?"counter":
     channel==="dnb"&&scene!=="liquid"&&opening&&bar%8!==4?"texture":
     channel==="mixed"&&engine==="ambient"&&within%3===1?"texture":
     strong&&(channel==="pop"||channel==="mixed")&&bar%4===1?"texture":
     "lead";
+  // V2 orchestration follows the governing *musical idea*, instead of merely
+  // labelling the same lead/chord/pad pattern as a different strategy.
+  if(!arrival&&!closing&&!answer){
+   const preserveDnbTheme=channel==="dnb"&&opening&&bar===4;
+   if(strategy==="bass-led"&&within%3===1&&!preserveDnbTheme&&channel!=="classical")
+    foregroundRole="texture"; // feature the recurring bass motif
+   else if(strategy==="harmony-led"&&within%4===2&&!preserveDnbTheme&&channel!=="classical")
+    foregroundRole="texture"; // let moving chord voices carry the phrase
+   else if(strategy==="process-led"&&within%3===1&&!preserveDnbTheme&&channel!=="classical")
+    foregroundRole="texture"; // foreground evolves gradually
+   else if(strategy==="dialogue-led"&&within>=2&&within%3===2&&!opening&&
+     (channel!=="dnb"||scene==="liquid"))foregroundRole="counter";
+  }
   // Chords and pads are arranged to support a foreground player. They should
   // not compete with each other or an active arpeggio on every bar.
   const lead=foregroundRole==="lead";
   const counter=foregroundRole==="counter";
-  const arp=!lead&&!counter&&strong&&channel!=="dnb"&&channel!=="hiphop";
+  const arp=!lead&&!counter&&channel!=="dnb"&&channel!=="hiphop"&&
+   (strong||strategy==="process-led"||strategy==="bass-led"&&within%4===1);
   const pad=opening||breakdown||channel==="classical"&&within===0||
     channel==="mixed"&&engine==="ambient"||
-    channel==="dnb"&&scene==="liquid"&&within===0;
-  const chords=(!pad||strong||closing)&&!arp&&
-    (bar===0||bar%2===0||lead&&strong||counter&&bar%3===0);
+    channel==="dnb"&&scene==="liquid"&&within===0||
+    strategy==="harmony-led"&&within%2===0||
+    strategy==="process-led"&&within%3===0;
+  const chords=(!pad||strong||closing||strategy==="harmony-led")&&!arp&&
+    (bar===0||bar%2===0||lead&&strong||counter&&bar%3===0||
+      strategy==="harmony-led"&&within%2===1);
   // A held pad and short chord accents coexist at arrivals, but not on each
   // bar of a verse or during a countermelody.
   const parts={
@@ -63,7 +81,11 @@ export function planEnsembleParts({channel,scene="",engine="",seed="",sections,p
     bar,phraseId:phrase.id,role,motif:phrase.motif,
     foreground:foregroundRole,parts,arrival,closing,
     reason:answer?"answer previous phrase":arrival?"global climax":
-      closing?"cadence":opening?"establish texture":"develop motif"
+      closing?"cadence":opening?"establish texture":
+      strategy==="bass-led"&&foregroundRole==="texture"?"bass motif featured":
+      strategy==="harmony-led"&&foregroundRole==="texture"?"harmonic movement featured":
+      strategy==="process-led"&&foregroundRole==="texture"?"gradual process":
+      "develop motif"
   });
  }
  return {channel,seed,totalBars,bars};

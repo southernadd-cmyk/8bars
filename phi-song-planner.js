@@ -4,6 +4,7 @@
 import {PHI,GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS} from "./harmony.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
+import {planComposerV2,composePhiPhraseV2} from "./radio-composer-v2.js";
 
 const MAJOR=[0,2,4,5,7,9,11],MINOR=[0,2,3,5,7,8,10];
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
@@ -155,7 +156,14 @@ function scoreEvents(plan){
   const distance=Math.abs(centre-climaxBar)/totalBars;
   const energy=clamp(1-distance/GOLDEN_LARGE,.34,1);
   const quiet=phrase.phase==="exposition";
-  for(let i=0;i<onsets.length;i++){
+  // φ still fixes the recursive onset positions; candidate *pitch phrases*
+  // are scored as complete musical ideas before they become events.
+  if(plan.composerV2){
+   const written=composePhiPhraseV2(plan,phrase,onsets,
+     {degreeAt:motifDegree,chordAt});
+   events.push(...written.events);
+   plan.composerV2.review.push(written.review);
+  }else for(let i=0;i<onsets.length;i++){
    if(quiet&&i===1&&phrase.id===0)continue;
    const step=phrase.startStep+onsets[i];
    // An ensemble role is chosen for this bar before the melody is written.
@@ -179,10 +187,10 @@ function scoreEvents(plan){
   let bass=root-12;while(bass>52)bass-=12;while(bass<32)bass+=12;
   add("bass",at,Math.min(17,totalSteps-at),.29+.08*energy,bass,"foundation");
   const changed=!previousChord||previousChord.degree!==chord.degree;
-  if(parts.chords&&(changed||bar%3===0))
+  if(parts.chords&&(changed||bar%3===0||plan.composerV2&&bar%2===0))
    for(const n of chord.notes)
     add("chords",at,Math.min(16,totalSteps-at),.11+.07*energy,n+12,"harmony");
-  if(parts.pad&&(bar%3===0||bar===climaxBar||bar===turnBar))
+  if(parts.pad&&(bar%3===0||bar===climaxBar||bar===turnBar||plan.composerV2&&bar%2===0))
    for(const n of chord.notes)
     add("pad",at,Math.min(32,totalSteps-at),.08+.045*energy,n+12,"sustain");
   // φ governs instrument entrances: rotation across a chord rather than
@@ -205,7 +213,7 @@ function scoreEvents(plan){
  for(const n of tonic.notes)add("chords",final,16,.18,n+12,"resolution");
  return events.sort((a,b)=>a.step-b.step||a.track.localeCompare(b.track)||a.note-b.note);
 }
-export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6}={}){
+export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6,composerVersion=2}={}){
  if(!CHORD_ROOTS.includes(key)||!["major","minor"].includes(mode))
   throw new RangeError("Unknown key or mode");
  const loops=clamp(Math.round(Number(targetLoops)||6),5,7);
@@ -220,10 +228,14 @@ export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6}={
  const plan={seed,key,mode,keyIndex,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),
   climaxStep:Math.round(totalSteps*GOLDEN_LARGE),phrases,harmony,motif};
+ plan.composerV2=composerVersion===1?null:
+   {...planComposerV2({seed,channel:"classical",scene:"chamber",
+     engine:"melodic",loops}),review:[]};
  plan.ensemble=planEnsembleParts({channel:"classical",scene:"chamber",engine:"melodic",
    seed,sections:[{role:"opening",startBar:0,endBar:8},
    ...Array.from({length:loops-2},(_,i)=>({role:i%2?"answer":"statement",startBar:(i+1)*8,endBar:(i+2)*8})),
-   {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar});
+   {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar,
+   composerV2:plan.composerV2});
  plan.events=coordinateEnsemble(scoreEvents(plan),plan.ensemble,harmony);
  return plan;
 }

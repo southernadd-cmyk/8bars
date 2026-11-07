@@ -46,9 +46,52 @@ complete-score integrity and correct lossless slicing, not aesthetic quality.
 The separate eight-bar *editor* remains unchanged; these changes are limited
 to **Human Radio**.
 
+## Composer V2 (experimental, Human Radio only)
+
+The composer now starts by choosing one **musical strategy** for the complete
+piece: hook-led, bass-led, harmony-led, dialogue-led or process-led.
+The strategies have different genre-weighted probabilities but remain available
+across Pop, Hip-hop, Drum & Bass, Mixed and Classical φ.
+
+- **Form**: several alternative whole-piece section orders per genre and length,
+  with the ending and global golden-section landmarks preserved. Sections are
+  musical parts; the existing eight-bar units are only playback buffers.
+- **Harmony**: a seed-stable progression across the entire piece follows a
+  tonal transition grammar rather than repeating the same four chords on every
+  pass. It permits sustained chords, departures, and local contrast.
+- **Themes**: the established A/B motifs remain recognisable. Their
+  transformations are chosen in relation to the phrase's planned role.
+- **Composition and revision**: a short set of *complete phrase candidates*
+  is written before committing notes to the score. A soft scoring function
+  considers chord-tone alignment, melodic leaps, repeated notes, density,
+  phrase endings and continuity with the preceding phrase. The winning
+  candidate is committed; there's no post-hoc transformation of independent
+  eight-bar loops.
+- **Instrumental identity**: a bass-led piece receives a seeded bass figure
+  and syncopated attack pattern; harmony-led, dialogue-led and process-led
+  pieces also change the *parts that are composed* rather than only labels.
+- **Variety**: the radio's recent-piece comparison now considers the musical
+  strategy and full section sequence as well as notes and instrument timbres.
+
+The existing Classical φ onset divisions are retained: its new phrase evaluator
+selects pitches *at those golden-ratio onset positions*, not by replacing the
+underlying mathematical timing. No change is made to the recorded samples,
+master volume/compressor, or the standalone eight-bar editor.
+
+For controlled A/B comparisons on a *preview*, use the same channel and
+`?compare=example` key with `&composer=v1` versus `&composer=v2`. The
+comparison key keeps the first piece's seed and programme settings the same;
+the composition algorithm itself differs. Without the comparison key, each
+piece and its programme details are generated anew.
+
+Automated tests can check determinism, phrase development constraints, form
+variety, event validity and transport continuity. **They cannot measure whether
+the resulting music sounds good.** Listening comparisons and revision remain
+part of the release review.
+
 ## Human Radio: track titles and electronic DnB samples
 
-Human Radio displays **only a generated track title** for each new composition, made from **1–3 title-cased English words**. There are no fictional artist credits. The 800+ word local dictionary is `radio-words.txt`, a filtered/curated subset of the [1000 common English words list](https://github.com/powerlanguage/word-lists/blob/master/1000-most-common-words.txt), supplemented with creative nouns. The title generator in `radio-names.js` is deterministic for the song seed, excludes duplicate words within a title, and changes only when the composition changes. The technical key/BPM/engine and current song section line have been removed from Human Radio's visual display.
+Human Radio displays **only a generated track title** for each new composition, made from **1–3 title-cased English words**. There are no fictional artist credits. The 800+ word local dictionary is `radio-words.txt`, a filtered/curated subset of the [1000 common English words list](https://github.com/powerlanguage/word-lists/blob/master/1000-most-common-words.txt), supplemented with creative nouns. The title generator in `radio-names.js` is deterministic for the song seed, excludes duplicate words within a title, and changes only when the composition changes. Human Radio's Now Playing panel separately shows the channel, style, BPM, key, section and progress through the complete piece.
 
 The Drum & Bass station now uses **five purpose-built pre-rendered synthesizer samples (MIT)** (rather than acoustic/electric bass only), registered as sampled instruments in `electronic-bass.js`: Reese, wobble, FM growl, clean sub and 808 bass. The Reese/wobble/FM recordings are rooted at C2 (MIDI 36), and the sub/808 at C1 (MIDI 24), matching their upstream pitch metadata. The main DnB bass pool uses Reese, wobble and FM growl (root C2); the C1 808 remains in the catalogue but is not used as a main bass because high transpositions would make its tail unnaturally short. Low notes are reinforced by a quieter pre-rendered sub at the same pitch class, one octave down when this stays at or above MIDI 28. These WAV files are mirrored to the Pages build as MP3 files with the other pinned recordings. Human Radio uses ordinary audio-buffer playback and Web Audio filtering, **not live oscillator synthesis**.
 

@@ -86,6 +86,8 @@ export function radioSignature(piece){
      .map(e=>e.track+":"+e.step%16).join("|"),
    voices:Object.values(piece.voices||{}).join("|"),
    phiMotif:piece.phiScore?.motif.join(",")||piece.songScore?.themes?.motif?.contour.join(",")||"",
+   composerStrategy:full?.composerV2?.strategy||"",
+   wholeForm:full?.sections?.map(s=>s.role).join("|")||"",
    phiForm:piece.phiScore?.phrases.map(p=>p.lengthBars+":"+p.motif+":"+p.transform).join("|")||
     piece.songScore?.sections.map(s=>s.role+":"+s.phase).join("|")||""};
 }
@@ -108,6 +110,8 @@ export function radioNoveltyScore(piece,history=[]){
    if(sig.voices===other.voices)score-=12*weight;
    if(sig.phiMotif&&sig.phiMotif===other.phiMotif)score-=15*weight;
    if(sig.phiForm&&sig.phiForm===other.phiForm)score-=10*weight;
+   if(sig.composerStrategy&&sig.composerStrategy===other.composerStrategy)score-=11*weight;
+   if(sig.wholeForm&&sig.wholeForm===other.wholeForm)score-=9*weight;
    if(sig.style===other.style)score-=4*weight;
    if(sig.engine===other.engine)score-=6*weight;
    if(sig.scene===other.scene)score-=1*weight;

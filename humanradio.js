@@ -23,8 +23,8 @@ const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
 // V3 is opt-in on the isolated preview branch: ?composer=v3.
  // ?composer=v2 (default) and ?composer=v1 preserve both baselines.
- const requestedComposer=new URLSearchParams(location.search).get("composer");
- const composerVersion=requestedComposer==="v1"?1:requestedComposer==="v3"?3:2;
+ const composerVersion=new URLSearchParams(location.search).get("composer")==="v1"?1:
+   new URLSearchParams(location.search).get("composer")==="v3"?3:2;
 const performanceVersion=new URLSearchParams(location.search).get("feel")==="original"?1:2;
 const comparisonKey=(new URLSearchParams(location.search).get("compare")||"").slice(0,72);
 let comparisonOrdinal=0;

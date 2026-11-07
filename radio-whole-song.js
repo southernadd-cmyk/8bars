@@ -6,6 +6,7 @@ import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
+import {planComposerV2,planV2Degrees,composeV2Lead} from "./radio-composer-v2.js";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
 const pitchClass=n=>((n%12)+12)%12;
@@ -49,8 +50,8 @@ function bassRoot(chord){
  while(note<33)note+=12;
  return note;
 }
-function planSections(channel,loops,turnBar,climaxBar){
- const roles=FORMS[channel][loops];
+function planSections(channel,loops,turnBar,climaxBar,formRoles=null){
+ const roles=formRoles||FORMS[channel][loops];
  const sections=roles.map((role,i)=>({
   role,name:NAMES[channel][role],number:i+1,startBar:i*8,endBar:(i+1)*8,
   startStep:i*128,endStep:(i+1)*128,
@@ -94,15 +95,18 @@ function planHarmony(config,r,sections,totalBars,turnBar,climaxBar){
  const choices=chordsInKey(key,mode);
  const theme=harmonicDegrees(r,channel,mode);
  const answer=theme.map((d,i)=>i===0?d:i===3?4:(d+([0,2,4,1][i]))%7);
+ const v2Degrees=config.composerV2?
+   planV2Degrees({seed:config.seed,channel,scene,
+     strategy:config.composerV2.strategy,totalBars,turnBar,climaxBar,sections}):null;
  const harmony=[];
  for(let bar=0;bar<totalBars;bar++){
   const part=sections[Math.floor(bar/8)],role=part.role;
-  let degree=theme[Math.floor(channel==="dnb"?bar/2:bar)%4];
-  if(role==="answer"||role==="breakdown")degree=answer[Math.floor(channel==="dnb"?bar/2:bar)%4];
-  if(role==="return"&&bar>=totalBars-4)degree=[3,1,4,0][bar-(totalBars-4)];
-  if(channel==="hiphop"&&(scene==="lofi"||scene==="trap")&&bar%2===1&&role!=="return")
+  let degree=v2Degrees?v2Degrees[bar]:theme[Math.floor(channel==="dnb"?bar/2:bar)%4];
+  if(!v2Degrees&&(role==="answer"||role==="breakdown"))degree=answer[Math.floor(channel==="dnb"?bar/2:bar)%4];
+  if(!v2Degrees&&role==="return"&&bar>=totalBars-4)degree=[3,1,4,0][bar-(totalBars-4)];
+  if(!v2Degrees&&channel==="hiphop"&&(scene==="lofi"||scene==="trap")&&bar%2===1&&role!=="return")
     degree=harmony[bar-1]?.degree??degree;
-  if(channel==="mixed"&&config.engine==="ambient"&&bar%3!==0&&bar>0)
+  if(!v2Degrees&&channel==="mixed"&&config.engine==="ambient"&&bar%3!==0&&bar>0)
     degree=harmony[bar-1]?.degree??degree;
   // Structural harmonic departures and arrivals are chosen globally.
   if(bar===turnBar-1||bar===climaxBar-1)degree=4;
@@ -149,6 +153,13 @@ function composeNotes(plan,r){
   events.push(e);
  };
  let previousLead=null,previousVoicing=null;
+ // V2 writes complete, evaluated phrase candidates BEFORE accompaniments.
+ // The old bar-by-bar melody remains available for baseline comparisons.
+ if(plan.composerV2){
+  const written=composeV2Lead(plan);
+  events.push(...written.events);
+  plan.composerV2.review=written.review;
+ }
  const motifPerBar=[]; // Every bar derives from globally planned themes.
  for(let bar=0;bar<totalBars;bar++){
   const part=sections[Math.floor(bar/8)],role=part.role;
@@ -203,7 +214,7 @@ function composeNotes(plan,r){
   const motifChoice=phrase.motif;
   const theme=motifChoice==="B"?themes.answer:themes.motif;
   motifPerBar.push(motifChoice);
-  if(withMelody){
+  if(withMelody&&!plan.composerV2){
    const melodicPhrase=developPhrase(theme,phraseBar,{
     answer:phrase.transform==="answer"||role==="breakdown",
     closing:bar===phrase.endBar-1
@@ -278,7 +289,7 @@ function planMixedDrums(plan){
 }
 export function planWholeRadioSong(input={}){
  const {seed="human-radio",channel="mixed",scene="",engine="melodic",
-   key="C",mode="major",style="downtempo",density=.6,bpm=100,targetLoops=6}=input;
+   key="C",mode="major",style="downtempo",density=.6,bpm=100,targetLoops=6,composerVersion=2}=input;
  if(!FORMS[channel])throw new RangeError("Unsupported radio channel: "+channel);
  if(!CHORD_ROOTS.includes(key)||!["major","minor"].includes(mode))
   throw new RangeError("Unknown key/mode");
@@ -288,14 +299,17 @@ export function planWholeRadioSong(input={}){
  const climaxBar=Math.round(totalBars*GOLDEN_LARGE);
  const climaxStep=Math.round(totalSteps*GOLDEN_LARGE);
  const random=seeded(seed+"|"+channel+"|"+scene+"|whole-song");
- const config={seed,channel,scene,engine,key,mode,style,density,bpm,targetLoops:loops};
- const sections=planSections(channel,loops,turnBar,climaxBar);
+ const composerV2=composerVersion===1?null:
+   planComposerV2({seed,channel,scene,engine,loops});
+ const config={seed,channel,scene,engine,key,mode,style,density,bpm,
+   targetLoops:loops,composerVersion,composerV2};
+ const sections=planSections(channel,loops,turnBar,climaxBar,composerV2?.formRoles);
  const phrases=planPhrases(totalBars,turnBar,climaxBar,random);
  const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar);
  const themes=planThemes(config,random);
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,
-  harmony,harmonicTheme:theme,harmonicAnswer:answer,themes,events:[]};
+  harmony,harmonicTheme:theme,harmonicAnswer:answer,themes,composerV2,events:[]};
  const ensemble=planEnsembleParts({channel,scene,engine,seed,sections,phrases,totalBars,climaxBar});
  plan.ensemble=ensemble;
  const pitched=composeNotes(plan,random);

@@ -1,6 +1,7 @@
 import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
 import {planPhiSong,slicePhiSong} from "./phi-song-planner.js";
+import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -75,6 +76,12 @@ function indexEvents(piece){
  return piece;
 }
 function finishRadioForm(candidate){
+ // The full genre-specific score is complete before any transport slicing.
+ if(candidate.songScore){
+  const sections=sliceWholeRadioSong(candidate.songScore);
+  return {...candidate,sections,events:sections[0].events,
+   eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
+ }
  // A complete Classical phi composition comes FIRST; eight-bar slices are
  // only transport buffers. No new notes are invented by this adapter.
  if(candidate.channel==="classical"){
@@ -179,6 +186,15 @@ function planNext(expand=true){
     progression:phiScore.harmony,ready:false,missing:0};
   return expand?finishRadioForm(candidate):candidate;
  }
+ // Every non-Classical station uses the same whole-first architecture,
+ // with a distinct melodic/harmonic/groove grammar per channel.
+ if(profile.channel!=="classical"){
+  const songScore=planWholeRadioSong({...profile,seed});
+  const candidate={...profile,seed,voices,drumSounds,songScore,
+    title:radioTitleForSeed(seed,radioWords),events:songScore.events,
+    progression:songScore.harmony,ready:false,missing:0};
+  return expand?finishRadioForm(candidate):candidate;
+ }
  const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode,scene:profile.scene});
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,
@@ -227,7 +243,7 @@ function soundFor(piece,e){
 function uniqueSamples(piece,sectionIndex=0){
  const section=piece.sections?.[sectionIndex];
  const events=section?.events??piece.events;
- return [...new Map(events.filter(e=>piece.channel==="classical"||!section||sectionAllowsNote(e,section.role))
+ return [...new Map(events.filter(e=>piece.channel==="classical"||piece.songScore||!section||sectionAllowsNote(e,section.role))
    .map(e=>{const s=soundFor(piece,e);return [s.url,s]})).values()];
 }
 async function loadSound(s){
@@ -426,9 +442,9 @@ function switchPiece(at){
     const eighth=60/scheduled.bpm/4;
     const swingDelay=localStep%2?eighth*scheduled.swing*.5:0;
     for(const e of section.eventsByStep[localStep])
-      if(scheduled.channel==="classical"||sectionAllowsNote(e,section.role))
+      if(scheduled.channel==="classical"||scheduled.songScore||sectionAllowsNote(e,section.role))
         playNote(scheduled,e,stepTime+swingDelay,
-          scheduled.channel==="classical"?1:sectionVelocity(section.role,e.track),
+          (scheduled.channel==="classical"||scheduled.songScore)?1:sectionVelocity(section.role,e.track),
           loops*128+localStep);
     step++;
     stepTime+=60/scheduled.bpm/4;

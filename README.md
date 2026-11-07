@@ -13,27 +13,38 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
-## Classical φ — whole-song planning (experimental)
+## Human Radio — whole-song composition (experimental)
 
-The **Classical φ** Human Radio channel is now scored *before* eight-bar transport units
-are created. `phi-song-planner.js` plans the complete 40–56-bar piece from a
-seed: the whole-work harmonic route, tonic/dominant pivots at 38.2% and
-61.8%, Fibonacci-length phrases, two related motifs, their transformations,
-counterpoint, accompaniment, arrival and final IV–V–I cadence. The whole-score
-event list is then **sliced without recomposition** into the eight-bar buffers
-used by the existing sampler and scheduling code. Phrase boundaries can cross
-transport buffers. Music remains generated from the existing licensed
-recorded samples, not oscillator synthesis.
+**All five Human Radio channels** — Classical φ, Mixed, Hip-hop, Drum & Bass
+and Pop — compose complete 40–56-bar scores **before** dividing them into
+eight-bar playback buffers. Eight bars remains a transport, sample-preload
+and scheduling unit, not a boundary at which a new melody is independently
+invented.
 
-The φ expression contour also runs across the **entire song**, reaching its
-musical high point at 61.8% of total length. This does not alter the existing
-master volume, sample normalisation or safety compressor. Composition quality,
-voice-leading and genuine musical persuasiveness still require critical
-listening; tests validate determinism, structural rules, lossless event slicing
-and normal playback compatibility, not aesthetics.
+- **Classical φ** uses `phi-song-planner.js`: global tonal route, 38.2% turn,
+  61.8% arrival, Fibonacci-length phrases, recurring motifs, transformations,
+  counterpoint and final cadence.
+- **Pop, Hip-hop, Drum & Bass and Mixed** use `radio-whole-song.js`: complete
+  genre-specific form, harmony, persistent hooks and answer themes, voice
+  leading, a single golden-section climax and a resolved ending.
+- The genre drum engine scores the **entire** planned song, maintaining
+  channel-specific backbeats, breaks and fills without restarting its random
+  sequence at every eight-bar boundary. The Mixed station also maintains a
+  planned groove except in ambient scenes.
+- Fibonacci-length melodic phrases are planned independently from the
+  eight-bar buffers and may **cross a buffer boundary**.
+- `sliceWholeRadioSong()` and `slicePhiSong()` only index the finished score
+  for playback; no notes are recomposed there. The novelty comparison evaluates
+  the whole score instead of only its first eight bars.
 
-The other Human Radio channels and the eight-bar editor retain their existing
-composition engines.
+All playback still uses the existing licensed recorded instrument samples.
+The current sampler, master gain, source level matching and compressor remain
+unchanged. Musical quality, genre authenticity and voice-leading need listening
+checks: automated tests verify whole-song determinism, rhythmic distinction,
+complete-score integrity and correct lossless slicing, not aesthetic quality.
+
+The separate eight-bar *editor* remains unchanged; these changes are limited
+to **Human Radio**.
 
 ## Human Radio: track titles and electronic DnB samples
 

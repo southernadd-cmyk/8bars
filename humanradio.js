@@ -16,7 +16,7 @@ import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=3";
 import {dnbDrumSample} from "./dnb-break-kit.js?v=3";
 import {hiphopDrumSample} from "./hiphop-drum-kit.js?v=1";
 import {createRadioVisual} from "./radio-visual.js?v=3";
-import {audibleSongStep,radioNowPlaying} from "./radio-now-playing.js";
+import {audibleSongStep,radioNowPlaying,stableSongStep} from "./radio-now-playing.js";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
@@ -57,7 +57,7 @@ const recentPieces=[]; // Previous musical identities, oldest discarded after ei
 let livingGenome=null; // Musical memory survives non-Ecology chapters.
 let lastText="";
 let epoch=0,nextRetryTime=0;
-let lastProgressPaint=0;
+let lastProgressPaint=0,displayedProgressPiece=null,displayedProgressStep=0;
 // UI progress follows the audible Web Audio clock, not the scheduler's
 // look-ahead. It spans the whole song rather than an eight-bar buffer.
 function syncNowPlaying(force=false){
@@ -66,10 +66,16 @@ function syncNowPlaying(force=false){
  if(!force&&now-lastProgressPaint<160)return;
  lastProgressPaint=now;
  const totalSteps=(current.sections?.length||0)*128;
- const position=playing||paused?
+ if(current!==displayedProgressPiece){
+   displayedProgressPiece=current;displayedProgressStep=0;
+ }
+ const audible=playing||paused?
    audibleSongStep({loops,step,stepTime,audioTime:ctx?.currentTime||0,
      bpm:current.bpm,totalSteps}):0;
- const display=radioNowPlaying(current,position);
+ // Sections may be replayed while samples load: hold the displayed timeline,
+ // but continue to derive every advance from the actual audible clock.
+ displayedProgressStep=stableSongStep(displayedProgressStep,audible,totalSteps);
+ const display=radioNowPlaying(current,displayedProgressStep);
  if(!display)return;
  $("trackChannel").textContent=RADIO_CHANNELS[display.channel]?.name||display.channel;
  const scene=display.scene.replace(/-/g," ");

@@ -167,7 +167,7 @@ function developPhrase(draft,plan,phrase,intent,reference,variant,scale){
   const current=candidates[i],next=candidates[i+1];
   const limit=next?next.step-current.step:phrase.endBar*16-current.step;
   current.duration=Math.round(clamp(
-   Math.min(current.duration,limit*(next?.91:intent.breath)),.28,18)*100)/100;
+   Math.min(current.duration,limit*(next ? .91 : intent.breath)),.28,18)*100)/100;
  }
  return candidates;
 }

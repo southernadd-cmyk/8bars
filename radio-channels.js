@@ -1,6 +1,11 @@
 // Human Radio channels: musical constraints and recorded-drum arrangements.
 // All events are MIDI-like instructions, never generated audio or fake samples.
 export const RADIO_CHANNELS={
+ classical:{name:"Classical φ",description:"Endless chamber music governed by golden-ratio divisions and golden-angle melodic development",scenes:[
+   {id:"chamber",name:"Chamber",styles:["ambient","downtempo"],engines:["melodic"],bpm:[70,92],density:[.38,.59],swing:[0,.035],loops:[5,6,7]},
+   {id:"nocturne",name:"Nocturne",styles:["ambient"],engines:["ambient"],bpm:[60,78],density:[.24,.42],swing:[0,.02],loops:[5,6,7]},
+   {id:"counterpoint",name:"Counterpoint",styles:["downtempo"],engines:["melodic"],bpm:[74,94],density:[.45,.65],swing:[0,.03],loops:[5,6,7]}
+ ]},
  mixed:{name:"Mixed",description:"All musical scenes and composition systems",scenes:[]},
  hiphop:{name:"Hip-hop",description:"Boom-bap, lo-fi, West Coast bounce and modern trap, with dedicated recorded drum kits",scenes:[
    {id:"boom-bap",name:"Boom bap",styles:["downtempo","breakbeat"],engines:["pattern","melodic","ecology"],bpm:[82,98],density:[.47,.73],swing:[.15,.30],loops:[5,6,6]},
@@ -26,6 +31,9 @@ export function validRadioChannel(value){
  return Object.hasOwn(RADIO_CHANNELS,value)?value:"mixed";
 }
 export const CHANNEL_TIMBRES={
+ classical:{bass:["Bass","Strings","Keys & organs"],chords:["Bowed strings","Strings","Keys & organs"],
+   arp:["Plucked strings","Mallets & bells","Strings"],lead:["Bowed strings","Strings","Winds","Keys & organs"],
+   counter:["Bowed strings","Strings","Winds"],pad:["Bowed strings","Strings","Winds"]},
  hiphop:{bass:["Bass","Plucked strings"],chords:["Keys & organs","Guitars"],
    arp:["Mallets","Mallets & bells","Plucked strings"],lead:["Keys & organs","Guitars","Mallets","Mallets & bells","Vocal melodies"],
    counter:["Keys & organs","Strings","Winds"],pad:["Keys & organs","Strings"]},

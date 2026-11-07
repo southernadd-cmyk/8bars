@@ -1,5 +1,7 @@
 import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
+import {phiClassicalEvents} from "./phi-classical.js";
+import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
 import {LOCAL_SAMPLES} from "./sample-map.js";
@@ -80,11 +82,17 @@ function finishRadioForm(candidate){
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
    const combined=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
      .sort((a,b)=>a.step-b.step);
-   const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
-     leadVoice:candidate.voices.lead},
-     candidate.channel,candidate.seed,section.role,candidate.scene);
-   section.events=applyChannelGroove(genreEvents,
-     candidate.channel,candidate.seed,section.role);
+   // The Classical phi station composes notes and phrase rhythms with phi.
+   if(candidate.channel==="classical"){
+     section.events=phiClassicalEvents(section.progression,candidate.seed+"|"+candidate.scene,
+       section.role);
+   }else{
+     const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
+       leadVoice:candidate.voices.lead},
+       candidate.channel,candidate.seed,section.role,candidate.scene);
+     section.events=applyChannelGroove(genreEvents,
+       candidate.channel,candidate.seed,section.role);
+   }
    indexEvents(section);
  }
  return {...profile,sections,events:sections[0].events,
@@ -324,7 +332,9 @@ function playNote(piece,e,when,sectionLevel=1){
   // Keep the original loud/quiet contrast in source-recorded DnB velocity layers.
   const genreDrum=(piece.channel==="dnb"||piece.channel==="hiphop")&&drums.includes(e.track);
    const level=genreDrum?samplePeakGain(buffer):sampleGain(buffer);
-  const amp=Math.max(.0001,e.velocity*role*level*sectionLevel);
+  // Phi governs Classical expression only; normal mastering chain stays intact.
+  const phiExpression=piece.channel==="classical"?phiDynamicGain(e.step):1;
+  const amp=Math.max(.0001,e.velocity*role*level*sectionLevel*phiExpression);
   envelope.gain.setValueAtTime(amp,when);
   envelope.gain.setValueAtTime(amp,when+Math.max(.001,noteLength-fade));
   envelope.gain.linearRampToValueAtTime(.0001,when+noteLength);

@@ -89,6 +89,8 @@ export function planComposerV2({seed,channel,scene="",engine="",loops=6}={}){
   motifTurn:pick(r,[-2,-1,1,2]),
   register:pick(r,[-3,0,2,5]),
   rhythmicPush:pick(r,[-2,-1,0,1,2]),
+  bassRhythm:pick(r,[[0,4,7,12],[0,6,10,14],[0,3,8,11],[0,7,10,13]]),
+  bassFigure:pick(r,[[0,7,0,12],[0,0,7,0],[0,-5,0,7],[0,12,7,0]]),
   harmonicMotion:pick(r,[2,2,3,4]),
   densityShape:pick(r,["arc","rising","contrast","breathing"]),
   phraseVariation:pick(r,[.17,.23,.31,.39]),

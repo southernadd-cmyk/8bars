@@ -244,7 +244,8 @@ function composeNotes(plan,r){
   if(withMelody){
    const fundamental=developPhrase(theme,phraseBar,{
     answer:phrase.transform==="answer"||role==="breakdown",
-    closing:bar===phrase.endBar-1
+    closing:bar===phrase.endBar-1,
+    cadenceEveryFour:phrase.lengthBars===4
    });
    const melodicPhrase=renderDevelopedPhrase(fundamental,phrase,phraseBar,channel);
    const rhythm=melodicPhrase.rhythm;

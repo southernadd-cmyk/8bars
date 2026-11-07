@@ -24,17 +24,38 @@ button:hover{background:#23553b}button:focus-visible,a:focus-visible,select:focu
 .intro-channel{justify-content:center;margin:22px auto 2px}
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #play{background:#c6efbb;color:#102216;border-color:#c6efbb}#play:hover{background:#e2ffdb}
-.details{max-width:50rem;min-width:0}
-#track{font-size:clamp(32px,6.6vw,76px);overflow-wrap:break-word;text-wrap:balance}
+.details{width:min(100%,615px);min-width:0;max-width:615px;border:1px solid rgba(222,250,219,.22);border-radius:22px;background:linear-gradient(145deg,rgba(14,32,26,.91),rgba(7,20,17,.87));padding:clamp(18px,2.8vw,30px);box-shadow:0 14px 60px rgba(0,0,0,.26);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.now-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.now-top .eyebrow{margin:0}
+#sectionTag{font-size:11px;font-weight:650;color:#cceccb;border:1px solid #badfba46;border-radius:999px;padding:6px 11px;max-width:56%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#track{font-size:clamp(31px,4.1vw,54px);overflow-wrap:break-word;text-wrap:balance;line-height:1.02;margin:2px 0 15px}
+.now-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.now-meta span{border:1px solid #cbebc43c;background:#e1fae50d;border-radius:6px;color:#e0efdc;font-size:12px;font-weight:600;padding:6px 10px}
+.now-meta span:empty{display:none}
+.now-meta #trackBpm{font-variant-numeric:tabular-nums;color:#cefac2}
+.song-timeline{margin-bottom:12px}
+.timeline-labels,.timeline-time{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;font-variant-numeric:tabular-nums}
+.timeline-labels{margin-bottom:10px;color:#e8f4e5;font-weight:600}
+.timeline-time{margin-top:7px;color:#b9d3bd}
+.timeline-meter{position:relative;display:flex;align-items:center;height:9px}
+#songProgress{display:block;appearance:none;-webkit-appearance:none;border:0;width:100%;height:7px;border-radius:100px;overflow:hidden;background:#a9bea733}
+#songProgress::-webkit-progress-bar{background:#a9bea733;border-radius:100px}
+#songProgress::-webkit-progress-value{background:linear-gradient(90deg,#70b691,#c7efb2);border-radius:100px}
+#songProgress::-moz-progress-bar{background:linear-gradient(90deg,#70b691,#c7efb2);border-radius:100px}
+.phi-marker{position:absolute;left:61.8034%;top:-4px;width:2px;height:16px;background:#ecf8bd;box-shadow:0 0 8px #c7efb2b3;pointer-events:none}
+.phi-marker::after{content:"φ";position:absolute;left:50%;top:-15px;transform:translateX(-50%);font-size:10px;font-weight:650;color:#d5ecc1}
+#message{margin:0;padding-top:10px;border-top:1px solid #d6ead62b;font-size:12px;color:#c7d8c9;line-height:1.4;text-shadow:0 1px 9px #000}
 .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#ddfbdc;margin:0 0 6px}
-h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 0 9px;text-shadow:0 3px 22px #000a}
+h1{letter-spacing:-.065em;text-shadow:0 3px 22px #000a}
 #message{font-size:clamp(12px,1.6vw,16px);color:#f3f8ee;line-height:1.5;text-shadow:0 1px 9px #000}
 #intro{position:fixed;inset:0;display:grid;place-items:center;background:#06100cca;backdrop-filter:blur(12px);z-index:3;text-align:center;padding:24px}
 #intro[hidden]{display:none}#intro article{width:min(100%,530px)}
 #intro h2{font-size:clamp(46px,9vw,96px);letter-spacing:-.065em;margin:0 0 10px}
 #intro p{line-height:1.55;color:#d4e7d5}#intro button{margin:17px 0;font-size:18px}
 #intro small{display:block;font-size:12px;color:#b3c7b6}
-@media(max-width:660px){.bottom{display:block}.details{margin-bottom:18px}.top{align-items:flex-start;gap:12px}.top .brand{font-size:clamp(19px,5vw,26px)}.channel-select{gap:5px}.channel-select select{min-width:0;max-width:150px;padding:9px 7px}.controls button{padding:10px 17px}}
+@media(max-width:780px){.bottom{display:flex;flex-direction:column;align-items:stretch;gap:12px;bottom:clamp(12px,3vh,24px)}.details{width:100%;max-width:100%}.controls{justify-content:flex-end}.top{align-items:flex-start;gap:12px}.top .brand{font-size:clamp(19px,5vw,26px)}.channel-select{gap:5px}.channel-select select{min-width:0;max-width:150px;padding:9px 7px}.controls button{padding:10px 17px}}
+@media(max-width:410px){.details{padding:15px;border-radius:17px}.now-meta{margin-bottom:16px}.now-meta span{font-size:11px;padding:5px 8px}#track{font-size:clamp(29px,8vw,40px)}.bottom{left:12px;right:12px}.controls{justify-content:space-between}}
+@media(max-height:560px){.details{padding:14px}.now-meta{margin-bottom:10px}#track{margin-bottom:8px}.song-timeline{margin-bottom:7px}.bottom{bottom:10px}}
 @media(max-width:380px){.top{flex-wrap:wrap;gap:8px}.top .channel-select{margin-left:auto}}
 </style>
 </head>
@@ -43,7 +64,17 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
 <div class="shade"></div>
 <header class="top"><a class="brand" href="./index.html" title="Return to the 8bars composer">8<span>bars</span> / human radio</a><div class="channel-select"><label for="channel">Channel</label><select id="channel" aria-label="Choose Human Radio channel"><option value="mixed">Mixed</option><option value="classical">Classical φ</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div></header>
 <div class="bottom">
-<div class="details"><h1 id="track">Human Radio</h1><div id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</div></div>
+<section class="details" aria-label="Now playing">
+ <div class="now-top"><p class="eyebrow">Now playing</p><span id="sectionTag">Waiting for music</span></div>
+ <h1 id="track">Human Radio</h1>
+ <div class="now-meta" aria-label="Track information"><span id="trackChannel">Human Radio</span><span id="trackStyle"></span><span id="trackBpm"></span><span id="trackKey"></span></div>
+ <div class="song-timeline">
+  <div class="timeline-labels"><span id="sectionName">Complete composition</span><span id="barPosition">—</span></div>
+  <div class="timeline-meter"><progress id="songProgress" max="100" value="0" aria-label="Progress through the complete composition">0%</progress><span class="phi-marker" title="Golden-section climax" aria-hidden="true"></span></div>
+  <div class="timeline-time"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
+ </div>
+ <p id="message" role="status" aria-live="polite">Original recorded sounds and evolving multi-section compositions. Each chapter moves to the next on the beat.</p>
+</section>
 <div class="controls"><button id="play" type="button" aria-label="Start or pause radio">▶ Start radio</button><button id="skip" type="button" disabled>Next piece ↗</button></div>
 </div>
 <div id="intro"><article><p class="eyebrow">8bars presents</p><h2>Human Radio.</h2><p>An endless stream of original rule-composed music. Each station has its own tempo, groove, instrument palette and developing musical form.</p><div class="channel-select intro-channel"><label for="introChannel">Channel</label><select id="introChannel" aria-label="Choose radio channel before listening"><option value="mixed">Mixed</option><option value="classical">Classical φ</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum &amp; Bass</option><option value="pop">Pop</option></select></div><p id="channelDescription">All musical scenes and composition systems.</p><button id="start" type="button">▶ Start listening</button><small>Your browser requires one click to enable audio. Headphones recommended.</small><p id="startFeedback" role="status" aria-live="polite" style="font-size:13px;min-height:22px;margin:10px auto;color:#eef2da"></p></article></div>
@@ -58,5 +89,5 @@ h1{font-size:clamp(35px,8vw,92px);letter-spacing:-.065em;line-height:1;margin:0 
  window.addEventListener("unhandledrejection",e=>report("Startup error: "+(e.reason?.message||String(e.reason))));
 })();
 </script>
-<script type="module" src="./humanradio.js?v=20"></script>
+<script type="module" src="./humanradio.js?v=21"></script>
 </body></html>

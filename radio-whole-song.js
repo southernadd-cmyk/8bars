@@ -58,6 +58,36 @@ function planSections(channel,loops,turnBar,climaxBar){
  }));
  return sections;
 }
+function planPhrases(totalBars,turnBar,climaxBar,r){
+ // Musical phrases are planned independently from the eight-bar renderer.
+ // Fibonacci span lengths allow a theme to start in one transport chunk and
+ // resolve in the next. Global golden cut/turn are hard boundary anchors.
+ const ranges=[[0,turnBar,"exposition"],[turnBar,climaxBar,"development"],
+   [climaxBar,totalBars,"resolution"]];
+ const phrases=[];
+ for(const [from,to,phase] of ranges){
+  let at=from;
+  while(at<to){
+   const remain=to-at;
+   let choices=[13,8,5,3,2].filter(n=>n<=remain&&remain-n!==1);
+   // Establish cross-boundary phrasing before any eight-bar sectioning.
+   let length=from===0&&at===0&&remain>=8?5:
+     choices.length?take(r,choices):remain;
+   if(length>remain)length=remain;
+   const index=phrases.length;
+   phrases.push({id:index,startBar:at,endBar:at+length,lengthBars:length,phase,
+     motif:index%3===1?"B":"A",
+     transform:index%4===0?"original":index%4===1?"answer":
+       index%4===2?"sequence":"inversion"});
+   at+=length;
+  }
+ }
+ const arrival=phrases.find(p=>p.startBar===climaxBar);
+ if(arrival){arrival.motif="A";arrival.transform="arrival"}
+ const final=phrases.at(-1);
+ final.motif="A";final.transform="coda";
+ return phrases;
+}
 function planHarmony(config,r,sections,totalBars,turnBar,climaxBar){
  const {channel,key,mode,scene}=config;
  const choices=chordsInKey(key,mode);
@@ -106,7 +136,7 @@ function planThemes(config,r){
  return {motif,answer};
 }
 function composeNotes(plan,r){
- const {config,sections,harmony,themes,totalBars,totalSteps,turnBar,climaxBar,climaxStep}=plan;
+ const {config,sections,phrases,harmony,themes,totalBars,totalSteps,turnBar,climaxBar,climaxStep}=plan;
  const {channel,scene,key,mode,engine,density}=config;
  const events=[];
  const add=(track,step,duration,velocity,note,tag,sampleVoice)=>{
@@ -121,6 +151,8 @@ function composeNotes(plan,r){
  const motifPerBar=[]; // Every bar derives from globally planned themes.
  for(let bar=0;bar<totalBars;bar++){
   const part=sections[Math.floor(bar/8)],role=part.role;
+  const phrase=phrases.find(p=>bar>=p.startBar&&bar<p.endBar);
+  const phraseBar=bar-phrase.startBar;
   const t=(bar+.5)/totalBars,energy=sceneEnergy(channel,role,t,engine);
   const chord=harmony[bar],next=harmony[Math.min(totalBars-1,bar+1)];
   const start=bar*16,low=channel==="dnb"?33:35;
@@ -164,14 +196,17 @@ function composeNotes(plan,r){
     channel==="hiphop"?role!=="opening"||bar>=3:
     channel==="dnb"?scene==="liquid"?bar>=2:role==="lift"||role==="reprise"||bar===climaxBar||role==="opening"&&bar===4||role==="statement"&&bar%4===2:
     engine==="ambient"?bar%2===0:bar>=2;
-  const motifChoice=role==="answer"||role==="breakdown"?"B":"A";
+  // Theme identity is inherited from a pre-planned Fibonacci phrase, not
+  // recalculated when the playback counter reaches bar 8/16/24.
+  const motifChoice=phrase.motif;
   const theme=motifChoice==="B"?themes.answer:themes.motif;
   motifPerBar.push(motifChoice);
   if(withMelody){
-   const phrase=developPhrase(theme,bar,{
-    answer:role==="answer"||role==="breakdown",closing:bar===totalBars-1
+   const melodicPhrase=developPhrase(theme,phraseBar,{
+    answer:phrase.transform==="answer"||role==="breakdown",
+    closing:bar===phrase.endBar-1
    });
-   const rhythm=phrase.rhythm;
+   const rhythm=melodicPhrase.rhythm;
    const use=channel==="dnb"&&scene!=="liquid"?rhythm.slice(0,2):
      channel==="hiphop"?rhythm.slice(0,role==="lift"?4:3):
      engine==="ambient"?rhythm.slice(0,2):rhythm;
@@ -180,17 +215,17 @@ function composeNotes(plan,r){
     if(pos<0||pos>15)continue;
     // Melodic target comes from the same theme, but chromatic positions are
     // selected against the *planned* chord and previous voice-leading state.
-    let motion=phrase.contour[i%phrase.contour.length];
+    let motion=melodicPhrase.contour[i%melodicPhrase.contour.length];
     if(bar>=turnBar&&bar<climaxBar)motion=clamp(motion+(i%2?1:-1),-5,5);
     if(bar>=climaxBar&&role!=="breakdown")motion=clamp(motion-1,-5,5);
     const goal=(channel==="dnb"&&scene==="liquid"?69:channel==="hiphop"?70:74)
       +theme.centre+motion*2.1;
-    const cadence=(bar%4===3&&i===use.length-1)||bar===totalBars-1;
+    const cadence=((bar===phrase.endBar-1||bar===totalBars-1)&&i===use.length-1);
     const note=chooseMelodyNote({key,mode},chord,goal,previousLead,pos,r,
        channel==="dnb"?57:61,channel==="dnb"?86:91,{cadence});
     previousLead=note;
     const nextPos=use[i+1]??16;
-    const duration=clamp((nextPos-pos-.3)*phrase.articulation,.75,
+    const duration=clamp((nextPos-pos-.3)*melodicPhrase.articulation,.75,
       channel==="dnb"?8:12);
     const vel=(channel==="dnb"?.34:channel==="pop"?.63:.52)*energy+.09;
     add("lead",start+pos,duration,vel,note,motifChoice);
@@ -256,10 +291,11 @@ export function planWholeRadioSong(input={}){
  const random=seeded(seed+"|"+channel+"|"+scene+"|whole-song");
  const config={seed,channel,scene,engine,key,mode,style,density,bpm,targetLoops:loops};
  const sections=planSections(channel,loops,turnBar,climaxBar);
+ const phrases=planPhrases(totalBars,turnBar,climaxBar,random);
  const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar);
  const themes=planThemes(config,random);
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
-  turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,
+  turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,
   harmony,harmonicTheme:theme,harmonicAnswer:answer,themes,events:[]};
  const pitched=composeNotes(plan,random);
  const drums=channel==="mixed"?planMixedDrums(plan):

@@ -6,6 +6,7 @@ import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js?v=2";
+import {performWholeScore} from "./radio-performance.js";
 import {planComposerV2,planV2Degrees,composeV2Lead} from "./radio-composer-v2.js?v=2";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
@@ -295,7 +296,7 @@ function planMixedDrums(plan){
 }
 export function planWholeRadioSong(input={}){
  const {seed="human-radio",channel="mixed",scene="",engine="melodic",
-   key="C",mode="major",style="downtempo",density=.6,bpm=100,targetLoops=6,composerVersion=2}=input;
+   key="C",mode="major",style="downtempo",density=.6,bpm=100,targetLoops=6,composerVersion=2,performanceVersion=2}=input;
  if(!FORMS[channel])throw new RangeError("Unsupported radio channel: "+channel);
  if(!CHORD_ROOTS.includes(key)||!["major","minor"].includes(mode))
   throw new RangeError("Unknown key/mode");
@@ -321,7 +322,12 @@ export function planWholeRadioSong(input={}){
  const pitched=composeNotes(plan,random);
  const drums=channel==="mixed"?planMixedDrums(plan):
    applyWholeSongGroove([],channel,seed,sections,scene,totalBars);
- plan.events=coordinateEnsemble([...pitched,...drums],ensemble,harmony);
+ const written=coordinateEnsemble([...pitched,...drums],ensemble,harmony);
+ const performed=performWholeScore(written,
+  {seed,channel,bpm,totalSteps,phrases,ensemble,climaxStep},
+  {performanceVersion});
+ plan.events=performed.events;
+ plan.performance=performed.performance;
  return plan;
 }
 // Compatibility only: actual transport still requires indexed 128-step buffers.

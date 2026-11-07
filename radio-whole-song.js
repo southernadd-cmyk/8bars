@@ -6,7 +6,7 @@ import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js?v=2";
-import {performWholeScore} from "./radio-performance.js";
+import {performWholeScore} from "./radio-performance.js?v=1";
 import {planComposerV2,planV2Degrees,composeV2Lead} from "./radio-composer-v2.js?v=2";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);

@@ -65,22 +65,45 @@ function chordFor(keyIndex,mode,degree,bar){
  ]};
 }
 function planHarmony({keyIndex,mode,totalBars,turnBar,climaxBar,random}){
- const sections={
-  exposition:[0,3,1,4,0,5,3,4],
-  development:[5,2,3,4,1,5,4,2],
-  resolution:[0,3,5,1,3,4,0,0]
- };
- const harmony=Array.from({length:totalBars},(_,bar)=>{
-  const phase=bar<turnBar?"exposition":bar<climaxBar?"development":"resolution";
-  const options=sections[phase];
-  let degree=options[(bar+Math.floor(random()*3))%options.length];
-  // Global harmonic arrivals: a turn at φ^-2, climax at φ^-1, final cadence.
-  if(bar===0||bar===turnBar||bar===climaxBar)degree=0;
-  if(bar===turnBar-1||bar===climaxBar-1||bar===totalBars-2)degree=4;
-  if(bar===totalBars-3)degree=3;
-  if(bar===totalBars-1)degree=0;
-  return chordFor(keyIndex,mode,degree,bar+1);
- });
+ // Functional harmony is planned as a connected path across the WHOLE piece,
+ // not as eight-bar repeated chords with ad-hoc section replacements.
+ // The degree graph is diatonic (I -> predominant -> dominant -> tonic).
+ const successors=[
+  [0,3,5,1], // I: prolongation / movement toward predominant
+  [4,6,3],   // ii: dominant / leading tone / IV
+  [5,3,4],   // iii: relative / predominant / dominant
+  [4,1,0],   // IV: V, ii, or plagal resolution
+  [0,5],     // V: authentic or deceptive cadence
+  [1,3,4],   // vi: ii, IV or V
+  [0,4]      // viio: tonic or dominant
+ ];
+ const forced=new Map([
+  [0,0],[turnBar-1,4],[turnBar,0],
+  [climaxBar-1,4],[climaxBar,0],
+  [totalBars-3,3],[totalBars-2,4],[totalBars-1,0]
+ ]);
+ const harmony=[];let prior=0;
+ for(let bar=0;bar<totalBars;bar++){
+  let degree;
+  if(forced.has(bar))degree=forced.get(bar);
+  else if(bar%2===1&&random()<.48)degree=prior; // harmonic breathing room
+  else{
+   let choices=successors[prior];
+   const progress=bar/totalBars;
+   // Development spends longer away from the tonic; resolution gravitates
+   // home. Degree selection still obeys the harmonic transition graph.
+   if(progress>=GOLDEN_SMALL&&progress<GOLDEN_LARGE){
+    const away=choices.filter(d=>d!==0);
+    if(away.length&&random()<.74)choices=away;
+   }else if(progress>=GOLDEN_LARGE&&random()<.55){
+    const home=choices.filter(d=>[0,3,4].includes(d));
+    if(home.length)choices=home;
+   }
+   degree=choices[Math.floor(random()*choices.length)];
+  }
+  harmony.push(chordFor(keyIndex,mode,degree,bar+1));
+  prior=degree;
+ }
  return harmony;
 }
 function motifFrom(random){

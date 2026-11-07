@@ -3,6 +3,7 @@
 // transport slices ONLY; no composition or motif is restarted at their edges.
 import {PHI,GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS} from "./harmony.js";
+import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
 
 const MAJOR=[0,2,4,5,7,9,11],MINOR=[0,2,3,5,7,8,10];
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
@@ -222,7 +223,11 @@ export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6}={
  const plan={seed,key,mode,keyIndex,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),
   climaxStep:Math.round(totalSteps*GOLDEN_LARGE),phrases,harmony,motif};
- plan.events=scoreEvents(plan);
+ plan.ensemble=planEnsembleParts({channel:"classical",scene:"chamber",engine:"melodic",
+   seed,sections:[{role:"opening",startBar:0,endBar:8},
+   ...Array.from({length:loops-2},(_,i)=>({role:i%2?"answer":"statement",startBar:(i+1)*8,endBar:(i+2)*8})),
+   {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar});
+ plan.events=coordinateEnsemble(scoreEvents(plan),plan.ensemble,harmony);
  return plan;
 }
 // After the whole score exists, adapt it to the legacy transport's eight-bar

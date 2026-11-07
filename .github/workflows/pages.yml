@@ -29,6 +29,8 @@ jobs:
           node --check phi-classical.js
           node --check phi-song-planner.js
           node --check radio-whole-song.js
+          node --check radio-songcraft.js
+          node --check radio-piece-quality.js
           node --check radio-ensemble.js
           node --check phi-dynamics.js
           node --check radio-visual.js
@@ -61,7 +63,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html humanradio.html humanradio.js radio-now-playing.js phi-classical.js phi-song-planner.js radio-whole-song.js radio-ensemble.js phi-dynamics.js radio-planner.js radio-channels.js radio-names.js radio-words.txt radio-visual.js dnb-break-kit.js hiphop-drum-kit.js DNB-BREAK-CREDITS.txt genre-arrangement.js musical-grammar.js generator-genres.js instrument-palettes.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
+          cp index.html humanradio.html humanradio.js radio-now-playing.js phi-classical.js phi-song-planner.js radio-whole-song.js radio-ensemble.js radio-songcraft.js radio-piece-quality.js phi-dynamics.js radio-planner.js radio-channels.js radio-names.js radio-words.txt radio-visual.js dnb-break-kit.js hiphop-drum-kit.js DNB-BREAK-CREDITS.txt genre-arrangement.js musical-grammar.js generator-genres.js instrument-palettes.js electronic-bass.js ELECTRONIC-BASS-LICENSE.txt radio-form.js favicon.svg style.css app.js composer.js music-engines.js music-ecology.js harmony.js theory.js sounds.js instrument-maps.js vcsl-samples.js extra-samples.js pitched-vocals.js sample-levels.js settings.js transport.js audio-files.js commons-audio.js .nojekyll dist/
           python3 -m pip install --break-system-packages --quiet pillow cairosvg
           python3 scripts/build-favicons.py dist
           test -s dist/favicon.ico
@@ -73,6 +75,8 @@ jobs:
           test -s dist/phi-classical.js
           test -s dist/phi-song-planner.js
           test -s dist/radio-whole-song.js
+          test -s dist/radio-songcraft.js
+          test -s dist/radio-piece-quality.js
           test -s dist/radio-ensemble.js
           test -s dist/phi-dynamics.js
           test -s dist/radio-visual.js

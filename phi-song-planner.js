@@ -234,7 +234,8 @@ export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6,co
  plan.ensemble=planEnsembleParts({channel:"classical",scene:"chamber",engine:"melodic",
    seed,sections:[{role:"opening",startBar:0,endBar:8},
    ...Array.from({length:loops-2},(_,i)=>({role:i%2?"answer":"statement",startBar:(i+1)*8,endBar:(i+2)*8})),
-   {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar});
+   {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar,
+   composerV2:plan.composerV2});
  plan.events=coordinateEnsemble(scoreEvents(plan),plan.ensemble,harmony);
  return plan;
 }

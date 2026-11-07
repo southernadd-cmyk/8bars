@@ -164,15 +164,21 @@ export function performWholeScore(events,plan,{performanceVersion=2}={}){
   const steps=[...new Set(notes.map(e=>e.step))].sort((a,b)=>a-b);
   for(let i=0;i<steps.length;i++)nextMap.set(track+"|"+steps[i],steps[i+1]);
  }
+ // A formal cadence or climax is a single attack, not separate detuned
+ // timing for its individual chord voices. Pre-mark every affected chord group
+ // before adding expressive timing to any note in that group.
+ const structuralGroups=new Set(events.filter(e=>
+   structuralEvent(e)||e.step===climaxStep&&
+     (e.track==="lead"||e.track==="chords")).map(e=>
+     groupSignature(e.track,e.step,getPhrase(phrases,e.step)?.id??-1)));
  const groups=new Map();
  const rendered=events.map(e=>{
   if(e.step<0||e.step>=totalSteps||!Number.isInteger(e.step))
    throw new RangeError("Event outside score");
   const phrase=getPhrase(phrases,e.step);
   const pos=getPhrasePosition(phrase,e.step);
-  const climax=structuralEvent(e)||e.step===climaxStep&&
-    (e.track==="lead"||e.track==="chords");
   const group=groupSignature(e.track,e.step,phrase?.id??-1);
+  const climax=structuralGroups.has(group);
   if(!groups.has(group)){
    // One choice per attack group; all voices of a chord remain together.
    const barStep=e.step%16;

@@ -13,6 +13,39 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
+## Human Radio — whole-song composition (experimental)
+
+**All five Human Radio channels** — Classical φ, Mixed, Hip-hop, Drum & Bass
+and Pop — compose complete 40–56-bar scores **before** dividing them into
+eight-bar playback buffers. Eight bars remains a transport, sample-preload
+and scheduling unit, not a boundary at which a new melody is independently
+invented.
+
+- **Classical φ** uses `phi-song-planner.js`: global tonal route, 38.2% turn,
+  61.8% arrival, Fibonacci-length phrases, recurring motifs, transformations,
+  counterpoint and final cadence.
+- **Pop, Hip-hop, Drum & Bass and Mixed** use `radio-whole-song.js`: complete
+  genre-specific form, harmony, persistent hooks and answer themes, voice
+  leading, a single golden-section climax and a resolved ending.
+- The genre drum engine scores the **entire** planned song, maintaining
+  channel-specific backbeats, breaks and fills without restarting its random
+  sequence at every eight-bar boundary. The Mixed station also maintains a
+  planned groove except in ambient scenes.
+- Fibonacci-length melodic phrases are planned independently from the
+  eight-bar buffers and may **cross a buffer boundary**.
+- `sliceWholeRadioSong()` and `slicePhiSong()` only index the finished score
+  for playback; no notes are recomposed there. The novelty comparison evaluates
+  the whole score instead of only its first eight bars.
+
+All playback still uses the existing licensed recorded instrument samples.
+The current sampler, master gain, source level matching and compressor remain
+unchanged. Musical quality, genre authenticity and voice-leading need listening
+checks: automated tests verify whole-song determinism, rhythmic distinction,
+complete-score integrity and correct lossless slicing, not aesthetic quality.
+
+The separate eight-bar *editor* remains unchanged; these changes are limited
+to **Human Radio**.
+
 ## Human Radio: track titles and electronic DnB samples
 
 Human Radio displays **only a generated track title** for each new composition, made from **1–3 title-cased English words**. There are no fictional artist credits. The 800+ word local dictionary is `radio-words.txt`, a filtered/curated subset of the [1000 common English words list](https://github.com/powerlanguage/word-lists/blob/master/1000-most-common-words.txt), supplemented with creative nouns. The title generator in `radio-names.js` is deterministic for the song seed, excludes duplicate words within a title, and changes only when the composition changes. The technical key/BPM/engine and current song section line have been removed from Human Radio's visual display.

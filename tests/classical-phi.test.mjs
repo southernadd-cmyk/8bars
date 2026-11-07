@@ -63,8 +63,9 @@ test("Original Classical phi events deterministically govern all pitched instrum
 test("Only Classical phi applies the expression curve to the playback mix",()=>{
  const s=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
  const page=readFileSync(new URL("../humanradio.html",import.meta.url),"utf8");
- assert.match(s,/piece\.channel==="classical"\?phiDynamicGain\(e\.step\):1/);
- assert.match(s,/section\.events=phiClassicalEvents\(/);
+ assert.match(s,/piece\.channel==="classical"&&piece\.phiScore\?/);
+ assert.match(s,/const phiScore=planPhiSong\(/);
+ assert.match(s,/const sections=slicePhiSong\(/);
  assert.match(page,/value="classical">Classical φ/);
  assert.match(s,/const safety=ctx\.createDynamicsCompressor/);
  assert.match(s,/master\.connect\(safety\)/);

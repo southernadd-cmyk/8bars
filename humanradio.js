@@ -1,6 +1,7 @@
 import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
-import {phiClassicalEvents} from "./phi-classical.js";
+import {planPhiSong,slicePhiSong} from "./phi-song-planner.js";
+import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -60,7 +61,7 @@ const visual=createRadioVisual($("radio-art"));
 visual.setStation(selectedChannel);
 function changeVisual(){visual.changePhase()}
 
-function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}}
+function status(text){if(text!==lastText){$("message").textContent=text;lastText=text}const hint=$("startFeedback");if(hint&&!$("intro").hidden)hint.textContent=text}
 function rngToken(){const array=new Uint32Array(2);crypto.getRandomValues(array);return Array.from(array,x=>x.toString(36)).join("")}
 function selectDrum(id){
  const options=DRUMS[id];
@@ -75,6 +76,19 @@ function indexEvents(piece){
  return piece;
 }
 function finishRadioForm(candidate){
+ // The full genre-specific score is complete before any transport slicing.
+ if(candidate.songScore){
+  const sections=sliceWholeRadioSong(candidate.songScore);
+  return {...candidate,sections,events:sections[0].events,
+   eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
+ }
+ // A complete Classical phi composition comes FIRST; eight-bar slices are
+ // only transport buffers. No new notes are invented by this adapter.
+ if(candidate.channel==="classical"){
+  const sections=slicePhiSong(candidate.phiScore);
+  return {...candidate,sections,events:sections[0].events,
+   eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
+ }
  const {baseComposition,keep,oldPercussion,...profile}=candidate;
  const sections=buildRadioForm(candidate,baseComposition,composeWithEngine);
  for(const section of sections){
@@ -82,17 +96,11 @@ function finishRadioForm(candidate){
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
    const combined=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
      .sort((a,b)=>a.step-b.step);
-   // The Classical phi station composes notes and phrase rhythms with phi.
-   if(candidate.channel==="classical"){
-     section.events=phiClassicalEvents(section.progression,candidate.seed+"|"+candidate.scene,
-       section.role);
-   }else{
-     const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
-       leadVoice:candidate.voices.lead},
-       candidate.channel,candidate.seed,section.role,candidate.scene);
-     section.events=applyChannelGroove(genreEvents,
-       candidate.channel,candidate.seed,section.role);
-   }
+   const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
+     leadVoice:candidate.voices.lead},
+     candidate.channel,candidate.seed,section.role,candidate.scene);
+   section.events=applyChannelGroove(genreEvents,
+     candidate.channel,candidate.seed,section.role);
    indexEvents(section);
  }
  return {...profile,sections,events:sections[0].events,
@@ -169,6 +177,24 @@ function planNext(expand=true){
      if(candidates.length)drumSounds[id]=choice(candidates).i;
    }
  }
+ if(profile.channel==="classical"){
+  // Plan the ENTIRE song now, even for lightweight novelty comparisons.
+  const phiScore=planPhiSong({seed,key:profile.key,mode:profile.mode,
+    targetLoops:profile.targetLoops});
+  const candidate={...profile,seed,voices,drumSounds,phiScore,
+    title:radioTitleForSeed(seed,radioWords),events:phiScore.events,
+    progression:phiScore.harmony,ready:false,missing:0};
+  return expand?finishRadioForm(candidate):candidate;
+ }
+ // Every non-Classical station uses the same whole-first architecture,
+ // with a distinct melodic/harmonic/groove grammar per channel.
+ if(profile.channel!=="classical"){
+  const songScore=planWholeRadioSong({...profile,seed});
+  const candidate={...profile,seed,voices,drumSounds,songScore,
+    title:radioTitleForSeed(seed,radioWords),events:songScore.events,
+    progression:songScore.harmony,ready:false,missing:0};
+  return expand?finishRadioForm(candidate):candidate;
+ }
  const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode,scene:profile.scene});
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,
@@ -217,7 +243,7 @@ function soundFor(piece,e){
 function uniqueSamples(piece,sectionIndex=0){
  const section=piece.sections?.[sectionIndex];
  const events=section?.events??piece.events;
- return [...new Map(events.filter(e=>!section||sectionAllowsNote(e,section.role))
+ return [...new Map(events.filter(e=>piece.channel==="classical"||piece.songScore||!section||sectionAllowsNote(e,section.role))
    .map(e=>{const s=soundFor(piece,e);return [s.url,s]})).values()];
 }
 async function loadSound(s){
@@ -318,7 +344,7 @@ function gainFor(piece){
   const bus=ctx.createGain();bus.gain.value=0;bus.connect(master);
   piece.bus=bus;return bus;
 }
-function playNote(piece,e,when,sectionLevel=1){
+function playNote(piece,e,when,sectionLevel=1,absoluteStep=e.step){
   const sample=soundFor(piece,e),buffer=sampleCache.get(sample.url);
   if(!buffer)return;
   const src=ctx.createBufferSource(),envelope=ctx.createGain();
@@ -333,7 +359,9 @@ function playNote(piece,e,when,sectionLevel=1){
   const genreDrum=(piece.channel==="dnb"||piece.channel==="hiphop")&&drums.includes(e.track);
    const level=genreDrum?samplePeakGain(buffer):sampleGain(buffer);
   // Phi governs Classical expression only; normal mastering chain stays intact.
-  const phiExpression=piece.channel==="classical"?phiDynamicGain(e.step):1;
+  // Musical shape is evaluated against the complete work, never per slice.
+  const phiExpression=piece.channel==="classical"&&piece.phiScore?
+    phiDynamicGain(128*absoluteStep/piece.phiScore.totalSteps):1;
   const amp=Math.max(.0001,e.velocity*role*level*sectionLevel*phiExpression);
   envelope.gain.setValueAtTime(amp,when);
   envelope.gain.setValueAtTime(amp,when+Math.max(.001,noteLength-fade));
@@ -414,8 +442,10 @@ function switchPiece(at){
     const eighth=60/scheduled.bpm/4;
     const swingDelay=localStep%2?eighth*scheduled.swing*.5:0;
     for(const e of section.eventsByStep[localStep])
-      if(sectionAllowsNote(e,section.role))
-        playNote(scheduled,e,stepTime+swingDelay,sectionVelocity(section.role,e.track));
+      if(scheduled.channel==="classical"||scheduled.songScore||sectionAllowsNote(e,section.role))
+        playNote(scheduled,e,stepTime+swingDelay,
+          (scheduled.channel==="classical"||scheduled.songScore)?1:sectionVelocity(section.role,e.track),
+          loops*128+localStep);
     step++;
     stepTime+=60/scheduled.bpm/4;
     if(step===128){step=0;loops++;if(loops%2===0)changeVisual()}
@@ -424,6 +454,7 @@ function switchPiece(at){
 }
 async function start(){
   $("start").disabled=true;$("play").disabled=true;
+  status("Starting audio engine…");
   try{
     if(paused&&current?.ready&&ctx){
       await ctx.resume();
@@ -446,7 +477,12 @@ async function start(){
       master.connect(safety);safety.connect(analyser);analyser.connect(ctx.destination);
       visual.attach(analyser);
     }
-    await ctx.resume();
+    // Request audio synchronously within the click gesture, but do not block
+    // composition/sample preparation on browsers where resume() stays pending.
+    // A pending resume used to make the Start button appear completely inert.
+    const audioReady=ctx.state==="running"?Promise.resolve(true):
+      ctx.resume().then(()=>true,()=>false);
+    status("Planning the complete composition…");
     await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
@@ -463,6 +499,15 @@ async function start(){
       current.bus.gain.value=.82;
       showSongIdentity(current);
     }
+    if(ctx.state!=="running"){
+      status("Composition ready · requesting sound permission…");
+      await Promise.race([audioReady,new Promise(resolve=>setTimeout(resolve,3000))]);
+    }
+    if(ctx.state!=="running"){
+      $("start").textContent="▶ Enable sound / retry";
+      throw Error("Sound is suspended. Click Enable sound / retry, or allow audio for this site.");
+    }
+    $("start").textContent="▶ Start listening";
     playing=true;paused=false;epoch++;
     visual.start();
     step=0;loops=0;targetLoops=current.sections.length;displayedSection=-1;
@@ -471,6 +516,7 @@ async function start(){
     status("Now playing");
     timer=setInterval(pump,25);pump();void warmNextSection(current);
   }catch(error){
+    console.error("Human Radio start failed",error);
     status("Radio could not start: "+error.message);
     $("intro").hidden=false;
   }finally{$("start").disabled=false;$("play").disabled=false}

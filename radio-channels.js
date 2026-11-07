@@ -54,16 +54,17 @@ function randomFrom(seed){
 }
 // Replace only percussion instructions. Sample selection stays entirely in
 // sounds.js; these patterns always use the established real recordings.
-export function applyChannelGroove(events,channel,seed,section="statement",scene=""){
+function composeChannelDrums(events,channel,seed,roleAtBar,scene,totalBars=8){
  if(validRadioChannel(channel)==="mixed")return events;
- const r=randomFrom(seed+"|"+channel+"|"+section+(channel==="pop"?"":"|"+scene));
+ const r=randomFrom(seed+"|"+channel+"|"+roleAtBar(0)+(channel==="pop"?"":"|"+scene));
  const created=[];
  const add=(track,bar,step,velocity,duration=1)=>{
    if(step<0||step>15)return;
    created.push({track,step:bar*16+step,duration,
      velocity:Math.round(clamp(velocity,.09,1)*100)/100});
  };
- for(let bar=0;bar<8;bar++){
+ for(let bar=0;bar<totalBars;bar++){
+   const section=roleAtBar(bar);
    const fill=bar%4===3,main=section==="lift"||section==="reprise";
    const quiet=section==="opening"||section==="breakdown";
    if(channel==="hiphop"){
@@ -152,4 +153,22 @@ export function applyChannelGroove(events,channel,seed,section="statement",scene
  }
  const pitched=events.filter(event=>!DRUM_TRACKS.has(event.track));
  return [...pitched,...created].sort((a,b)=>a.step-b.step);
+}
+
+// Legacy API remains available to the eight-bar editor and regression tests.
+export function applyChannelGroove(events,channel,seed,section="statement",scene=""){
+ return composeChannelDrums(events,channel,seed,()=>section,scene,8);
+}
+// The complete rhythm section is written using one seeded stream over the
+// entire planned song. Bar numbers and transitions never reset at 8-bar edges.
+// Sections are *musical form* inputs, not composition or playback chunks.
+export function applyWholeSongGroove(events,channel,seed,sections,scene,totalBars){
+ if(!Number.isInteger(totalBars)||totalBars<8||!Array.isArray(sections)||
+    !sections.length||sections[0].startBar!==0||
+    sections.at(-1).endBar!==totalBars)
+   throw new TypeError("Whole-song drums require a complete section plan");
+ const roles=Array.from({length:totalBars},(_,bar)=>
+   sections.find(s=>bar>=s.startBar&&bar<s.endBar)?.role);
+ if(roles.some(role=>!role))throw new RangeError("A bar has no musical section");
+ return composeChannelDrums(events,channel,seed+"|whole-song",bar=>roles[bar],scene,totalBars);
 }

@@ -20,6 +20,9 @@ import {audibleSongStep,radioNowPlaying,stableSongStep} from "./radio-now-playin
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
+// A/B listening: the staged preview defaults to V2, while ?composer=v1
+// retains the exact original composer for an apples-to-apples comparison.
+const composerVersion=new URLSearchParams(location.search).get("composer")==="v1"?1:2;
 let radioWords=null,wordsPromise=null;
 function loadRadioWords(){
  if(radioWords)return Promise.resolve(radioWords);
@@ -217,7 +220,7 @@ function planNext(expand=true){
  if(profile.channel==="classical"){
   // Plan the ENTIRE song now, even for lightweight novelty comparisons.
   const phiScore=planPhiSong({seed,key:profile.key,mode:profile.mode,
-    targetLoops:profile.targetLoops});
+    targetLoops:profile.targetLoops,composerVersion});
   const candidate={...profile,seed,voices,drumSounds,phiScore,
     title:radioTitleForSeed(seed,radioWords),events:phiScore.events,
     progression:phiScore.harmony,ready:false,missing:0};
@@ -226,7 +229,7 @@ function planNext(expand=true){
  // Every non-Classical station uses the same whole-first architecture,
  // with a distinct melodic/harmonic/groove grammar per channel.
  if(profile.channel!=="classical"){
-  const songScore=planWholeRadioSong({...profile,seed});
+  const songScore=planWholeRadioSong({...profile,seed,composerVersion});
   const candidate={...profile,seed,voices,drumSounds,songScore,
     title:radioTitleForSeed(seed,radioWords),events:songScore.events,
     progression:songScore.harmony,ready:false,missing:0};
@@ -324,7 +327,7 @@ async function warmNextSection(piece){
  piece.loadingSection=true;
  try{
    await prepare(piece,index);
-   if(piece===current&&playing)status("Next arrangement ready");
+   if(piece===current&&playing)status("Next section ready");
  }catch(error){
    if(piece===current&&playing)status("Continuing the current section while recordings load");
    console.warn("Human Radio: section preload failed",error);
@@ -351,15 +354,15 @@ async function queueNext(){
          if(skipRequested){
            targetLoops=loops+1;
            skipRequested=false;
-           status("Next chapter ready · switching at the next eight-bar boundary");
-         }else status("Next song ready");
+           status("Next piece ready · switching at the next section boundary");
+         }else status("Next piece ready");
        }
        break;
      }catch(e){console.warn("Human Radio: next piece skipped",e)}
    }
    if(!next&&playing&&forVersion===channelVersion){
      nextRetryTime=Date.now()+8000;
-     status("Keeping the current groove while the next piece loads…");
+     status("Continuing this piece while the next piece loads…");
    }
  }finally{
    loadingNext=false;
@@ -587,7 +590,7 @@ function changeStation(value){
  visual.setStation(channel);
  if(playing){
    skipRequested=true;
-   status("Tuning to "+RADIO_CHANNELS[channel].name+" · preparing recordings for the next bar boundary");
+   status("Tuning to "+RADIO_CHANNELS[channel].name+" · preparing the next piece");
    if(!loadingNext)void queueNext();
  }else if(!paused){
    current=null;
@@ -608,8 +611,8 @@ $("start").addEventListener("click",start);
 $("play").addEventListener("click",()=>playing?pause():start());
 $("skip").addEventListener("click",()=>{
   if(!playing)return;
-  if(next?.ready){targetLoops=loops+1;status("Switching at the next eight-bar boundary")}
-  else{skipRequested=true;status("Preparing the next piece · current loop will continue");void queueNext()}
+  if(next?.ready){targetLoops=loops+1;status("Switching at the next section boundary")}
+  else{skipRequested=true;status("Preparing the next piece · current section will continue");void queueNext()}
 });
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden)visual.stop();

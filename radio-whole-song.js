@@ -5,6 +5,7 @@ import {GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
+import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
 const pitchClass=n=>((n%12)+12)%12;
@@ -153,6 +154,7 @@ function composeNotes(plan,r){
   const part=sections[Math.floor(bar/8)],role=part.role;
   const phrase=phrases.find(p=>bar>=p.startBar&&bar<p.endBar);
   const phraseBar=bar-phrase.startBar;
+  const parts=plan.ensemble.bars[bar].parts;
   const t=(bar+.5)/totalBars,energy=sceneEnergy(channel,role,t,engine);
   const chord=harmony[bar],next=harmony[Math.min(totalBars-1,bar+1)];
   const start=bar*16,low=channel==="dnb"?33:35;
@@ -163,7 +165,7 @@ function composeNotes(plan,r){
     channel==="dnb"?scene==="jungle"?[0,7,10]:[0,10]:
     config.style==="ambient"?[0]:[0,8];
   const bassNotes=bassRoot(chord);
-  for(let i=0;i<bass.length;i++){
+  if(parts.bass)for(let i=0;i<bass.length;i++){
    if(role==="opening"&&i>0&&bar<2)continue;
    if(role==="breakdown"&&i>0&&i%2===1)continue;
    const pos=bass[i],follow=bass[i+1]??16;
@@ -183,19 +185,19 @@ function composeNotes(plan,r){
     channel==="hiphop"?(role==="breakdown"?[0]:[0,10]):
     channel==="dnb"?(role==="lift"||role==="reprise"?[2]:bar%2===0?[0]:[]):
     engine==="ambient"?bar%2===0?[0]:[]:[0,8];
-  for(const pos of chordBeats)for(const note of voicing)
+  if(parts.chords)for(const pos of chordBeats)for(const note of voicing)
    add("chords",start+pos,Math.min(channel==="dnb"?6:channel==="pop"?8:12,16-pos),
       (channel==="pop"?.24:.17)*energy+.06,note,"harmonic route");
   const padInterval=engine==="ambient"?1:channel==="dnb"?2:4;
-  if(bar%padInterval===0||bar===turnBar||bar===climaxBar){
+  if(parts.pad&&(bar%padInterval===0||bar===turnBar||bar===climaxBar||bar===phrase.startBar)){
    for(const note of voicing)if(channel!=="hiphop"||role!=="lift")
     add("pad",start,Math.min(channel==="dnb"?17:29,totalSteps-start),
        .12*energy+.04,note,"long-range texture");
   }
-  const withMelody=channel==="pop"?role!=="opening"||bar>=2:
+  const withMelody=parts.lead&&(channel==="pop"?role!=="opening"||bar>=2:
     channel==="hiphop"?role!=="opening"||bar>=3:
     channel==="dnb"?scene==="liquid"?bar>=2:role==="lift"||role==="reprise"||bar===climaxBar||role==="opening"&&bar===4||role==="statement"&&bar%4===2:
-    engine==="ambient"?bar%2===0:bar>=2;
+    engine==="ambient"?bar%2===0:bar>=2);
   // Theme identity is inherited from a pre-planned Fibonacci phrase, not
   // recalculated when the playback counter reaches bar 8/16/24.
   const motifChoice=phrase.motif;
@@ -229,14 +231,11 @@ function composeNotes(plan,r){
       channel==="dnb"?8:12);
     const vel=(channel==="dnb"?.34:channel==="pop"?.63:.52)*energy+.09;
     add("lead",start+pos,duration,vel,note,motifChoice);
-    if((role==="answer"||role==="reprise")&&i===1&&bar%2===1&&channel!=="dnb"){
-      const at=start+Math.min(15,pos+3);
-      add("counter",at,Math.min(4,16-(at-start)),.20*energy+.04,
-         toneNear(note-5,chord,58,84),"answer to "+motifChoice);
-    }
+    // Counter responses are written as complete, lead-derived phrases
+    // by coordinateEnsemble(), using notes this composer actually chose.
    }
   }
-  if((role==="lift"||role==="reprise"||engine==="process")&&
+  if(parts.arp&&(role==="lift"||role==="reprise"||engine==="process")&&
      channel!=="hiphop"&&channel!=="dnb"&&bar%2===1){
    // Golden angle changes the inner chord tone without restarting each loop.
    const fraction=((bar+1)*GOLDEN_ANGLE_TURNS)%1;
@@ -297,11 +296,12 @@ export function planWholeRadioSong(input={}){
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,
   harmony,harmonicTheme:theme,harmonicAnswer:answer,themes,events:[]};
+ const ensemble=planEnsembleParts({channel,scene,engine,seed,sections,phrases,totalBars,climaxBar});
+ plan.ensemble=ensemble;
  const pitched=composeNotes(plan,random);
  const drums=channel==="mixed"?planMixedDrums(plan):
    applyWholeSongGroove([],channel,seed,sections,scene,totalBars);
- plan.events=[...pitched,...drums].sort((a,b)=>a.step-b.step||
-   a.track.localeCompare(b.track)||((a.note??0)-(b.note??0)));
+ plan.events=coordinateEnsemble([...pitched,...drums],ensemble,harmony);
  return plan;
 }
 // Compatibility only: actual transport still requires indexed 128-step buffers.

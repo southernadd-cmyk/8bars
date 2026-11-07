@@ -40,6 +40,7 @@ export function planEnsembleParts({channel,scene="",engine="",seed="",sections,p
   const foregroundRole=closing||arrival?"lead":answer?"counter":
     channel==="dnb"&&scene!=="liquid"&&opening?"texture":
     channel==="mixed"&&engine==="ambient"&&within%3===1?"texture":
+    strong&&(channel==="pop"||channel==="mixed")&&within%5===3?"texture":
     "lead";
   // Chords and pads are arranged to support a foreground player. They should
   // not compete with each other or an active arpeggio on every bar.

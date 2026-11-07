@@ -104,7 +104,7 @@ test("First piece and subsequent pieces select on quality plus musical novelty",
  const src=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
  assert.match(src,/function chooseOpeningPiece\(\)/);
  assert.match(src,/evaluatePieceQuality\(b\)\.score-evaluatePieceQuality\(a\)\.score/);
- assert.match(src,/radioNoveltyScore\(p,\[current,\.\.\.recentPieces\]\)/);
+ assert.match(src,/radioNoveltyScore\(b,\[current,\.\.\.recentPieces\]\)/);
  assert.match(src,/\.35\*evaluatePieceQuality\(p\)\.score/);
 });
 test("Human Radio consistently calls the listening unit a piece",()=>{

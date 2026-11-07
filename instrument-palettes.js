@@ -6,6 +6,13 @@ import {VOICES,VOICE_FAMILIES,REGEN_VOICE_POOLS} from "./sounds.js";
 const ALL_ROLES=["bass","chords","arp","lead","counter","pad"];
 const ORDER=["lead","chords","bass","arp","pad","counter"];
 const FAMILIES={
+ classical:{
+  lead:["Bowed strings","Strings","Winds","Keys & organs"],
+  chords:["Bowed strings","Strings","Keys & organs"],
+  arp:["Plucked strings","Mallets & bells","Strings","Keys & organs"],
+  counter:["Bowed strings","Strings","Winds"],
+  pad:["Bowed strings","Strings","Winds","Keys & organs"]
+ },
  pop:{
   lead:["Guitars","Plucked strings","Keys & organs","Vocal melodies","Bowed strings","Mallets & bells","Brass"],
   chords:["Guitars","Plucked strings","Keys & organs"],
@@ -36,12 +43,16 @@ const FAMILIES={
  }
 };
 const BASS={
+ classical:["uprightBass","vcBassRecorderVib","electricBass","organ","vcFMPiano"],
  pop:["electricBass","uprightBass","vcClavisynth","vcBassRecorderVib","vcFMPiano","organ"],
  hiphop:["electricBass","uprightBass","dnbSub","dnb808","vcClavisynth","vcBassRecorderVib","vcFMPiano"],
  dnb:["dnbReese","dnbWobble","dnbFm","dnbSub","electricBass"],
  electronic:["dnbReese","dnbWobble","dnbFm","dnbSub","dnb808","electricBass","uprightBass","vcClavisynth","vcFMPiano"]
 };
 const TUNING={
+ "classical/chamber":{lead:["Bowed strings","Strings","Winds"],arp:["Plucked strings","Strings","Mallets & bells"]},
+ "classical/nocturne":{lead:["Keys & organs","Bowed strings","Winds"],pad:["Bowed strings","Strings","Winds"]},
+ "classical/counterpoint":{lead:["Bowed strings","Strings","Winds"],counter:["Bowed strings","Strings","Winds"]},
  "pop/indie":{lead:["Guitars","Plucked strings","Bowed strings","Vocal melodies","Keys & organs"]},
  "pop/bright":{lead:["Keys & organs","Guitars","Vocal melodies","Mallets & bells","Brass","Plucked strings"]},
  "hiphop/lofi":{lead:["Keys & organs","Plucked strings","Mallets & bells","Guitars"],pad:["Keys & organs","Bowed strings","Strings"]},

@@ -187,10 +187,10 @@ function scoreEvents(plan){
   let bass=root-12;while(bass>52)bass-=12;while(bass<32)bass+=12;
   add("bass",at,Math.min(17,totalSteps-at),.29+.08*energy,bass,"foundation");
   const changed=!previousChord||previousChord.degree!==chord.degree;
-  if(parts.chords&&(changed||bar%3===0))
+  if(parts.chords&&(changed||bar%3===0||plan.composerV2&&bar%2===0))
    for(const n of chord.notes)
     add("chords",at,Math.min(16,totalSteps-at),.11+.07*energy,n+12,"harmony");
-  if(parts.pad&&(bar%3===0||bar===climaxBar||bar===turnBar))
+  if(parts.pad&&(bar%3===0||bar===climaxBar||bar===turnBar||plan.composerV2&&bar%2===0))
    for(const n of chord.notes)
     add("pad",at,Math.min(32,totalSteps-at),.08+.045*energy,n+12,"sustain");
   // φ governs instrument entrances: rotation across a chord rather than

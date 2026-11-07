@@ -29,7 +29,7 @@ test("Each channel has several coherent whole-piece forms at every length",()=>{
    assert.ok(form.includes("lift")||form.includes("reprise"));
   }
   const drawn=new Set(Array.from({length:60},(_,i)=>
-    choosePieceForm(channel,length,seedR(i+1)()).join(",")));
+    choosePieceForm(channel,length,()=>i/60).join(",")));
   assert.ok(drawn.size>=3,channel+length+" must not use one fixed form");
  }
 });

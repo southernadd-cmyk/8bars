@@ -4,6 +4,7 @@
 import {PHI,GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS} from "./harmony.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
+import {developMotifProgram} from "./radio-songcraft.js";
 
 const MAJOR=[0,2,4,5,7,9,11],MINOR=[0,2,3,5,7,8,10];
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
@@ -43,9 +44,7 @@ function splitPhrases(totalBars,turnBar,climaxBar,random){
    const phase=a===0?"exposition":a===turnBar?"development":"resolution";
    phrases.push({id:phrases.length,startBar:at,lengthBars:length,endBar:at+length,
      startStep:at*16,endStep:(at+length)*16,phase,
-     motif:phrases.length%3===1?"B":"A",
-     transform:phrases.length%4===0?"original":phrases.length%4===1?"inversion":
-       phrases.length%4===2?"sequence":"retrograde"});
+     motif:"A",transform:"original"});
    at+=length;
   }
  }
@@ -118,11 +117,16 @@ function motifFrom(random){
  return motif;
 }
 function motifDegree(motif,phrase,i){
- const src=phrase.motif==="B"?motif.slice().reverse().map(v=>-v):motif;
+ const src=phrase.motif==="B"?motif.slice().reverse().map(v=>-v):
+   phrase.motif==="C"?motif.filter((_,n)=>n%2===0):motif;
  const degree=src[i%src.length];
- if(phrase.transform==="inversion")return -degree;
- if(phrase.transform==="sequence")return degree+1;
- if(phrase.transform==="retrograde")return src[(src.length-1-i%src.length)];
+ if(phrase.transform==="inversion"||phrase.transform==="answer")return -degree;
+ if(phrase.transform==="sequence")return degree+(phrase.transpose||1);
+ if(phrase.transform==="retrograde")return src[src.length-1-i%src.length];
+ if(phrase.transform==="echo"&&i%src.length===src.length-1)
+   return degree+(phrase.transpose||0);
+ if(phrase.transform==="suspension"&&i%4===1)return src[0];
+ if(phrase.transform==="coda"&&i%src.length===src.length-1)return 0;
  return degree;
 }
 function melodicPitch(keyIndex,mode,degree,previous,chord,anchor=false){
@@ -150,13 +154,16 @@ function scoreEvents(plan){
  let previous=null,leadIndex=0;
  for(const phrase of phrases){
   const duration=phrase.endStep-phrase.startStep;
-  const onsets=[...new Set(addGoldenLeaves(0,duration,3).map(x=>Math.round(x)))].sort((a,b)=>a-b);
+  const depth=phrase.phase==="development"&&phrase.lengthBars>=5&&rand()<.32?4:
+    phrase.transform==="augmentation"&&phrase.lengthBars<=3?2:3;
+  const onsets=[...new Set(addGoldenLeaves(0,duration,depth).map(x=>Math.round(x)))].sort((a,b)=>a-b);
   const centre=(phrase.startBar+phrase.endBar)/2;
   const distance=Math.abs(centre-climaxBar)/totalBars;
   const energy=clamp(1-distance/GOLDEN_LARGE,.34,1);
   const quiet=phrase.phase==="exposition";
   for(let i=0;i<onsets.length;i++){
    if(quiet&&i===1&&phrase.id===0)continue;
+   if(phrase.transform==="fragment"&&i%3===2)continue;
    const step=phrase.startStep+onsets[i];
    // An ensemble role is chosen for this bar before the melody is written.
    if(!plan.ensemble.bars[Math.floor(step/16)]?.parts.lead)continue;
@@ -214,16 +221,25 @@ export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6}={
  const climaxBar=Math.round(totalBars*GOLDEN_LARGE);
  const random=randomSeed(seed+"|phi-plan");
  const keyIndex=CHORD_ROOTS.indexOf(key);
- const phrases=splitPhrases(totalBars,turnBar,climaxBar,random);
+ const sections=Array.from({length:loops},(_,i)=>{
+  const role=i===0?"opening":i===loops-1?"return":
+    i===1?"statement":i>=Math.round(loops*GOLDEN_LARGE)?
+      (random()<.55?"reprise":"lift"):
+      (random()<.56?"answer":"statement");
+  return {role,startBar:i*8,endBar:(i+1)*8,name:
+    role==="opening"?"Opening":role==="return"?"Coda":
+    role==="statement"?"Theme":role==="answer"?"Development":
+    role==="lift"?"Arrival":"Reprise"};
+ });
+ const phrases=developMotifProgram(
+   splitPhrases(totalBars,turnBar,climaxBar,random),sections,climaxBar,random);
  const harmony=planHarmony({keyIndex,mode,totalBars,turnBar,climaxBar,random});
  const motif=motifFrom(random);
  const plan={seed,key,mode,keyIndex,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),
-  climaxStep:Math.round(totalSteps*GOLDEN_LARGE),phrases,harmony,motif};
+  climaxStep:Math.round(totalSteps*GOLDEN_LARGE),phrases,harmony,motif,sections};
  plan.ensemble=planEnsembleParts({channel:"classical",scene:"chamber",engine:"melodic",
-   seed,sections:[{role:"opening",startBar:0,endBar:8},
-   ...Array.from({length:loops-2},(_,i)=>({role:i%2?"answer":"statement",startBar:(i+1)*8,endBar:(i+2)*8})),
-   {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar});
+   seed,sections,phrases,totalBars,climaxBar});
  plan.events=coordinateEnsemble(scoreEvents(plan),plan.ensemble,harmony);
  return plan;
 }
@@ -238,11 +254,10 @@ export function slicePhiSong(plan){
    .map(e=>({...e,step:e.step-start}));
   const progression=plan.harmony.slice(i*8,(i+1)*8)
    .map((h,j)=>({...h,bar:j+1}));
-  const t=(i+.5)/(plan.totalSteps/128);
-  const role=t<GOLDEN_SMALL?"statement":t<GOLDEN_LARGE?"answer":"return";
+  const role=plan.sections[i].role;
   const eventsByStep=Array.from({length:128},()=>[]);
   for(const e of events)eventsByStep[e.step].push(e);
-  return {role,name:"Movement "+(i+1),number:i+1,startStep:start,
+  return {role,name:plan.sections[i].name,number:i+1,startStep:start,
    progression,events,eventsByStep,ready:false};
  });
 }

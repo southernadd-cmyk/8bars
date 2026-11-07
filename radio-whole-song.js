@@ -284,15 +284,32 @@ function composeNotes(plan,r){
    add("arp",start+offset,Math.min(4,16-offset),.16*energy+.03,note,"golden angle");
   }
  }
- // A unique global climax and a resolved ending (not a climax every 8 bars).
+ // The climax and resolution belong to the *composed melody*. Rework the
+ // nearest existing musical note rather than bolting a second note onto it.
  const anchor=harmony[Math.floor(climaxStep/16)];
- add("lead",climaxStep,Math.min(13,totalSteps-climaxStep),.76,
-   toneNear(channel==="dnb"?78:82,anchor,70,92),"golden climax");
+ const climaxNote=toneNear(channel==="dnb"?78:82,anchor,70,92);
+ const nearest=events.filter(e=>e.track==="lead"&&
+   Math.abs(e.step-climaxStep)<=13).sort((a,b)=>
+     Math.abs(a.step-climaxStep)-Math.abs(b.step-climaxStep))[0];
+ if(nearest){
+   nearest.step=climaxStep;nearest.note=climaxNote;
+   nearest.velocity=.76;nearest.duration=Math.min(13,totalSteps-climaxStep);
+   nearest.tag="golden climax";
+ }else add("lead",climaxStep,Math.min(13,totalSteps-climaxStep),.76,
+   climaxNote,"golden climax");
  const final=harmony.at(-1),lastBar=totalSteps-16;
  const finalNote=toneNear(72,final,62,86);
- add("lead",lastBar,15,.53,finalNote,"final tonic");
+ const ending=events.filter(e=>e.track==="lead"&&e.step>=lastBar-8)
+   .sort((a,b)=>b.step-a.step)[0];
+ if(ending){
+   ending.step=lastBar;ending.duration=15;ending.note=finalNote;
+   ending.velocity=.53;ending.tag="final tonic";
+ }else add("lead",lastBar,15,.53,finalNote,"final tonic");
+ // Do not double the same chord with an existing accompaniment stab.
+ for(let i=events.length-1;i>=0;i--)
+   if(events[i].track==="chords"&&events[i].step>=lastBar)events.splice(i,1);
  for(const note of smoothVoicing(final,68,previousVoicing))
-  add("chords",lastBar,16,.20,note,"final cadence");
+   add("chords",lastBar,16,.20,note,"final cadence");
  plan.motifPerBar=motifPerBar;
  return events.sort((a,b)=>a.step-b.step||a.track.localeCompare(b.track)||((a.note??0)-(b.note??0)));
 }

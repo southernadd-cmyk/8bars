@@ -324,7 +324,7 @@ async function warmNextSection(piece){
  piece.loadingSection=true;
  try{
    await prepare(piece,index);
-   if(piece===current&&playing)status("Next arrangement ready");
+   if(piece===current&&playing)status("Next section ready");
  }catch(error){
    if(piece===current&&playing)status("Continuing the current section while recordings load");
    console.warn("Human Radio: section preload failed",error);
@@ -335,7 +335,7 @@ async function queueNext(){
  loadingNext=true;
  const forVersion=channelVersion;
  try{
-   // Several *symbolic* arrangements are cheap to score. Only download the
+   // Several complete *symbolic* pieces are cheap to score. Only download the
    // winning recorded-sample set, avoiding needless network requests.
    const alternatives=Array.from({length:5},()=>planNext(false))
      .sort((a,b)=>
@@ -351,15 +351,15 @@ async function queueNext(){
          if(skipRequested){
            targetLoops=loops+1;
            skipRequested=false;
-           status("Next chapter ready · switching at the next eight-bar boundary");
-         }else status("Next song ready");
+           status("Next piece ready · switching at the next eight-bar boundary");
+         }else status("Next piece ready");
        }
        break;
      }catch(e){console.warn("Human Radio: next piece skipped",e)}
    }
    if(!next&&playing&&forVersion===channelVersion){
      nextRetryTime=Date.now()+8000;
-     status("Keeping the current groove while the next piece loads…");
+     status("Continuing this piece while the next piece loads…");
    }
  }finally{
    loadingNext=false;
@@ -471,7 +471,7 @@ function switchPiece(at){
       if(displayedSection!==loops){
         displayedSection=loops;
         const part=current.sections[loops];
-        // Keep the track title stable throughout the arrangement.
+        // Keep the piece title stable throughout its musical sections.
         if(loops>0)pruneSampleCache();
         void warmNextSection(current);
       }
@@ -521,7 +521,7 @@ async function start(){
     // A pending resume used to make the Start button appear completely inert.
     const audioReady=ctx.state==="running"?Promise.resolve(true):
       ctx.resume().then(()=>true,()=>false);
-    status("Planning the complete composition…");
+    status("Composing a complete piece…");
     await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
@@ -539,7 +539,7 @@ async function start(){
       showSongIdentity(current);
     }
     if(ctx.state!=="running"){
-      status("Composition ready · requesting sound permission…");
+      status("Piece ready · requesting sound permission…");
       await Promise.race([audioReady,new Promise(resolve=>setTimeout(resolve,3000))]);
     }
     if(ctx.state!=="running"){

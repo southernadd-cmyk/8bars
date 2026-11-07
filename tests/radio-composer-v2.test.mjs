@@ -130,7 +130,7 @@ test("V1 remains available for A/B listening, without changing real radio master
  assert.notDeepEqual(p1.events,p2.events);
  const src=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
  assert.match(src,/composerVersion=new URLSearchParams\(location\.search\)/);
- assert.match(src,/planWholeRadioSong\(\{\.\.\.profile,seed,composerVersion\}\)/);
+ assert.match(src,/planWholeRadioSong\(\{\.\.\.profile,seed,composerVersion,performanceVersion\}\)/);
  assert.match(src,/targetLoops:profile\.targetLoops,composerVersion/);
  assert.match(src,/master\.gain\.value=\.83/);
  assert.match(src,/const safety=ctx\.createDynamicsCompressor/);

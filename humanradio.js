@@ -348,9 +348,13 @@ async function queueNext(){
    // winning recorded-sample set, avoiding needless network requests.
    const alternatives=Array.from({length:5},()=>planNext(false))
      .sort((a,b)=>{
-       const rank=p=>radioNoveltyScore(p,[current,...recentPieces])+
-         transitionHarmonyScore(current,p)+.35*evaluatePieceQuality(p).score;
-       return rank(b)-rank(a);
+       // Keep musical novelty independent of soft coherence screening.
+       const noveltyB=radioNoveltyScore(b,[current,...recentPieces]);
+       const noveltyA=radioNoveltyScore(a,[current,...recentPieces]);
+       const bridgeB=transitionHarmonyScore(current,b);
+       const bridgeA=transitionHarmonyScore(current,a);
+       return noveltyB+bridgeB+.35*evaluatePieceQuality(b).score-
+         noveltyA-bridgeA-.35*evaluatePieceQuality(a).score;
      });
    for(const lightweight of alternatives){
      if(!playing||next||forVersion!==channelVersion)break;

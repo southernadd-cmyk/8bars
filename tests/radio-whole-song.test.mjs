@@ -132,7 +132,7 @@ test("Whole-song genre groove is deterministic while original eight-bar API stay
 
 test("Every selectable channel uses whole-song scoring without altering the master chain",()=>{
  const src=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
- assert.match(src,/const songScore=planWholeRadioSong\(\{\.\.\.profile,seed,composerVersion\}\)/);
+ assert.match(src,/const songScore=planWholeRadioSong\(\{\.\.\.profile,seed,composerVersion,performanceVersion\}\)/);
  assert.match(src,/const sections=sliceWholeRadioSong\(candidate\.songScore\)/);
  assert.match(src,/if\(candidate\.songScore\)/);
  assert.match(src,/scheduled\.songScore\|\|sectionAllowsNote/);

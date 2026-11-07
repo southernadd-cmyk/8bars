@@ -1,7 +1,8 @@
+import {performedTiming,setPerformedEnvelope} from "./radio-audio-expression.js?v=1";
 import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
-import {planPhiSong,slicePhiSong} from "./phi-song-planner.js?v=2";
-import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js?v=2";
+import {planPhiSong,slicePhiSong} from "./phi-song-planner.js?v=3";
+import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js?v=3";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -23,6 +24,7 @@ let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("
 // A/B listening: the staged preview defaults to V2, while ?composer=v1
 // retains the exact original composer for an apples-to-apples comparison.
 const composerVersion=new URLSearchParams(location.search).get("composer")==="v1"?1:2;
+const performanceVersion=new URLSearchParams(location.search).get("feel")==="original"?1:2;
 const comparisonKey=(new URLSearchParams(location.search).get("compare")||"").slice(0,72);
 let comparisonOrdinal=0;
 function comparisonRng(seed){
@@ -235,7 +237,7 @@ function planNext(expand=true){
  if(profile.channel==="classical"){
   // Plan the ENTIRE song now, even for lightweight novelty comparisons.
   const phiScore=planPhiSong({seed,key:profile.key,mode:profile.mode,
-    targetLoops:profile.targetLoops,composerVersion});
+    targetLoops:profile.targetLoops,composerVersion,performanceVersion,bpm:profile.bpm});
   const candidate={...profile,seed,voices,drumSounds,phiScore,
     title:radioTitleForSeed(seed,radioWords),events:phiScore.events,
     progression:phiScore.harmony,ready:false,missing:0};
@@ -244,7 +246,7 @@ function planNext(expand=true){
  // Every non-Classical station uses the same whole-first architecture,
  // with a distinct melodic/harmonic/groove grammar per channel.
  if(profile.channel!=="classical"){
-  const songScore=planWholeRadioSong({...profile,seed,composerVersion});
+  const songScore=planWholeRadioSong({...profile,seed,composerVersion,performanceVersion});
   const candidate={...profile,seed,voices,drumSounds,songScore,
     title:radioTitleForSeed(seed,radioWords),events:songScore.events,
     progression:songScore.harmony,ready:false,missing:0};
@@ -407,8 +409,11 @@ function playNote(piece,e,when,sectionLevel=1,absoluteStep=e.step){
   const rate=sample.oneShot?1:drums.includes(e.track)?1:Math.pow(2,(e.note-sample.root)/12);
   src.playbackRate.value=rate;
   const stepSeconds=60/piece.bpm/4;
-  const noteLength=Math.min(buffer.duration/rate,Math.max(.04,e.duration*stepSeconds));
-  const fade=Math.min(.075,noteLength*.35);
+  // Phrasing is planned across the whole score, not randomized in playback.
+  const expression=performedTiming(e,{when,stepSeconds,
+    bufferSeconds:buffer.duration,playbackRate:rate});
+  const attackAt=Math.max(ctx.currentTime+.002,expression.attackAt);
+  const noteLength=expression.duration;
   const role=drums.includes(e.track)?.62:e.track==="bass"?.75:e.track==="pad"?.24:.42;
   // Keep the original loud/quiet contrast in source-recorded DnB velocity layers.
   const genreDrum=(piece.channel==="dnb"||piece.channel==="hiphop")&&drums.includes(e.track);
@@ -417,10 +422,9 @@ function playNote(piece,e,when,sectionLevel=1,absoluteStep=e.step){
   // Musical shape is evaluated against the complete work, never per slice.
   const phiExpression=piece.channel==="classical"&&piece.phiScore?
     phiDynamicGain(128*absoluteStep/piece.phiScore.totalSteps):1;
-  const amp=Math.max(.0001,e.velocity*role*level*sectionLevel*phiExpression);
-  envelope.gain.setValueAtTime(amp,when);
-  envelope.gain.setValueAtTime(amp,when+Math.max(.001,noteLength-fade));
-  envelope.gain.linearRampToValueAtTime(.0001,when+noteLength);
+  const amp=Math.max(.0001,e.velocity*role*level*sectionLevel*
+    phiExpression*expression.gainScale);
+  setPerformedEnvelope(envelope.gain,{...expression,attackAt,amp});
   src.connect(envelope);
   if(e.track==="bass"||e.track==="pad"){
     const filter=ctx.createBiquadFilter();filter.type="lowpass";
@@ -428,7 +432,7 @@ function playNote(piece,e,when,sectionLevel=1,absoluteStep=e.step){
        piece.channel==="dnb"?2200:950):1550;
     envelope.connect(filter);filter.connect(piece.bus);
   }else envelope.connect(piece.bus);
-  src.start(when);src.stop(when+noteLength+.004);
+  src.start(attackAt);src.stop(attackAt+noteLength+.004);
   visual.onNote(e);
   src.onended=()=>{try{src.disconnect();envelope.disconnect()}catch{}};
 }

@@ -87,7 +87,9 @@ export function radioSignature(piece){
    voices:Object.values(piece.voices||{}).join("|"),
    phiMotif:piece.phiScore?.motif.join(",")||piece.songScore?.themes?.motif?.contour.join(",")||"",
    phiForm:piece.phiScore?.phrases.map(p=>p.lengthBars+":"+p.motif+":"+p.transform).join("|")||
-    piece.songScore?.sections.map(s=>s.role+":"+s.phase).join("|")||""};
+    (piece.songScore?(piece.songScore.sections.map(s=>s.role+":"+s.phase).join("|")+
+     " / "+piece.songScore.phrases.map(p=>
+       p.lengthBars+":"+p.motif+":"+p.transform).join("|")):"")};
 }
 export function radioNoveltyScore(piece,history=[]){
  const sig=radioSignature(piece);

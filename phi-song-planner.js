@@ -4,7 +4,7 @@
 import {PHI,GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS} from "./harmony.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js?v=2";
-import {performWholeScore} from "./radio-performance.js";
+import {performWholeScore} from "./radio-performance.js?v=1";
 import {planComposerV2,composePhiPhraseV2} from "./radio-composer-v2.js?v=2";
 
 const MAJOR=[0,2,4,5,7,9,11],MINOR=[0,2,3,5,7,8,10];

@@ -171,7 +171,9 @@ function composeNotes(plan,r){
   const start=bar*16,low=channel==="dnb"?33:35;
   // Same bass figure throughout the composition, transformed at the globally
   // planned arrival and in each form part. No per-eight-bar random resets.
-  const bass=channel==="pop"?role==="lift"||role==="reprise"?[0,4,8,12]:[0,7,10]:
+  const bass=plan.composerV2?.strategy==="bass-led"?
+    plan.composerV2.bassRhythm:
+    channel==="pop"?role==="lift"||role==="reprise"?[0,4,8,12]:[0,7,10]:
     channel==="hiphop"?scene==="trap"?[0,8,14]:[0,7,10]:
     channel==="dnb"?scene==="jungle"?[0,7,10]:[0,10]:
     config.style==="ambient"?[0]:[0,8];
@@ -181,7 +183,9 @@ function composeNotes(plan,r){
    if(role==="breakdown"&&i>0&&i%2===1)continue;
    const pos=bass[i],follow=bass[i+1]??16;
    const pickup=i===bass.length-1&&bar%4===3&&bar<totalBars-1;
-   const note=pickup?bassRoot(next):bassNotes;
+   const figure=plan.composerV2?.strategy==="bass-led"?
+     plan.composerV2.bassFigure[i%plan.composerV2.bassFigure.length]:0;
+   const note=pickup?bassRoot(next):bassNotes+figure;
    add("bass",start+pos,clamp(follow-pos-.4,1.2,13.6),
       (channel==="dnb"?.70:.62)*energy+.08,note,"bass motif");
    if(channel==="dnb"&&role!=="opening"&&role!=="breakdown"&&i===0){
@@ -200,7 +204,9 @@ function composeNotes(plan,r){
    add("chords",start+pos,Math.min(channel==="dnb"?6:channel==="pop"?8:12,16-pos),
       (channel==="pop"?.24:.17)*energy+.06,note,"harmonic route");
   const padInterval=engine==="ambient"?1:channel==="dnb"?2:4;
-  if(parts.pad&&(bar%padInterval===0||bar===turnBar||bar===climaxBar||bar===phrase.startBar)){
+  if(parts.pad&&(bar%padInterval===0||bar===turnBar||bar===climaxBar||bar===phrase.startBar||
+    plan.composerV2?.strategy==="harmony-led"&&phraseBar%2===0||
+    plan.composerV2?.strategy==="process-led"&&phraseBar%3===0)){
    for(const note of voicing)if(channel!=="hiphop"||role!=="lift")
     add("pad",start,Math.min(channel==="dnb"?17:29,totalSteps-start),
        .12*energy+.04,note,"long-range texture");
@@ -246,7 +252,7 @@ function composeNotes(plan,r){
     // by coordinateEnsemble(), using notes this composer actually chose.
    }
   }
-  if(parts.arp&&(role==="lift"||role==="reprise"||engine==="process")&&
+  if(parts.arp&&(role==="lift"||role==="reprise"||engine==="process"||plan.composerV2?.strategy==="process-led")&&
      channel!=="hiphop"&&channel!=="dnb"&&bar%2===1){
    // Golden angle changes the inner chord tone without restarting each loop.
    const fraction=((bar+1)*GOLDEN_ANGLE_TURNS)%1;
@@ -310,7 +316,7 @@ export function planWholeRadioSong(input={}){
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,
   harmony,harmonicTheme:theme,harmonicAnswer:answer,themes,composerV2,events:[]};
- const ensemble=planEnsembleParts({channel,scene,engine,seed,sections,phrases,totalBars,climaxBar});
+ const ensemble=planEnsembleParts({channel,scene,engine,seed,sections,phrases,totalBars,climaxBar,composerV2});
  plan.ensemble=ensemble;
  const pitched=composeNotes(plan,random);
  const drums=channel==="mixed"?planMixedDrums(plan):

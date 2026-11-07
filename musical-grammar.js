@@ -41,7 +41,7 @@ export function phraseBlueprint(r,minNotes,maxNotes,{sparse=false,firstOnBeat=fa
   shift:choose(r,[-1,0,1]),
   opening:choose(r,["direct","pickup","rest"])};
 }
-export function developPhrase(hook,bar,{answer=false,closing=true}={}){
+export function developPhrase(hook,bar,{answer=false,closing=true,cadenceEveryFour=true}={}){
  const rhythm=copy(hook.rhythm),contour=copy(hook.contour);
  const phrase=bar%4,cycle=Math.floor(bar/4);
  if(phrase===1){
@@ -59,8 +59,8 @@ export function developPhrase(hook,bar,{answer=false,closing=true}={}){
    contour[i]=clamp(anchor-(hook.contour[i]-hook.contour[0])+hook.response,-5,5);
   if(rhythm.length>3)rhythm.splice(1,1),contour.splice(1,1);
  }
- if(phrase===3){
-  // Cadence: the final attack is early enough for a held resolution.
+ if(phrase===3&&cadenceEveryFour){
+  // A true four-bar phrase cadences; longer whole-song phrases can defer it.
   if(rhythm.length>3){rhythm.splice(-2,1);contour.splice(-2,1);}
   rhythm[rhythm.length-1]=Math.min(12,rhythm.at(-1));
   contour[contour.length-1]=0;
@@ -74,12 +74,12 @@ export function developPhrase(hook,bar,{answer=false,closing=true}={}){
   }else if(phrase===2){
    contour[contour.length-1]=clamp(contour.at(-1)-hook.response,-5,5);
   }
-  if(phrase===3&&closing)contour[contour.length-1]=0;
+  if(phrase===3&&closing&&cadenceEveryFour)contour[contour.length-1]=0;
  }
  // Avoid two notes on the same step after displacement.
  for(let i=1;i<rhythm.length;i++)rhythm[i]=Math.max(rhythm[i],rhythm[i-1]+1);
  return {rhythm,contour,articulation:hook.articulation,
-  cadence:phrase===3,finalCadence:bar===7};
+  cadence:phrase===3&&cadenceEveryFour,finalCadence:bar===7&&cadenceEveryFour};
 }
 
 export function smoothVoicing(chord,target=68,previous=null){

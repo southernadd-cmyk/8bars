@@ -2,6 +2,7 @@ import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
 import {planPhiSong,slicePhiSong} from "./phi-song-planner.js";
 import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js";
+import {evaluatePieceQuality} from "./radio-piece-quality.js";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -255,6 +256,14 @@ function planNext(expand=true){
  // six sections are only composed for the winner, not on the audio hot path.
  return expand?finishRadioForm(candidate):candidate;
 }
+// Evaluate several COMPLETE symbolic candidates before paying the cost of
+// decoding their recorded instruments. Quality only screens structural faults;
+// seeded form and melodic novelty remain independent.
+function chooseOpeningPiece(){
+ const candidates=Array.from({length:4},()=>planNext(false));
+ candidates.sort((a,b)=>evaluatePieceQuality(b).score-evaluatePieceQuality(a).score);
+ return finishRadioForm(candidates[0]);
+}
 function soundFor(piece,e){
   if(piece.channel==="hiphop"&&drums.includes(e.track)){
     const recorded=hiphopDrumSample(piece.scene,e.track,e.step,piece.seed);
@@ -324,7 +333,7 @@ async function warmNextSection(piece){
  piece.loadingSection=true;
  try{
    await prepare(piece,index);
-   if(piece===current&&playing)status("Next arrangement ready");
+   if(piece===current&&playing)status("Next section ready");
  }catch(error){
    if(piece===current&&playing)status("Continuing the current section while recordings load");
    console.warn("Human Radio: section preload failed",error);
@@ -335,12 +344,18 @@ async function queueNext(){
  loadingNext=true;
  const forVersion=channelVersion;
  try{
-   // Several *symbolic* arrangements are cheap to score. Only download the
+   // Several complete *symbolic* pieces are cheap to score. Only download the
    // winning recorded-sample set, avoiding needless network requests.
    const alternatives=Array.from({length:5},()=>planNext(false))
-     .sort((a,b)=>
-       radioNoveltyScore(b,[current,...recentPieces])+transitionHarmonyScore(current,b)-
-       radioNoveltyScore(a,[current,...recentPieces])-transitionHarmonyScore(current,a));
+     .sort((a,b)=>{
+       // Keep musical novelty independent of soft coherence screening.
+       const noveltyB=radioNoveltyScore(b,[current,...recentPieces]);
+       const noveltyA=radioNoveltyScore(a,[current,...recentPieces]);
+       const bridgeB=transitionHarmonyScore(current,b);
+       const bridgeA=transitionHarmonyScore(current,a);
+       return noveltyB+bridgeB+.35*evaluatePieceQuality(b).score-
+         noveltyA-bridgeA-.35*evaluatePieceQuality(a).score;
+     });
    for(const lightweight of alternatives){
      if(!playing||next||forVersion!==channelVersion)break;
      try{
@@ -351,15 +366,15 @@ async function queueNext(){
          if(skipRequested){
            targetLoops=loops+1;
            skipRequested=false;
-           status("Next chapter ready · switching at the next eight-bar boundary");
-         }else status("Next song ready");
+           status("Next piece ready · switching at the next eight-bar boundary");
+         }else status("Next piece ready");
        }
        break;
      }catch(e){console.warn("Human Radio: next piece skipped",e)}
    }
    if(!next&&playing&&forVersion===channelVersion){
      nextRetryTime=Date.now()+8000;
-     status("Keeping the current groove while the next piece loads…");
+     status("Continuing this piece while the next piece loads…");
    }
  }finally{
    loadingNext=false;
@@ -471,7 +486,7 @@ function switchPiece(at){
       if(displayedSection!==loops){
         displayedSection=loops;
         const part=current.sections[loops];
-        // Keep the track title stable throughout the arrangement.
+        // Keep the piece title stable throughout its musical sections.
         if(loops>0)pruneSampleCache();
         void warmNextSection(current);
       }
@@ -521,11 +536,11 @@ async function start(){
     // A pending resume used to make the Start button appear completely inert.
     const audioReady=ctx.state==="running"?Promise.resolve(true):
       ctx.resume().then(()=>true,()=>false);
-    status("Planning the complete composition…");
+    status("Composing a complete piece…");
     await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
-      if(!current)current=planNext();
+      if(!current)current=chooseOpeningPiece();
       await prepare(current);
       // The pre-start selector can change while recordings download.
       // Never start an already superseded station's music.
@@ -539,7 +554,7 @@ async function start(){
       showSongIdentity(current);
     }
     if(ctx.state!=="running"){
-      status("Composition ready · requesting sound permission…");
+      status("Piece ready · requesting sound permission…");
       await Promise.race([audioReady,new Promise(resolve=>setTimeout(resolve,3000))]);
     }
     if(ctx.state!=="running"){

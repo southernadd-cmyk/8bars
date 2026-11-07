@@ -76,7 +76,7 @@ test("Human Radio has accessible, responsive non-seekable progress and does not 
   assert.match(html,new RegExp('id="'+id+'"'));
  }
  assert.match(html,/<progress id="songProgress" max="100" value="0"/);
- assert.match(html,/aria-label="Progress through the complete composition"/);
+ assert.match(html,/aria-label="Progress through the complete piece"/);
  assert.match(html,/@media\(max-width:780px\)/);
  assert.match(html,/phi-marker/);
  assert.match(script,/function syncNowPlaying\(force=false\)/);

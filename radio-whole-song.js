@@ -6,23 +6,10 @@ import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
+import {PIECE_FORMS,choosePieceForm,developMotifProgram,motifForPhrase,renderDevelopedPhrase} from "./radio-songcraft.js";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
 const pitchClass=n=>((n%12)+12)%12;
-const FORMS={
-  pop:{5:["opening","statement","lift","answer","return"],
-       6:["opening","statement","lift","answer","reprise","return"],
-       7:["opening","statement","lift","answer","breakdown","reprise","return"]},
-  hiphop:{5:["opening","statement","lift","answer","return"],
-          6:["opening","statement","lift","answer","reprise","return"],
-          7:["opening","statement","lift","answer","breakdown","reprise","return"]},
-  dnb:{5:["opening","statement","lift","breakdown","return"],
-       6:["opening","statement","lift","breakdown","reprise","return"],
-       7:["opening","statement","answer","lift","breakdown","reprise","return"]},
-  mixed:{5:["opening","statement","answer","lift","return"],
-         6:["opening","statement","answer","lift","reprise","return"],
-         7:["opening","statement","answer","lift","breakdown","reprise","return"]}
-};
 const NAMES={
   pop:{opening:"Intro",statement:"Verse",answer:"Second verse",lift:"Chorus",breakdown:"Bridge",reprise:"Final chorus",return:"Outro"},
   hiphop:{opening:"Intro",statement:"Verse",answer:"Second verse",lift:"Hook",breakdown:"Bridge",reprise:"Final hook",return:"Outro"},
@@ -49,8 +36,8 @@ function bassRoot(chord){
  while(note<33)note+=12;
  return note;
 }
-function planSections(channel,loops,turnBar,climaxBar){
- const roles=FORMS[channel][loops];
+function planSections(channel,loops,turnBar,climaxBar,r){
+ const roles=choosePieceForm(channel,loops,r);
  const sections=roles.map((role,i)=>({
   role,name:NAMES[channel][role],number:i+1,startBar:i*8,endBar:(i+1)*8,
   startStep:i*128,endStep:(i+1)*128,
@@ -59,7 +46,7 @@ function planSections(channel,loops,turnBar,climaxBar){
  }));
  return sections;
 }
-function planPhrases(totalBars,turnBar,climaxBar,r){
+function planPhrases(totalBars,turnBar,climaxBar,r,sections){
  // Musical phrases are planned independently from the eight-bar renderer.
  // Fibonacci span lengths allow a theme to start in one transport chunk and
  // resolve in the next. Global golden cut/turn are hard boundary anchors.
@@ -83,34 +70,78 @@ function planPhrases(totalBars,turnBar,climaxBar,r){
    at+=length;
   }
  }
- const arrival=phrases.find(p=>p.startBar===climaxBar);
- if(arrival){arrival.motif="A";arrival.transform="arrival"}
- const final=phrases.at(-1);
- final.motif="A";final.transform="coda";
- return phrases;
+ return developMotifProgram(phrases,sections,climaxBar,r);
 }
-function planHarmony(config,r,sections,totalBars,turnBar,climaxBar){
+function planHarmony(config,r,sections,phrases,totalBars,turnBar,climaxBar){
  const {channel,key,mode,scene}=config;
  const choices=chordsInKey(key,mode);
  const theme=harmonicDegrees(r,channel,mode);
  const answer=theme.map((d,i)=>i===0?d:i===3?4:(d+([0,2,4,1][i]))%7);
+ // Connected functional moves make a progression sound intentional; multiple
+ // valid routes prevent a fixed 4-chord loop becoming every piece's identity.
+ const successors=[
+  [0,3,5,1], // I: prolongation or preparation
+  [4,3,1],   // ii: dominant preparation
+  [5,3,4],   // iii
+  [4,1,0],   // IV: predominant or plagal return
+  [0,5,4],   // V: authentic/deceptive resolution
+  [1,3,4,5], // vi: predominant, prolongation
+  [0,4]      // vii°: resolution
+ ];
  const harmony=[];
+ const cadencePositions=new Set();
+ // Occasional *phrase* cadences, deliberately much rarer than one every four
+ // bars. The next phrase knows where the previous one resolved.
+ for(const p of phrases){
+  if(p.endBar<totalBars-3&&p.lengthBars>=5&&
+    p.endBar!==turnBar&&p.endBar!==climaxBar&&r()<.23){
+   cadencePositions.add(p.endBar-2);
+  }
+ }
+ let previous=0,hold=0;
  for(let bar=0;bar<totalBars;bar++){
   const part=sections[Math.floor(bar/8)],role=part.role;
-  let degree=theme[Math.floor(channel==="dnb"?bar/2:bar)%4];
-  if(role==="answer"||role==="breakdown")degree=answer[Math.floor(channel==="dnb"?bar/2:bar)%4];
-  if(role==="return"&&bar>=totalBars-4)degree=[3,1,4,0][bar-(totalBars-4)];
-  if(channel==="hiphop"&&(scene==="lofi"||scene==="trap")&&bar%2===1&&role!=="return")
-    degree=harmony[bar-1]?.degree??degree;
-  if(channel==="mixed"&&config.engine==="ambient"&&bar%3!==0&&bar>0)
-    degree=harmony[bar-1]?.degree??degree;
-  // Structural harmonic departures and arrivals are chosen globally.
+  const phrase=phrases.find(p=>bar>=p.startBar&&bar<p.endBar);
+  const pos=bar-phrase.startBar;
+  const pace=channel==="dnb"?2:channel==="hiphop"&&(scene==="lofi"||scene==="trap")?2:
+    channel==="mixed"&&config.engine==="ambient"?3:1;
+  const source=role==="answer"||role==="breakdown"?answer:theme;
+  const index=channel==="dnb"?Math.floor(pos/2):pos;
+  const desired=source[(index+Math.abs(phrase.transpose||0))%source.length];
+  let degree=desired;
+  const options=successors[previous];
+  const isCadence=cadencePositions.has(bar)||cadencePositions.has(bar-1);
+  if(bar>0&&(bar%pace!==0||hold>0)){
+   degree=previous;
+   hold=Math.max(0,hold-1);
+  }else if(bar>0){
+   // Favor a remembered thematic progression, unless the functional motion
+   // would be weak; then resolve to a nearby related chord.
+   const development=phrase.phase==="development";
+   const near=options.filter(d=>d===desired);
+   if(near.length&&r()<(development?.57:.78))degree=desired;
+   else if(role==="breakdown"&&r()<.42)degree=previous;
+   else{
+    const prefers=options.filter(d=>
+      development?d!==0:
+      role==="lift"||role==="reprise"?[0,3,4,5].includes(d):true);
+    const available=prefers.length?prefers:options;
+    degree=available[Math.floor(r()*available.length)];
+   }
+   // Change frequency is part of the selected piece's musical identity.
+   if(role==="breakdown"&&r()<.32)hold=1;
+  }
+  if(isCadence){degree=cadencePositions.has(bar)?4:0;hold=0;}
+  // Golden cuts remain governing relationships, not arbitrary decorations.
   if(bar===turnBar-1||bar===climaxBar-1)degree=4;
   if(bar===turnBar||bar===climaxBar)degree=0;
+  // A consistent *ending* is preferable to an unresolved loop boundary.
+  if(role==="return"&&bar===totalBars-4)degree=3;
   if(bar===totalBars-2)degree=4;
   if(bar===totalBars-1)degree=0;
-  const h=chordFromSymbol(choices[degree],bar%8+1);
-  harmony.push({...h,bar:bar+1,degree});
+  const chord=chordFromSymbol(choices[degree],bar%8+1);
+  harmony.push({...chord,bar:bar+1,degree});
+  previous=degree;
  }
  return {harmony,theme,answer};
 }
@@ -134,7 +165,14 @@ function planThemes(config,r){
   contour:motif.contour.map((n,i)=>clamp(motif.contour[0]-n+(i%2===0?0:1),-5,5)),
   centre:motif.centre+take(r,[-3,2,3,5])
  };
- return {motif,answer};
+ // The bridge works with fragments of the original idea, not a third random
+ // melody. Using the same contour makes the whole piece recognisable.
+ const bridge={
+  ...motif,rhythm:motif.rhythm.filter((_,i)=>i===0||i%2===0),
+  contour:motif.contour.filter((_,i)=>i===0||i%2===0).map(n=>clamp(-n,-5,5)),
+  centre:motif.centre+take(r,[-2,0,2])
+ };
+ return {motif,answer,bridge};
 }
 function composeNotes(plan,r){
  const {config,sections,phrases,harmony,themes,totalBars,totalSteps,turnBar,climaxBar,climaxStep}=plan;
@@ -201,13 +239,15 @@ function composeNotes(plan,r){
   // Theme identity is inherited from a pre-planned Fibonacci phrase, not
   // recalculated when the playback counter reaches bar 8/16/24.
   const motifChoice=phrase.motif;
-  const theme=motifChoice==="B"?themes.answer:themes.motif;
+  const theme=motifForPhrase(themes,phrase);
   motifPerBar.push(motifChoice);
   if(withMelody){
-   const melodicPhrase=developPhrase(theme,phraseBar,{
+   const fundamental=developPhrase(theme,phraseBar,{
     answer:phrase.transform==="answer"||role==="breakdown",
-    closing:bar===phrase.endBar-1
+    closing:bar===phrase.endBar-1,
+    cadenceEveryFour:phrase.lengthBars===4
    });
+   const melodicPhrase=renderDevelopedPhrase(fundamental,phrase,phraseBar,channel);
    const rhythm=melodicPhrase.rhythm;
    const use=channel==="dnb"&&scene!=="liquid"?rhythm.slice(0,2):
      channel==="hiphop"?rhythm.slice(0,role==="lift"?4:3):
@@ -244,15 +284,32 @@ function composeNotes(plan,r){
    add("arp",start+offset,Math.min(4,16-offset),.16*energy+.03,note,"golden angle");
   }
  }
- // A unique global climax and a resolved ending (not a climax every 8 bars).
+ // The climax and resolution belong to the *composed melody*. Rework the
+ // nearest existing musical note rather than bolting a second note onto it.
  const anchor=harmony[Math.floor(climaxStep/16)];
- add("lead",climaxStep,Math.min(13,totalSteps-climaxStep),.76,
-   toneNear(channel==="dnb"?78:82,anchor,70,92),"golden climax");
+ const climaxNote=toneNear(channel==="dnb"?78:82,anchor,70,92);
+ const nearest=events.filter(e=>e.track==="lead"&&
+   Math.abs(e.step-climaxStep)<=13).sort((a,b)=>
+     Math.abs(a.step-climaxStep)-Math.abs(b.step-climaxStep))[0];
+ if(nearest){
+   nearest.step=climaxStep;nearest.note=climaxNote;
+   nearest.velocity=.76;nearest.duration=Math.min(13,totalSteps-climaxStep);
+   nearest.tag="golden climax";
+ }else add("lead",climaxStep,Math.min(13,totalSteps-climaxStep),.76,
+   climaxNote,"golden climax");
  const final=harmony.at(-1),lastBar=totalSteps-16;
  const finalNote=toneNear(72,final,62,86);
- add("lead",lastBar,15,.53,finalNote,"final tonic");
+ const ending=events.filter(e=>e.track==="lead"&&e.step>=lastBar-8)
+   .sort((a,b)=>b.step-a.step)[0];
+ if(ending){
+   ending.step=lastBar;ending.duration=15;ending.note=finalNote;
+   ending.velocity=.53;ending.tag="final tonic";
+ }else add("lead",lastBar,15,.53,finalNote,"final tonic");
+ // Do not double the same chord with an existing accompaniment stab.
+ for(let i=events.length-1;i>=0;i--)
+   if(events[i].track==="chords"&&events[i].step>=lastBar)events.splice(i,1);
  for(const note of smoothVoicing(final,68,previousVoicing))
-  add("chords",lastBar,16,.20,note,"final cadence");
+   add("chords",lastBar,16,.20,note,"final cadence");
  plan.motifPerBar=motifPerBar;
  return events.sort((a,b)=>a.step-b.step||a.track.localeCompare(b.track)||((a.note??0)-(b.note??0)));
 }
@@ -279,7 +336,7 @@ function planMixedDrums(plan){
 export function planWholeRadioSong(input={}){
  const {seed="human-radio",channel="mixed",scene="",engine="melodic",
    key="C",mode="major",style="downtempo",density=.6,bpm=100,targetLoops=6}=input;
- if(!FORMS[channel])throw new RangeError("Unsupported radio channel: "+channel);
+ if(!PIECE_FORMS[channel])throw new RangeError("Unsupported radio channel: "+channel);
  if(!CHORD_ROOTS.includes(key)||!["major","minor"].includes(mode))
   throw new RangeError("Unknown key/mode");
  const loops=clamp(Math.round(Number(targetLoops)||6),5,7);
@@ -289,9 +346,9 @@ export function planWholeRadioSong(input={}){
  const climaxStep=Math.round(totalSteps*GOLDEN_LARGE);
  const random=seeded(seed+"|"+channel+"|"+scene+"|whole-song");
  const config={seed,channel,scene,engine,key,mode,style,density,bpm,targetLoops:loops};
- const sections=planSections(channel,loops,turnBar,climaxBar);
- const phrases=planPhrases(totalBars,turnBar,climaxBar,random);
- const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar);
+ const sections=planSections(channel,loops,turnBar,climaxBar,random);
+ const phrases=planPhrases(totalBars,turnBar,climaxBar,random,sections);
+ const {harmony,theme,answer}=planHarmony(config,random,sections,phrases,totalBars,turnBar,climaxBar);
  const themes=planThemes(config,random);
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,

@@ -80,7 +80,7 @@ test("Human Radio uses a planned whole score for Classical phi only; expression 
  assert.doesNotMatch(js,/phiClassicalEvents\(/);
  assert.match(js,/piece\.channel==="classical"&&piece\.phiScore\?/);
  assert.match(js,/phiDynamicGain\(128\*absoluteStep\/piece\.phiScore\.totalSteps\)/);
- assert.match(js,/scheduled\.channel==="classical"\|\|sectionAllowsNote/);
+ assert.match(js,/scheduled\.channel==="classical"\|\|scheduled\.songScore\|\|sectionAllowsNote/);
  assert.match(js,/piece\.channel==="classical"\|\|!section\|\|sectionAllowsNote/);
  assert.ok(Math.abs(phiDynamicGain(128*GOLDEN_LARGE)-1)<1e-12);
  // Explicit whole-song climax would have been missed by a local 8-bar curve.

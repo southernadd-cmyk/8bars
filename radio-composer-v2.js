@@ -138,13 +138,26 @@ export function planV2Degrees({seed,channel,scene,strategy,totalBars,turnBar,cli
 function phraseVariant(plan,phrase){
  const r=seeded(plan.melodySeed+"|phrase|"+phrase.id);
  const strategy=plan.strategy;
- let transform=phrase.transform==="arrival"?"arrival":
-   phrase.transform==="coda"?"cadence":
-   phrase.motif==="A"&&r()<.33?"statement":
-   pick(r,PATTERN_TRANSFORMS);
- if(strategy==="hook-led"&&phrase.motif==="A"&&r()<.67)transform="echo";
- if(strategy==="dialogue-led"&&phrase.motif==="B")transform="answer";
- if(strategy==="process-led"&&r()<.65)transform="sequence";
+ // The global phrase plan sets intent first; creativity is bounded by the
+ // musical function of a phrase, not an arbitrary new transform each time.
+ const roles={
+  original:["statement","statement","echo","sustain"],
+  answer:["answer","answer","inversion","fragment"],
+  sequence:["sequence","sequence","echo","fragment"],
+  inversion:["inversion","inversion","answer","sequence"],
+  arrival:["arrival"],
+  coda:["cadence"]
+ };
+ const choices=roles[phrase.transform]||PATTERN_TRANSFORMS;
+ let transform=pick(r,choices);
+ if(strategy==="hook-led"&&phrase.motif==="A"&&
+    !["arrival","coda"].includes(phrase.transform)&&r()<.73)
+  transform="echo";
+ if(strategy==="dialogue-led"&&phrase.motif==="B"&&r()<.76)
+  transform="answer";
+ if(strategy==="process-led"&&phrase.transform!=="coda"&&
+   phrase.transform!=="arrival"&&r()<.64)
+  transform="sequence";
  return {transform,delay:pick(r,[0,0,1,2]),
    shift:pick(r,[-2,-1,0,0,1,2]),
    thin:strategy==="bass-led"||strategy==="process-led"||r()<.22,

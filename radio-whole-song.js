@@ -162,7 +162,7 @@ function composeNotes(plan,r){
   }
   const withMelody=channel==="pop"?role!=="opening"||bar>=2:
     channel==="hiphop"?role!=="opening"||bar>=3:
-    channel==="dnb"?scene==="liquid"?bar>=2:role==="lift"||role==="reprise"||bar===climaxBar:
+    channel==="dnb"?scene==="liquid"?bar>=2:role==="lift"||role==="reprise"||bar===climaxBar||role==="opening"&&bar===4||role==="statement"&&bar%4===2:
     engine==="ambient"?bar%2===0:bar>=2;
   const motifChoice=role==="answer"||role==="breakdown"?"B":"A";
   const theme=motifChoice==="B"?themes.answer:themes.motif;

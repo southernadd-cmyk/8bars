@@ -85,6 +85,13 @@ test("Long-range musical themes and form are predetermined, not random per chunk
   assert.notDeepEqual(a.themes.motif.contour,b.themes.motif.contour,ch+" must explore themes");
   assert.notDeepEqual(a.events,b.events,ch+" must generate different songs");
   assert.ok(a.sections.some(s=>s.name==="Outro"||s.name==="Coda"),ch+" has an ending");
+  assert.equal(a.phrases[0].startBar,0);
+  assert.equal(a.phrases.at(-1).endBar,a.totalBars);
+  for(let i=1;i<a.phrases.length;i++)assert.equal(a.phrases[i-1].endBar,a.phrases[i].startBar);
+  assert.ok(a.phrases.some(p=>p.startBar%8+p.lengthBars>8),
+    ch+" must have at least one phrase spanning a transport boundary");
+  assert.ok(a.phrases.some(p=>p.startBar===a.climaxBar&&p.transform==="arrival"));
+  assert.equal(a.phrases.at(-1).motif,"A");
   const full=a.events.filter(e=>e.track==="lead");
   assert.ok(full.some(e=>e.step<128)&&full.some(e=>e.step>=256));
   const scored=radioSignature({songScore:a,channel:ch,events:[]});

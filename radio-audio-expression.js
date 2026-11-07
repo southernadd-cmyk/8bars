@@ -14,7 +14,8 @@ export function performedTiming(event,{when,stepSeconds,bufferSeconds,playbackRa
  const duration=Math.min(bufferSeconds/playbackRate,
    Math.max(.04,(Number(event.duration)||1)*stepSeconds*scale));
  const attack=clamp((Number(perf.attackMs)||0)/1000,0,duration*.30);
- const release=clamp((Number(perf.releaseMs)||0)/1000,0,duration*.4);
+ const release=perf.releaseMs==null?Math.min(.075,duration*.35):
+  clamp((Number(perf.releaseMs)||0)/1000,0,duration*.4);
  return {attackAt,duration,attack,release,
   hold:Math.max(0,duration-attack-release),
   gainScale:clamp(Number(perf.velocityScale)||1,.75,1.12)};

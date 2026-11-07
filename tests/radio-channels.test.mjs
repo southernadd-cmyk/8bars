@@ -12,7 +12,7 @@ const composer=readFileSync(new URL("../composer.js",import.meta.url),"utf8");
 const drums=new Set(["kick","snare","clap","hat","openhat","perc"]);
 
 test("Human Radio provides Mixed, Hip-hop, Drum & Bass and Pop stations",()=>{
- assert.deepEqual(RADIO_CHANNEL_IDS,["mixed","hiphop","dnb","pop"]);
+ assert.deepEqual(RADIO_CHANNEL_IDS,["classical","mixed","hiphop","dnb","pop"]);
  for(const id of RADIO_CHANNEL_IDS){
    assert.match(page,new RegExp('value="'+id+'"'));
    assert.ok(RADIO_CHANNELS[id].name.length>=3);

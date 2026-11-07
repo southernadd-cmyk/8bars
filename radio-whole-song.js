@@ -6,23 +6,10 @@ import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
+import {PIECE_FORMS,choosePieceForm,developMotifProgram,motifForPhrase,renderDevelopedPhrase} from "./radio-songcraft.js";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
 const pitchClass=n=>((n%12)+12)%12;
-const FORMS={
-  pop:{5:["opening","statement","lift","answer","return"],
-       6:["opening","statement","lift","answer","reprise","return"],
-       7:["opening","statement","lift","answer","breakdown","reprise","return"]},
-  hiphop:{5:["opening","statement","lift","answer","return"],
-          6:["opening","statement","lift","answer","reprise","return"],
-          7:["opening","statement","lift","answer","breakdown","reprise","return"]},
-  dnb:{5:["opening","statement","lift","breakdown","return"],
-       6:["opening","statement","lift","breakdown","reprise","return"],
-       7:["opening","statement","answer","lift","breakdown","reprise","return"]},
-  mixed:{5:["opening","statement","answer","lift","return"],
-         6:["opening","statement","answer","lift","reprise","return"],
-         7:["opening","statement","answer","lift","breakdown","reprise","return"]}
-};
 const NAMES={
   pop:{opening:"Intro",statement:"Verse",answer:"Second verse",lift:"Chorus",breakdown:"Bridge",reprise:"Final chorus",return:"Outro"},
   hiphop:{opening:"Intro",statement:"Verse",answer:"Second verse",lift:"Hook",breakdown:"Bridge",reprise:"Final hook",return:"Outro"},
@@ -49,8 +36,8 @@ function bassRoot(chord){
  while(note<33)note+=12;
  return note;
 }
-function planSections(channel,loops,turnBar,climaxBar){
- const roles=FORMS[channel][loops];
+function planSections(channel,loops,turnBar,climaxBar,r){
+ const roles=choosePieceForm(channel,loops,r);
  const sections=roles.map((role,i)=>({
   role,name:NAMES[channel][role],number:i+1,startBar:i*8,endBar:(i+1)*8,
   startStep:i*128,endStep:(i+1)*128,
@@ -59,7 +46,7 @@ function planSections(channel,loops,turnBar,climaxBar){
  }));
  return sections;
 }
-function planPhrases(totalBars,turnBar,climaxBar,r){
+function planPhrases(totalBars,turnBar,climaxBar,r,sections){
  // Musical phrases are planned independently from the eight-bar renderer.
  // Fibonacci span lengths allow a theme to start in one transport chunk and
  // resolve in the next. Global golden cut/turn are hard boundary anchors.
@@ -83,11 +70,7 @@ function planPhrases(totalBars,turnBar,climaxBar,r){
    at+=length;
   }
  }
- const arrival=phrases.find(p=>p.startBar===climaxBar);
- if(arrival){arrival.motif="A";arrival.transform="arrival"}
- const final=phrases.at(-1);
- final.motif="A";final.transform="coda";
- return phrases;
+ return developMotifProgram(phrases,sections,climaxBar,r);
 }
 function planHarmony(config,r,sections,totalBars,turnBar,climaxBar){
  const {channel,key,mode,scene}=config;
@@ -134,7 +117,14 @@ function planThemes(config,r){
   contour:motif.contour.map((n,i)=>clamp(motif.contour[0]-n+(i%2===0?0:1),-5,5)),
   centre:motif.centre+take(r,[-3,2,3,5])
  };
- return {motif,answer};
+ // The bridge works with fragments of the original idea, not a third random
+ // melody. Using the same contour makes the whole piece recognisable.
+ const bridge={
+  ...motif,rhythm:motif.rhythm.filter((_,i)=>i===0||i%2===0),
+  contour:motif.contour.filter((_,i)=>i===0||i%2===0).map(n=>clamp(-n,-5,5)),
+  centre:motif.centre+take(r,[-2,0,2])
+ };
+ return {motif,answer,bridge};
 }
 function composeNotes(plan,r){
  const {config,sections,phrases,harmony,themes,totalBars,totalSteps,turnBar,climaxBar,climaxStep}=plan;
@@ -201,13 +191,14 @@ function composeNotes(plan,r){
   // Theme identity is inherited from a pre-planned Fibonacci phrase, not
   // recalculated when the playback counter reaches bar 8/16/24.
   const motifChoice=phrase.motif;
-  const theme=motifChoice==="B"?themes.answer:themes.motif;
+  const theme=motifForPhrase(themes,phrase);
   motifPerBar.push(motifChoice);
   if(withMelody){
-   const melodicPhrase=developPhrase(theme,phraseBar,{
+   const fundamental=developPhrase(theme,phraseBar,{
     answer:phrase.transform==="answer"||role==="breakdown",
     closing:bar===phrase.endBar-1
    });
+   const melodicPhrase=renderDevelopedPhrase(fundamental,phrase,phraseBar,channel);
    const rhythm=melodicPhrase.rhythm;
    const use=channel==="dnb"&&scene!=="liquid"?rhythm.slice(0,2):
      channel==="hiphop"?rhythm.slice(0,role==="lift"?4:3):
@@ -279,7 +270,7 @@ function planMixedDrums(plan){
 export function planWholeRadioSong(input={}){
  const {seed="human-radio",channel="mixed",scene="",engine="melodic",
    key="C",mode="major",style="downtempo",density=.6,bpm=100,targetLoops=6}=input;
- if(!FORMS[channel])throw new RangeError("Unsupported radio channel: "+channel);
+ if(!PIECE_FORMS[channel])throw new RangeError("Unsupported radio channel: "+channel);
  if(!CHORD_ROOTS.includes(key)||!["major","minor"].includes(mode))
   throw new RangeError("Unknown key/mode");
  const loops=clamp(Math.round(Number(targetLoops)||6),5,7);
@@ -289,8 +280,8 @@ export function planWholeRadioSong(input={}){
  const climaxStep=Math.round(totalSteps*GOLDEN_LARGE);
  const random=seeded(seed+"|"+channel+"|"+scene+"|whole-song");
  const config={seed,channel,scene,engine,key,mode,style,density,bpm,targetLoops:loops};
- const sections=planSections(channel,loops,turnBar,climaxBar);
- const phrases=planPhrases(totalBars,turnBar,climaxBar,random);
+ const sections=planSections(channel,loops,turnBar,climaxBar,random);
+ const phrases=planPhrases(totalBars,turnBar,climaxBar,random,sections);
  const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar);
  const themes=planThemes(config,random);
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,

@@ -16,6 +16,7 @@ import {planGenreHarmony,arrangeGenreMusic} from "./genre-arrangement.js?v=3";
 import {dnbDrumSample} from "./dnb-break-kit.js?v=3";
 import {hiphopDrumSample} from "./hiphop-drum-kit.js?v=1";
 import {createRadioVisual} from "./radio-visual.js?v=3";
+import {audibleSongStep,radioNowPlaying} from "./radio-now-playing.js";
 
 const $=id=>document.getElementById(id);
 let selectedChannel=validRadioChannel(new URLSearchParams(location.search).get("channel"));
@@ -35,6 +36,7 @@ function showSongIdentity(piece){
  const title=piece.title||radioTitleForSeed(piece.seed,radioWords);
  $("track").textContent=title;
  document.title=title+" · Human Radio";
+ syncNowPlaying(true);
 }
 let channelVersion=0;
 function updateStationDisplay(){
@@ -55,6 +57,35 @@ const recentPieces=[]; // Previous musical identities, oldest discarded after ei
 let livingGenome=null; // Musical memory survives non-Ecology chapters.
 let lastText="";
 let epoch=0,nextRetryTime=0;
+let lastProgressPaint=0;
+// UI progress follows the audible Web Audio clock, not the scheduler's
+// look-ahead. It spans the whole song rather than an eight-bar buffer.
+function syncNowPlaying(force=false){
+ if(!current)return;
+ const now=performance.now();
+ if(!force&&now-lastProgressPaint<160)return;
+ lastProgressPaint=now;
+ const totalSteps=(current.sections?.length||0)*128;
+ const position=playing||paused?
+   audibleSongStep({loops,step,stepTime,audioTime:ctx?.currentTime||0,
+     bpm:current.bpm,totalSteps}):0;
+ const display=radioNowPlaying(current,position);
+ if(!display)return;
+ $("trackChannel").textContent=RADIO_CHANNELS[display.channel]?.name||display.channel;
+ const scene=display.scene.replace(/-/g," ");
+ const style=display.style.replace(/-/g," ");
+ $("trackStyle").textContent=[scene,style].filter(Boolean).join(" · ");
+ $("trackBpm").textContent=display.bpm+" BPM";
+ $("trackKey").textContent=[display.key,display.mode].filter(Boolean).join(" ");
+ $("sectionTag").textContent=display.sectionName;
+ $("sectionName").textContent="Section "+(display.sectionIndex+1)+" of "+display.sectionCount;
+ $("barPosition").textContent="Bar "+display.bar+" / "+display.totalBars;
+ $("songProgress").value=display.progress;
+ $("songProgress").setAttribute("aria-valuetext","Bar "+display.bar+" of "+
+   display.totalBars+", "+display.sectionName);
+ $("elapsed").textContent=display.elapsed;
+ $("duration").textContent=display.total;
+}
 const retiringBuses=[];
 // Entirely original, event- and spectrum-reactive artwork; no licensed video.
 const visual=createRadioVisual($("radio-art"));
@@ -402,6 +433,7 @@ function switchPiece(at){
  pruneSampleCache();
  showSongIdentity(current);
  status("Now playing");
+ syncNowPlaying(true);
  void warmNextSection(current);
 }function pump(){
   if(!playing||!ctx||!current)return;
@@ -451,6 +483,7 @@ function switchPiece(at){
     if(step===128){step=0;loops++;if(loops%2===0)changeVisual()}
   }
   if(!next&&!loadingNext&&loops>=targetLoops-2)void queueNext();
+ syncNowPlaying();
 }
 async function start(){
   $("start").disabled=true;$("play").disabled=true;
@@ -514,7 +547,7 @@ async function start(){
     stepTime=ctx.currentTime+.09;
     $("intro").hidden=true;$("play").textContent="Ⅱ Pause";$("skip").disabled=false;
     status("Now playing");
-    timer=setInterval(pump,25);pump();void warmNextSection(current);
+    timer=setInterval(pump,25);pump();syncNowPlaying(true);void warmNextSection(current);
   }catch(error){
     console.error("Human Radio start failed",error);
     status("Radio could not start: "+error.message);
@@ -529,6 +562,7 @@ async function pause(){
   $("play").textContent="▶ Resume";
   $("skip").disabled=true;
   status("Paused · press Resume to continue");
+  syncNowPlaying(true);
 }
 function changeStation(value){
  const channel=validRadioChannel(value);

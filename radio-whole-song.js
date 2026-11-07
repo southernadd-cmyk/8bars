@@ -72,28 +72,76 @@ function planPhrases(totalBars,turnBar,climaxBar,r,sections){
  }
  return developMotifProgram(phrases,sections,climaxBar,r);
 }
-function planHarmony(config,r,sections,totalBars,turnBar,climaxBar){
+function planHarmony(config,r,sections,phrases,totalBars,turnBar,climaxBar){
  const {channel,key,mode,scene}=config;
  const choices=chordsInKey(key,mode);
  const theme=harmonicDegrees(r,channel,mode);
  const answer=theme.map((d,i)=>i===0?d:i===3?4:(d+([0,2,4,1][i]))%7);
+ // Connected functional moves make a progression sound intentional; multiple
+ // valid routes prevent a fixed 4-chord loop becoming every piece's identity.
+ const successors=[
+  [0,3,5,1], // I: prolongation or preparation
+  [4,3,1],   // ii: dominant preparation
+  [5,3,4],   // iii
+  [4,1,0],   // IV: predominant or plagal return
+  [0,5,4],   // V: authentic/deceptive resolution
+  [1,3,4,5], // vi: predominant, prolongation
+  [0,4]      // vii°: resolution
+ ];
  const harmony=[];
+ const cadencePositions=new Set();
+ // Occasional *phrase* cadences, deliberately much rarer than one every four
+ // bars. The next phrase knows where the previous one resolved.
+ for(const p of phrases){
+  if(p.endBar<totalBars-3&&p.lengthBars>=5&&
+    p.endBar!==turnBar&&p.endBar!==climaxBar&&r()<.23){
+   cadencePositions.add(p.endBar-2);
+  }
+ }
+ let previous=0,hold=0;
  for(let bar=0;bar<totalBars;bar++){
   const part=sections[Math.floor(bar/8)],role=part.role;
-  let degree=theme[Math.floor(channel==="dnb"?bar/2:bar)%4];
-  if(role==="answer"||role==="breakdown")degree=answer[Math.floor(channel==="dnb"?bar/2:bar)%4];
-  if(role==="return"&&bar>=totalBars-4)degree=[3,1,4,0][bar-(totalBars-4)];
-  if(channel==="hiphop"&&(scene==="lofi"||scene==="trap")&&bar%2===1&&role!=="return")
-    degree=harmony[bar-1]?.degree??degree;
-  if(channel==="mixed"&&config.engine==="ambient"&&bar%3!==0&&bar>0)
-    degree=harmony[bar-1]?.degree??degree;
-  // Structural harmonic departures and arrivals are chosen globally.
+  const phrase=phrases.find(p=>bar>=p.startBar&&bar<p.endBar);
+  const pos=bar-phrase.startBar;
+  const pace=channel==="dnb"?2:channel==="hiphop"&&(scene==="lofi"||scene==="trap")?2:
+    channel==="mixed"&&config.engine==="ambient"?3:1;
+  const source=role==="answer"||role==="breakdown"?answer:theme;
+  const index=channel==="dnb"?Math.floor(pos/2):pos;
+  const desired=source[(index+Math.abs(phrase.transpose||0))%source.length];
+  let degree=desired;
+  const options=successors[previous];
+  const isCadence=cadencePositions.has(bar)||cadencePositions.has(bar-1);
+  if(bar>0&&(bar%pace!==0||hold>0)){
+   degree=previous;
+   hold=Math.max(0,hold-1);
+  }else if(bar>0){
+   // Favor a remembered thematic progression, unless the functional motion
+   // would be weak; then resolve to a nearby related chord.
+   const development=phrase.phase==="development";
+   const near=options.filter(d=>d===desired);
+   if(near.length&&r()<(development?.57:.78))degree=desired;
+   else if(role==="breakdown"&&r()<.42)degree=previous;
+   else{
+    const prefers=options.filter(d=>
+      development?d!==0:
+      role==="lift"||role==="reprise"?[0,3,4,5].includes(d):true);
+    const available=prefers.length?prefers:options;
+    degree=available[Math.floor(r()*available.length)];
+   }
+   // Change frequency is part of the selected piece's musical identity.
+   if(role==="breakdown"&&r()<.32)hold=1;
+  }
+  if(isCadence){degree=cadencePositions.has(bar)?4:0;hold=0;}
+  // Golden cuts remain governing relationships, not arbitrary decorations.
   if(bar===turnBar-1||bar===climaxBar-1)degree=4;
   if(bar===turnBar||bar===climaxBar)degree=0;
+  // A consistent *ending* is preferable to an unresolved loop boundary.
+  if(role==="return"&&bar===totalBars-4)degree=3;
   if(bar===totalBars-2)degree=4;
   if(bar===totalBars-1)degree=0;
-  const h=chordFromSymbol(choices[degree],bar%8+1);
-  harmony.push({...h,bar:bar+1,degree});
+  const chord=chordFromSymbol(choices[degree],bar%8+1);
+  harmony.push({...chord,bar:bar+1,degree});
+  previous=degree;
  }
  return {harmony,theme,answer};
 }
@@ -282,7 +330,7 @@ export function planWholeRadioSong(input={}){
  const config={seed,channel,scene,engine,key,mode,style,density,bpm,targetLoops:loops};
  const sections=planSections(channel,loops,turnBar,climaxBar,random);
  const phrases=planPhrases(totalBars,turnBar,climaxBar,random,sections);
- const {harmony,theme,answer}=planHarmony(config,random,sections,totalBars,turnBar,climaxBar);
+ const {harmony,theme,answer}=planHarmony(config,random,sections,phrases,totalBars,turnBar,climaxBar);
  const themes=planThemes(config,random);
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,

@@ -13,6 +13,28 @@ Deterministic eight-bar rule-based music composition with 12 channels. [Open the
 - Browser-only imported audio from files or eligible Wikimedia Commons recordings, exported MIDI/WAV/JSON and shareable settings URLs.
 - The Harmony strip is now editable: choose a major, minor or diminished chord per bar. Each change rebuilds the six pitched tracks against the selected progression without changing drums. Reset chords returns to automatic harmony; selections persist in a share link and all composition exports. New song or a key/mode change starts fresh harmony.
 
+## Classical φ — whole-song planning (experimental)
+
+The **Classical φ** Human Radio channel is now scored *before* eight-bar transport units
+are created. `phi-song-planner.js` plans the complete 40–56-bar piece from a
+seed: the whole-work harmonic route, tonic/dominant pivots at 38.2% and
+61.8%, Fibonacci-length phrases, two related motifs, their transformations,
+counterpoint, accompaniment, arrival and final IV–V–I cadence. The whole-score
+event list is then **sliced without recomposition** into the eight-bar buffers
+used by the existing sampler and scheduling code. Phrase boundaries can cross
+transport buffers. Music remains generated from the existing licensed
+recorded samples, not oscillator synthesis.
+
+The φ expression contour also runs across the **entire song**, reaching its
+musical high point at 61.8% of total length. This does not alter the existing
+master volume, sample normalisation or safety compressor. Composition quality,
+voice-leading and genuine musical persuasiveness still require critical
+listening; tests validate determinism, structural rules, lossless event slicing
+and normal playback compatibility, not aesthetics.
+
+The other Human Radio channels and the eight-bar editor retain their existing
+composition engines.
+
 ## Human Radio: track titles and electronic DnB samples
 
 Human Radio displays **only a generated track title** for each new composition, made from **1–3 title-cased English words**. There are no fictional artist credits. The 800+ word local dictionary is `radio-words.txt`, a filtered/curated subset of the [1000 common English words list](https://github.com/powerlanguage/word-lists/blob/master/1000-most-common-words.txt), supplemented with creative nouns. The title generator in `radio-names.js` is deterministic for the song seed, excludes duplicate words within a title, and changes only when the composition changes. The technical key/BPM/engine and current song section line have been removed from Human Radio's visual display.

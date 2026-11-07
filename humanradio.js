@@ -1,6 +1,6 @@
 import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
-import {phiClassicalEvents} from "./phi-classical.js";
+import {planPhiSong,slicePhiSong} from "./phi-song-planner.js";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -75,6 +75,13 @@ function indexEvents(piece){
  return piece;
 }
 function finishRadioForm(candidate){
+ // A complete Classical phi composition comes FIRST; eight-bar slices are
+ // only transport buffers. No new notes are invented by this adapter.
+ if(candidate.channel==="classical"){
+  const sections=slicePhiSong(candidate.phiScore);
+  return {...candidate,sections,events:sections[0].events,
+   eventsByStep:sections[0].eventsByStep,progression:sections[0].progression};
+ }
  const {baseComposition,keep,oldPercussion,...profile}=candidate;
  const sections=buildRadioForm(candidate,baseComposition,composeWithEngine);
  for(const section of sections){
@@ -82,17 +89,11 @@ function finishRadioForm(candidate){
      .concat(oldPercussion.filter(e=>keep.includes(e.track)));
    const combined=[...percussion,...section.events.filter(e=>!drums.includes(e.track))]
      .sort((a,b)=>a.step-b.step);
-   // The Classical phi station composes notes and phrase rhythms with phi.
-   if(candidate.channel==="classical"){
-     section.events=phiClassicalEvents(section.progression,candidate.seed+"|"+candidate.scene,
-       section.role);
-   }else{
-     const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
-       leadVoice:candidate.voices.lead},
-       candidate.channel,candidate.seed,section.role,candidate.scene);
-     section.events=applyChannelGroove(genreEvents,
-       candidate.channel,candidate.seed,section.role);
-   }
+   const genreEvents=arrangeGenreMusic({...section,events:combined,scene:candidate.scene,
+     leadVoice:candidate.voices.lead},
+     candidate.channel,candidate.seed,section.role,candidate.scene);
+   section.events=applyChannelGroove(genreEvents,
+     candidate.channel,candidate.seed,section.role);
    indexEvents(section);
  }
  return {...profile,sections,events:sections[0].events,
@@ -169,6 +170,15 @@ function planNext(expand=true){
      if(candidates.length)drumSounds[id]=choice(candidates).i;
    }
  }
+ if(profile.channel==="classical"){
+  // Plan the ENTIRE song now, even for lightweight novelty comparisons.
+  const phiScore=planPhiSong({seed,key:profile.key,mode:profile.mode,
+    targetLoops:profile.targetLoops});
+  const candidate={...profile,seed,voices,drumSounds,phiScore,
+    title:radioTitleForSeed(seed,radioWords),events:phiScore.events,
+    progression:phiScore.harmony,ready:false,missing:0};
+  return expand?finishRadioForm(candidate):candidate;
+ }
  const genreHarmony=planGenreHarmony({channel:profile.channel,seed,key:profile.key,mode:profile.mode,scene:profile.scene});
  const ecologyGenome=profile.engine==="ecology"?
    planEcology({seed,key:profile.key,mode:profile.mode,
@@ -217,7 +227,7 @@ function soundFor(piece,e){
 function uniqueSamples(piece,sectionIndex=0){
  const section=piece.sections?.[sectionIndex];
  const events=section?.events??piece.events;
- return [...new Map(events.filter(e=>!section||sectionAllowsNote(e,section.role))
+ return [...new Map(events.filter(e=>piece.channel==="classical"||!section||sectionAllowsNote(e,section.role))
    .map(e=>{const s=soundFor(piece,e);return [s.url,s]})).values()];
 }
 async function loadSound(s){
@@ -318,7 +328,7 @@ function gainFor(piece){
   const bus=ctx.createGain();bus.gain.value=0;bus.connect(master);
   piece.bus=bus;return bus;
 }
-function playNote(piece,e,when,sectionLevel=1){
+function playNote(piece,e,when,sectionLevel=1,absoluteStep=e.step){
   const sample=soundFor(piece,e),buffer=sampleCache.get(sample.url);
   if(!buffer)return;
   const src=ctx.createBufferSource(),envelope=ctx.createGain();
@@ -333,7 +343,9 @@ function playNote(piece,e,when,sectionLevel=1){
   const genreDrum=(piece.channel==="dnb"||piece.channel==="hiphop")&&drums.includes(e.track);
    const level=genreDrum?samplePeakGain(buffer):sampleGain(buffer);
   // Phi governs Classical expression only; normal mastering chain stays intact.
-  const phiExpression=piece.channel==="classical"?phiDynamicGain(e.step):1;
+  // Musical shape is evaluated against the complete work, never per slice.
+  const phiExpression=piece.channel==="classical"&&piece.phiScore?
+    phiDynamicGain(128*absoluteStep/piece.phiScore.totalSteps):1;
   const amp=Math.max(.0001,e.velocity*role*level*sectionLevel*phiExpression);
   envelope.gain.setValueAtTime(amp,when);
   envelope.gain.setValueAtTime(amp,when+Math.max(.001,noteLength-fade));
@@ -414,8 +426,10 @@ function switchPiece(at){
     const eighth=60/scheduled.bpm/4;
     const swingDelay=localStep%2?eighth*scheduled.swing*.5:0;
     for(const e of section.eventsByStep[localStep])
-      if(sectionAllowsNote(e,section.role))
-        playNote(scheduled,e,stepTime+swingDelay,sectionVelocity(section.role,e.track));
+      if(scheduled.channel==="classical"||sectionAllowsNote(e,section.role))
+        playNote(scheduled,e,stepTime+swingDelay,
+          scheduled.channel==="classical"?1:sectionVelocity(section.role,e.track),
+          loops*128+localStep);
     step++;
     stepTime+=60/scheduled.bpm/4;
     if(step===128){step=0;loops++;if(loops%2===0)changeVisual()}

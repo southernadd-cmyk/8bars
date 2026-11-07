@@ -47,11 +47,11 @@ export function planEnsembleParts({channel,scene="",engine="",seed="",sections,p
   // labelling the same lead/chord/pad pattern as a different strategy.
   if(!arrival&&!closing&&!answer){
    const preserveDnbTheme=channel==="dnb"&&opening&&bar===4;
-   if(strategy==="bass-led"&&within%3===1&&!preserveDnbTheme)
+   if(strategy==="bass-led"&&within%3===1&&!preserveDnbTheme&&channel!=="classical")
     foregroundRole="texture"; // feature the recurring bass motif
-   else if(strategy==="harmony-led"&&within%4===2&&!preserveDnbTheme)
+   else if(strategy==="harmony-led"&&within%4===2&&!preserveDnbTheme&&channel!=="classical")
     foregroundRole="texture"; // let moving chord voices carry the phrase
-   else if(strategy==="process-led"&&within%3===1&&!preserveDnbTheme)
+   else if(strategy==="process-led"&&within%3===1&&!preserveDnbTheme&&channel!=="classical")
     foregroundRole="texture"; // foreground evolves gradually
    else if(strategy==="dialogue-led"&&within>=2&&within%3===2&&!opening&&
      (channel!=="dnb"||scene==="liquid"))foregroundRole="counter";

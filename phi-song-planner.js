@@ -4,6 +4,7 @@
 import {PHI,GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS} from "./harmony.js";
 import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js?v=2";
+import {performWholeScore} from "./radio-performance.js";
 import {planComposerV2,composePhiPhraseV2} from "./radio-composer-v2.js?v=2";
 
 const MAJOR=[0,2,4,5,7,9,11],MINOR=[0,2,3,5,7,8,10];
@@ -213,7 +214,7 @@ function scoreEvents(plan){
  for(const n of tonic.notes)add("chords",final,16,.18,n+12,"resolution");
  return events.sort((a,b)=>a.step-b.step||a.track.localeCompare(b.track)||a.note-b.note);
 }
-export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6,composerVersion=2}={}){
+export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6,composerVersion=2,performanceVersion=2,bpm=84}={}){
  if(!CHORD_ROOTS.includes(key)||!["major","minor"].includes(mode))
   throw new RangeError("Unknown key or mode");
  const loops=clamp(Math.round(Number(targetLoops)||6),5,7);
@@ -236,7 +237,13 @@ export function planPhiSong({seed="618033",key="C",mode="major",targetLoops=6,co
    ...Array.from({length:loops-2},(_,i)=>({role:i%2?"answer":"statement",startBar:(i+1)*8,endBar:(i+2)*8})),
    {role:"return",startBar:(loops-1)*8,endBar:totalBars}],phrases,totalBars,climaxBar,
    composerV2:plan.composerV2});
- plan.events=coordinateEnsemble(scoreEvents(plan),plan.ensemble,harmony);
+ const written=coordinateEnsemble(scoreEvents(plan),plan.ensemble,harmony);
+ const performed=performWholeScore(written,
+  {seed,channel:"classical",bpm,totalSteps,phrases,
+   ensemble:plan.ensemble,climaxStep:plan.climaxStep},
+  {performanceVersion});
+ plan.events=performed.events;
+ plan.performance=performed.performance;
  return plan;
 }
 // After the whole score exists, adapt it to the legacy transport's eight-bar

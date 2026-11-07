@@ -16,6 +16,14 @@ export function audibleSongStep({loops=0,step=0,stepTime=0,audioTime=0,bpm=100,t
  const pending=(Number(stepTime)-Number(audioTime))/secondsPerStep;
  return clamp((Number(loops)*STEPS_PER_SECTION+Number(step))-pending,0,totalSteps);
 }
+// The player may replay its previous eight-bar buffer while a new recording
+// loads. Present this as a held progress indicator, not a jump backwards.
+export function stableSongStep(previous,proposed,totalSteps){
+ const limit=Number.isFinite(totalSteps)&&totalSteps>0?totalSteps:0;
+ const before=Number.isFinite(previous)?previous:0;
+ const after=Number.isFinite(proposed)?proposed:0;
+ return clamp(Math.max(before,after),0,limit);
+}
 export function radioNowPlaying(piece,absoluteStep=0){
  if(!piece||!Number.isFinite(piece.bpm)||piece.bpm<=0)return null;
  const totalSections=piece.sections?.length||piece.targetLoops||0;

@@ -5,6 +5,7 @@ import {GOLDEN_LARGE,GOLDEN_SMALL,GOLDEN_ANGLE_TURNS} from "./phi-dynamics.js";
 import {CHORD_ROOTS,chordsInKey,chordFromSymbol} from "./harmony.js";
 import {harmonicDegrees,phraseBlueprint,developPhrase,smoothVoicing,chooseMelodyNote} from "./musical-grammar.js";
 import {applyWholeSongGroove} from "./radio-channels.js";
+import {planEnsembleParts,coordinateEnsemble} from "./radio-ensemble.js";
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const clamp01=n=>clamp(n,0,1);
 const pitchClass=n=>((n%12)+12)%12;
@@ -297,11 +298,12 @@ export function planWholeRadioSong(input={}){
  const plan={config,seed,channel,totalBars,totalSteps,turnBar,climaxBar,
   turnStep:Math.round(totalSteps*GOLDEN_SMALL),climaxStep,sections,phrases,
   harmony,harmonicTheme:theme,harmonicAnswer:answer,themes,events:[]};
+ const ensemble=planEnsembleParts({channel,scene,engine,seed,sections,phrases,totalBars,climaxBar});
+ plan.ensemble=ensemble;
  const pitched=composeNotes(plan,random);
  const drums=channel==="mixed"?planMixedDrums(plan):
    applyWholeSongGroove([],channel,seed,sections,scene,totalBars);
- plan.events=[...pitched,...drums].sort((a,b)=>a.step-b.step||
-   a.track.localeCompare(b.track)||((a.note??0)-(b.note??0)));
+ plan.events=coordinateEnsemble([...pitched,...drums],ensemble,harmony);
  return plan;
 }
 // Compatibility only: actual transport still requires indexed 128-step buffers.

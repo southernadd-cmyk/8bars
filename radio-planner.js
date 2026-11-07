@@ -65,12 +65,12 @@ export function chooseRadioProfile(previous=null,random=Math.random,selectedChan
    targetLoops:choose(scene.loops,random),change};
 }
 export function radioSignature(piece){
- // Compare the entire planned score for Classical phi, not only its
- // first eight-bar transport chunk.
- const events=piece.phiScore?.events||piece.events||[];
+ // All radio genres now compare fully planned songs, not first transport chunks.
+ const full=piece.phiScore||piece.songScore;
+ const events=full?.events||piece.events||[];
  const notes=id=>events.filter(e=>e.track===id&&Number.isFinite(e.note));
  const lead=notes("lead"),bass=notes("bass");
- const roots=(piece.phiScore?.harmony||piece.progression||[]).map(c=>c.notes[0]%12);
+ const roots=(full?.harmony||piece.progression||[]).map(c=>c.notes[0]%12);
  const reference=roots[0]??0;
  const contour=lead.slice(0,14).map((e,i)=>i?
    Math.sign(e.note-lead[i-1].note):0).join("");
@@ -85,8 +85,9 @@ export function radioSignature(piece){
    drums:events.filter(e=>["kick","snare"].includes(e.track)&&e.step<64)
      .map(e=>e.track+":"+e.step%16).join("|"),
    voices:Object.values(piece.voices||{}).join("|"),
-   phiMotif:piece.phiScore?.motif.join(",")||"",
-   phiForm:piece.phiScore?.phrases.map(p=>p.lengthBars+":"+p.motif+":"+p.transform).join("|")||""};
+   phiMotif:piece.phiScore?.motif.join(",")||piece.songScore?.themes?.motif?.contour.join(",")||"",
+   phiForm:piece.phiScore?.phrases.map(p=>p.lengthBars+":"+p.motif+":"+p.transform).join("|")||
+    piece.songScore?.sections.map(s=>s.role+":"+s.phase).join("|")||""};
 }
 export function radioNoveltyScore(piece,history=[]){
  const sig=radioSignature(piece);

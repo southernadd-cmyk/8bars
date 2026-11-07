@@ -57,7 +57,7 @@ test("Different seeds vary sections, harmonic routes and motif transformations",
  }
 });
 test("Motivic transformation is related to the original and keeps playable rhythms",()=>{
- const original={rhythm:[0,3,6,8,12],contour:[0,1,3,2,0],articulation:.8};
+ const original={rhythm:[0,3,6,8,12],contour:[0,1,3,2,0],articulation:.8,variation:1,response:2,shift:0};
  const themes={motif:original,answer:{...original,contour:[0,-1,-3,-2,0]},
    bridge:{...original,contour:[0,2,0],rhythm:[0,6,12]}};
  assert.equal(motifForPhrase(themes,{motif:"C"}),themes.bridge);
@@ -105,7 +105,7 @@ test("First piece and subsequent pieces select on quality plus musical novelty",
  assert.match(src,/function chooseOpeningPiece\(\)/);
  assert.match(src,/evaluatePieceQuality\(b\)\.score-evaluatePieceQuality\(a\)\.score/);
  assert.match(src,/radioNoveltyScore\(b,\[current,\.\.\.recentPieces\]\)/);
- assert.match(src,/\.35\*evaluatePieceQuality\(p\)\.score/);
+ assert.match(src,/\.35\*evaluatePieceQuality\(b\)\.score/);
 });
 test("Human Radio consistently calls the listening unit a piece",()=>{
  const js=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");

@@ -2,6 +2,7 @@ import {planInstrumentPalette} from "./instrument-palettes.js";
 import {TRACKS} from "./composer.js?v=0.5.5";
 import {planPhiSong,slicePhiSong} from "./phi-song-planner.js";
 import {planWholeRadioSong,sliceWholeRadioSong} from "./radio-whole-song.js";
+import {evaluatePieceQuality} from "./radio-piece-quality.js";
 import {phiDynamicGain} from "./phi-dynamics.js";
 import {composeWithEngine} from "./music-engines.js?v=0.7.10";
 import {DRUMS,VOICES,DEFAULT_VOICES,REGEN_VOICE_POOLS,VOICE_FAMILIES,nearestSample} from "./sounds.js";
@@ -255,6 +256,14 @@ function planNext(expand=true){
  // six sections are only composed for the winner, not on the audio hot path.
  return expand?finishRadioForm(candidate):candidate;
 }
+// Evaluate several COMPLETE symbolic candidates before paying the cost of
+// decoding their recorded instruments. Quality only screens structural faults;
+// seeded form and melodic novelty remain independent.
+function chooseOpeningPiece(){
+ const candidates=Array.from({length:4},()=>planNext(false));
+ candidates.sort((a,b)=>evaluatePieceQuality(b).score-evaluatePieceQuality(a).score);
+ return finishRadioForm(candidates[0]);
+}
 function soundFor(piece,e){
   if(piece.channel==="hiphop"&&drums.includes(e.track)){
     const recorded=hiphopDrumSample(piece.scene,e.track,e.step,piece.seed);
@@ -338,9 +347,11 @@ async function queueNext(){
    // Several complete *symbolic* pieces are cheap to score. Only download the
    // winning recorded-sample set, avoiding needless network requests.
    const alternatives=Array.from({length:5},()=>planNext(false))
-     .sort((a,b)=>
-       radioNoveltyScore(b,[current,...recentPieces])+transitionHarmonyScore(current,b)-
-       radioNoveltyScore(a,[current,...recentPieces])-transitionHarmonyScore(current,a));
+     .sort((a,b)=>{
+       const rank=p=>radioNoveltyScore(p,[current,...recentPieces])+
+         transitionHarmonyScore(current,p)+.35*evaluatePieceQuality(p).score;
+       return rank(b)-rank(a);
+     });
    for(const lightweight of alternatives){
      if(!playing||next||forVersion!==channelVersion)break;
      try{
@@ -525,7 +536,7 @@ async function start(){
     await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
-      if(!current)current=planNext();
+      if(!current)current=chooseOpeningPiece();
       await prepare(current);
       // The pre-start selector can change while recordings download.
       // Never start an already superseded station's music.

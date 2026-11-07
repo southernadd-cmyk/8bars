@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {formatRadioTime,audibleSongStep,radioNowPlaying} from "../radio-now-playing.js";
+import {formatRadioTime,audibleSongStep,radioNowPlaying,stableSongStep} from "../radio-now-playing.js";
 
 const makeSong=(channel="pop",loops=6)=>({
  title:"Testing Title",channel,bpm:96,style:"downtempo",scene:"indie",
@@ -44,6 +44,16 @@ test("position tracks the audible clock, compensating for look-ahead scheduling"
  assert.equal(audibleSongStep({loops:0,step:0,stepTime:1,audioTime:0,bpm,totalSteps:768}),0);
  assert.equal(audibleSongStep({loops:999,step:0,stepTime:1,audioTime:1,bpm,totalSteps:768}),768);
  assert.equal(audibleSongStep({loops:4,step:1,stepTime:1,audioTime:1,bpm:0,totalSteps:768}),0);
+});
+test("preloading repeats hold progress instead of moving the UI backwards",()=>{
+ assert.equal(stableSongStep(270,250,768),270);
+ assert.equal(stableSongStep(270,290,768),290);
+ assert.equal(stableSongStep(760,9999,768),768);
+ assert.equal(stableSongStep(270,0,0),0);
+ // The UI resets its hold only when the current song object changes.
+ const script=readFileSync(new URL("../humanradio.js",import.meta.url),"utf8");
+ assert.match(script,/if\(current!==displayedProgressPiece\)/);
+ assert.match(script,/stableSongStep\(displayedProgressStep,audible,totalSteps\)/);
 });
 test("piece metadata matches actual section, genre, BPM and key",()=>{
  const playing=radioNowPlaying(makeSong("hiphop"),3*128+32);

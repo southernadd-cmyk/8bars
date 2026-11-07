@@ -56,7 +56,14 @@ function pocketMs({channel,groove,track,step,phrasePhase,climax,barStep,limit,ph
   // Preparations lean forward, cadences settle, without moving the bar clock.
   if(channel==="classical"||groove==="breathing"||groove==="lyrical")
    amount+=Math.sin(phrasePos*Math.PI*2)*9+Math.max(0,phrasePos-.73)*36;
-  else if(pos===14||pos===15)amount-=3;
+  else {
+   // The same phrase has a gentle lean towards its midpoint and relaxation
+   // at the close. This applies across pop/hip-hop/mixed too, but the fast DnB
+   // pulse remains tighter so breaks don't lose their precision.
+   amount+=Math.sin(phrasePos*Math.PI*2)*(channel==="dnb"?3:6);
+   amount+=Math.max(0,phrasePos-.82)*(channel==="dnb"?9:19);
+   if(pos===14||pos===15)amount-=3;
+  }
  }
  if(phrasePhase==="resolution"&&track==="lead"&&phrasePos>.72)amount+=4;
  if(accent==="pickup"&&track==="lead")amount-=5;

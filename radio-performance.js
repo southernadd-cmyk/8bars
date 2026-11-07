@@ -37,7 +37,6 @@ function groupSignature(track,step,phraseId){
 }
 function pocketMs({channel,groove,track,step,phrasePhase,climax,barStep,limit,phrasePos,accent}){
  const pos=step%16;
- if(structuralEvent({tag:climax}))return 0;
  // Every instrument shares a section-wide pulse. Do not apply independent
  // random 'humanise' jitter to simultaneous chord tones.
  let amount=0;

@@ -461,13 +461,12 @@ async function start(){
       master.connect(safety);safety.connect(analyser);analyser.connect(ctx.destination);
       visual.attach(analyser);
     }
-    // Some browsers may never settle AudioContext.resume() when audio output
-    // is blocked. Show a visible error instead of a permanently inert button.
-    await Promise.race([
-      ctx.resume(),
-      new Promise((_,reject)=>setTimeout(()=>reject(Error("Audio start timed out. Check browser sound permissions and try again.")),8000))
-    ]);
-    status("Loading song plan and recorded instruments…");
+    // Request audio synchronously within the click gesture, but do not block
+    // composition/sample preparation on browsers where resume() stays pending.
+    // A pending resume used to make the Start button appear completely inert.
+    const audioReady=ctx.state==="running"?Promise.resolve(true):
+      ctx.resume().then(()=>true,()=>false);
+    status("Planning the complete composition…");
     await loadRadioWords();
     if(!current||!current.ready){
       status("Preparing the first eight bars and decoding the recorded instruments…");
@@ -484,6 +483,15 @@ async function start(){
       current.bus.gain.value=.82;
       showSongIdentity(current);
     }
+    if(ctx.state!=="running"){
+      status("Composition ready · requesting sound permission…");
+      await Promise.race([audioReady,new Promise(resolve=>setTimeout(resolve,3000))]);
+    }
+    if(ctx.state!=="running"){
+      $("start").textContent="▶ Enable sound / retry";
+      throw Error("Sound is suspended. Click Enable sound / retry, or allow audio for this site.");
+    }
+    $("start").textContent="▶ Start listening";
     playing=true;paused=false;epoch++;
     visual.start();
     step=0;loops=0;targetLoops=current.sections.length;displayedSection=-1;
